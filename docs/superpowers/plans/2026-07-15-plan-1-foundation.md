@@ -212,7 +212,7 @@ export {};
 
 `packages/shared/src/index.ts`:
 ```ts
-export * as core from './core/index.js';
+export * as core from './core/index';
 ```
 (Barrel is convenience only; apps import the subpaths directly.)
 
@@ -443,8 +443,8 @@ git commit -m "feat(db): single Prisma schema (QrCode + ma'lumotnoma models) + c
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { Role, CertStatus, WfAction } from './enums.js';
-import { findTransition, canEdit, canDelete, ROLE_INBOX } from './workflow.js';
+import { Role, CertStatus, WfAction } from './enums';
+import { findTransition, canEdit, canDelete, ROLE_INBOX } from './workflow';
 
 describe('workflow transitions', () => {
   it('yurist submits a draft to admin review', () => {
@@ -535,7 +535,7 @@ export type WfAction = (typeof WfAction)[keyof typeof WfAction];
 - [ ] **Step 4: Create `packages/shared/src/core/workflow.ts`**
 
 ```ts
-import { Role, CertStatus, WfAction } from './enums.js';
+import { Role, CertStatus, WfAction } from './enums';
 
 export interface TransitionRule {
   from: CertStatus;
@@ -612,7 +612,7 @@ git commit -m "feat(core): workflow transitions + edit/delete rules (TDD)"
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { formatCertNumber, counterId } from './numbering.js';
+import { formatCertNumber, counterId } from './numbering';
 
 describe('formatCertNumber', () => {
   it('formats date as DDMMYYYY and pads seq to 2 digits', () => {
@@ -689,8 +689,8 @@ git commit -m "feat(core): certificate numbering helpers (TDD)"
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { Role } from './enums.js';
-import { createSession, verifySession, hashPassword, verifyPassword } from './auth.js';
+import { Role } from './enums';
+import { createSession, verifySession, hashPassword, verifyPassword } from './auth';
 
 const payload = { sub: 'u1', login: 'yurist', role: Role.YURIST, fullName: 'Test Yurist' };
 
@@ -729,7 +729,7 @@ Expected: FAIL — cannot resolve `./auth.js`.
 ```ts
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
-import { Role } from './enums.js';
+import { Role } from './enums';
 
 const secret = () =>
   new TextEncoder().encode(process.env.AUTH_SECRET || 'dev-secret-change-me-min-32-chars-long!!');
@@ -804,7 +804,7 @@ git commit -m "feat(core): jose session + bcrypt password helpers (TDD)"
 - [ ] **Step 1: Create `packages/shared/src/core/labels.ts`**
 
 ```ts
-import { Role, CertStatus, WfAction } from './enums.js';
+import { Role, CertStatus, WfAction } from './enums';
 
 export const STATUS_LABELS: Record<CertStatus, string> = {
   [CertStatus.DRAFT]: 'Qoralama',
@@ -832,11 +832,11 @@ export const ACTION_LABELS: Record<WfAction, string> = {
 - [ ] **Step 2: Create `packages/shared/src/core/index.ts`**
 
 ```ts
-export * from './enums.js';
-export * from './workflow.js';
-export * from './numbering.js';
-export * from './auth.js';
-export * from './labels.js';
+export * from './enums';
+export * from './workflow';
+export * from './numbering';
+export * from './auth';
+export * from './labels';
 ```
 
 - [ ] **Step 3: Run tests (still green)**
@@ -903,8 +903,8 @@ Expected: "Your database is now in sync with your Prisma schema."
 - [ ] **Step 3: Create `packages/shared/prisma/seed.ts`**
 
 ```ts
-import { prisma } from '../src/db/index.js';
-import { hashPassword, Role } from '../src/core/index.js';
+import { prisma } from '../src/db/index';
+import { hashPassword, Role } from '../src/core/index';
 
 async function main() {
   const firms = [
