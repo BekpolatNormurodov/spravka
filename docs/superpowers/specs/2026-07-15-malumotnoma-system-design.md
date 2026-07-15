@@ -70,27 +70,46 @@ enum WfAction   { SUBMIT APPROVE RETURN SIGN DELETE RESTORE }
 
 model User {
   id String @id @default(cuid())
-  fullName String
+  fullName String                // F.I.O.
   login String @unique
   passwordHash String            // bcrypt
   plainPassword String?          // admin-visible convenience (internal tool)
   role Role
-  firmId String?                 // reserved: optional rahbar-firm scoping (unused for filtering in v1)
+  position String?               // lavozim (e.g. "Bosh yurist", "Ijrochi direktor")
   phone String?
+  email String?
+  avatarPath String?             // profil rasmi
+  firmId String?                 // optional firm affiliation (rahbar/yurist)
   isActive Boolean @default(true)
+  lastLoginAt DateTime?          // for monitoring
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Firm "dalniylar" / rekvizitlar — admin-managed CRUD + seeded
+// Firm "dalniylar" / rekvizitlar — admin-managed CRUD + seeded. Full official UZ requisites so the
+// generated certificate can render a complete legal header/footer.
 model Firm {
   id String @id @default(cuid())
-  name String                    // Cyrillic org name (e.g. "BRIGHT FUTURE FINANCING …" MCHJ)
+  name String                    // full Cyrillic legal name (e.g. "BRIGHT FUTURE FINANCING …" MCHJ)
   shortName String?
+  stir String?                   // СТИР / ИНН (tax id)
+  oked String?                   // ОКЭД
+  // People
   directorName String            // Ижрочи директори (fixed → one-click sign)
+  directorPosition String @default("Ижрочи директори")
   executorName String            // Ижрочи
+  executorPhone String?
+  // Contacts
   phone String
-  address String?
+  email String?
+  website String?
+  region String?
+  address String?                // yuridik manzil
+  // Bank rekvizitlari
+  bankName String?
+  bankAccount String?            // hisob raqami (h/r)
+  mfo String?                    // bank MFO kodi
+  // Brand assets (uploaded by admin)
   logoPath String?
   sealPath String?               // муҳр image
   signaturePath String?          // director imzo image
@@ -231,6 +250,36 @@ account can sign for any firm; the certificate always shows the correct firm dir
   four apps so they feel like one product. Built and refined with **/ui-ux-pro-max** and
   **/frontend-design**.
 
+### 7.1 Sidebar & navigation (ideal)
+
+`AppShell` adapted from credit-core: a polished **collapsible left sidebar** (icon + label, grouped
+items, active-route highlight, a user card + logout pinned to the bottom) and a top bar (page title,
+optional search, theme toggle). Responsive — becomes a drawer on mobile. Reused identically in all
+apps; each app shows only its role's items:
+
+| App | Sidebar items |
+|-----|----------------|
+| **web-yurist** | Boshqaruv · Yangi ariza · Mening arizalarim · Kalendar · Profil |
+| **web-admin** | Monitoring · Arizalar (inbox) · Firmalar · Foydalanuvchilar · Kalendar · Hisobotlar · Sozlamalar · Profil |
+| **web-rahbar** | Monitoring · Imzolash (inbox) · Imzolangan · Arxiv · Kalendar · Profil |
+
+### 7.2 Kalendar
+
+A **month/week calendar** of certificates by date (`issueDate` / `signedAt`). Each day shows small
+count badges by status (draft / pending / signed); clicking a day opens that day's certificates in a
+`DataTable`, filterable by firm/status. Scope per role (yurist = own, admin = all, rahbar = signed +
+queue). **No SLA/deadline engine** — a pure activity/issuance calendar (kept simple, as requested).
+
+### 7.3 Monitoring (simple)
+
+A lightweight dashboard, not heavy BI:
+- **Stat cards:** totals by status; issued & signed today / this week / this month; per-firm counts.
+- **Productivity:** per-user counts (yurist created, admin approved, rahbar signed) using `lastLoginAt`
+  + `WorkflowEvent`.
+- **One small chart** (last 30 days issued vs signed) + a **recent activity feed** from `WorkflowEvent`.
+
+Reuses credit-core's `Dashboard` / `AnalyticsPage` widgets, trimmed down.
+
 ## 8. DevOps — one system
 
 - **ONE** `deploy/docker-compose.yml`: one **MySQL** (single volume), the 4 Next apps, one **nginx**
@@ -244,7 +293,7 @@ account can sign for any firm; the certificate always shows the correct firm dir
 | Source | Reused |
 |--------|--------|
 | **qrcode-pro** | becomes `web-qr`; Next 14 + Prisma + jose auth, `qrImage.ts` QR gen, public FILE-serving `/q/[id]` → `/m/[id]`, dark theme, Docker/nginx shape |
-| **credit-core** | `DataTable`/`AppShell`/`LoginPage`/`Modal`/forms UI, Role model, workflow-transition pattern, WorkflowEvent timeline, deploy/nginx/subdomain topology |
+| **credit-core** | UI (into `@spravka/shared/ui`): `AppShell` (sidebar+topbar), `DataTable`, `LoginPage`, `Modal`, `forms`, `primitives`, `widgets`, `Toast`, `CaseTimeline` → cert timeline, `Dashboard`/`AnalyticsPage` → simple monitoring; `lib/theme`, `lib/i18n`, `lib/icons`, `lib/colors`, `lib/roles`. Also: Role model, workflow-transition pattern, deploy/nginx/subdomain topology. Only the needed pieces are ported (domain-specific credit-case code is left behind). |
 
 ## 10. Seed data
 
@@ -266,9 +315,10 @@ account can sign for any firm; the certificate always shows the correct firm dir
 
 1. Monorepo scaffold; move qrcode-pro → `apps/web-qr`; create `@spravka/shared` (db/core/ui);
    merge Prisma schema (QrCode + new models) into one; seed (firms + one user per role).
-2. `@spravka/shared/core` (auth, workflow, numbering, PDF render, qr) + `@spravka/shared/ui`.
-3. web-yurist (create / edit / submit).
-4. web-admin (approve + Firms/Users CRUD + analytics).
-5. web-rahbar (sign → PDF generation; delete/restore arxiv).
+2. `@spravka/shared/core` (auth, workflow, numbering, PDF render, qr) + `@spravka/shared/ui`
+   (AppShell/sidebar, DataTable, LoginPage, Modal, forms, Toast, timeline, calendar & monitoring widgets).
+3. web-yurist (create / edit / submit; Kalendar; profil).
+4. web-admin (Monitoring dashboard; Arizalar inbox + edit/approve; Firms CRUD; Users CRUD; Kalendar).
+5. web-rahbar (Monitoring; sign → PDF generation; delete/restore arxiv; Kalendar).
 6. web-qr public certificate view (`/m/[id]`: serve PDF for signed, TASDIQLANMAGAN for unsigned; print).
 7. DevOps: one compose, one MySQL, nginx subdomains; migrate existing QR data; cutover.
