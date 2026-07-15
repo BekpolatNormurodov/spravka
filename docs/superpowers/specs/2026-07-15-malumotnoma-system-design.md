@@ -111,8 +111,8 @@ model Firm {
   mfo String?                    // bank MFO kodi
   // Brand assets (uploaded by admin)
   logoPath String?
-  sealPath String?               // муҳр image
-  signaturePath String?          // director imzo image
+  sealPath String?               // муҳр image — OPTIONAL, not required in v1
+  signaturePath String?          // director imzo image — OPTIONAL, not required in v1
   isActive Boolean @default(true)
   certificates Certificate[]
   createdAt DateTime @default(now())
@@ -213,18 +213,21 @@ restorable). ADMIN and YURIST cannot delete. A deleted certificate's public page
 
 Each app authenticates **only its own role** (login rejects a mismatched role).
 
-**Signature semantics (explicit):** on SIGN, the applied signature + seal are always the **selected
-firm's** stored `directorName` / `signaturePath` / `sealPath` — not the logged-in rahbar's. One RAHBAR
-account can sign for any firm; the certificate always shows the correct firm director.
+**Signature semantics (explicit):** on SIGN, the document gets a **generated green «ТАСДИҚЛАНДИ»
+stamp (suvenir)** plus the selected firm's `directorName` (as text) in the signature block. Firm
+`signaturePath` / `sealPath` images are **optional (v1: not required)** — if uploaded they are overlaid,
+otherwise the generated stamp alone is shown. The stamp/director always reflect the **selected firm**,
+not the logged-in rahbar; one RAHBAR account can sign for any firm.
 
 ## 5. Document generation + public verification (the "qrcode system" part)
 
 - **On SIGN**, `@spravka/shared/core` renders the ma'lumotnoma to an **ideal A4 PDF file** (Uzbek
   **Cyrillic**, matching the source `.docx` layout: Сана, №, firm header, addressee, «МАЪЛУМОТНОМА»,
-  body paragraph, director signature block, Ижрочи + phone) with the firm `sealPath` + director
-  `signaturePath` and a green round **«ТАСДИҚЛАНГАН»** seal baked in. A **QR** pointing to the public
-  URL is printed on the PDF. The file is stored under the uploads volume; `Certificate.pdfPath` is set.
-  Rendering: server-side HTML→PDF (headless Chromium) for layout fidelity + embedded Cyrillic font.
+  body paragraph, director signature block, Ижрочи + phone) with a **generated green round
+  «ТАСДИҚЛАНДИ» stamp (suvenir)** baked in. Firm imzo/muhr images are optional (overlaid only if
+  uploaded). A **QR** pointing to the public URL is printed on the PDF. The file is stored under the
+  uploads volume; `Certificate.pdfPath` is set. Rendering: server-side HTML→PDF (headless Chromium)
+  for layout fidelity + embedded Cyrillic font.
 - **Public surface = `web-qr`.** The public URL `qr.<domain>/m/[id]` (a sibling of the existing
   `/q/[id]`) serves the generated PDF for SIGNED certificates — exactly like qrcode-pro's FILE type
   ("qrcode dagidek, faqat file shaklida"). Each view increments `Certificate.scans`.
@@ -305,7 +308,8 @@ Reuses credit-core's `Dashboard` / `AnalyticsPage` widgets, trimmed down.
 
 - Number format `DDMMYYYY/NN`; NN = per-firm running counter (`Counter` id `<firmId>:<year>`).
 - **4 apps** total (web-qr + 3 roles); **no web-public**.
-- Firm director fixed per firm → one-click sign uses stored imzo + muhr.
+- Firm director fixed per firm → one-click sign applies a generated «ТАСДИҚЛАНДИ» stamp; imzo/muhr
+  images are optional (deferred past v1).
 - Signed deliverable = **ideal A4 PDF file**, served via web-qr's public mechanism.
 - **Edit** allowed only pre-approval (YURIST in DRAFT; ADMIN in DRAFT/ADMIN_REVIEW); frozen after.
 - **Delete** is RAHBAR-only (soft-delete/arxiv, reason required, restorable).
