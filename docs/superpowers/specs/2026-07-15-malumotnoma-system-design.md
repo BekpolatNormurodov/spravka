@@ -65,8 +65,8 @@ model QrCode { … unchanged … }
 
 // New
 enum Role       { YURIST ADMIN RAHBAR }
-enum CertStatus { DRAFT ADMIN_REVIEW DIRECTOR_REVIEW SIGNED REJECTED CANCELLED }
-enum WfAction   { SUBMIT APPROVE RETURN SIGN REJECT CANCEL REOPEN }
+enum CertStatus { DRAFT ADMIN_REVIEW DIRECTOR_REVIEW SIGNED }
+enum WfAction   { SUBMIT APPROVE RETURN SIGN DELETE RESTORE }
 
 model User {
   id String @id @default(cuid())
@@ -129,6 +129,11 @@ model Certificate {
   signedAt DateTime?
   scans Int @default(0)
 
+  // Soft-delete (arxiv) — RAHBAR-only. Recoverable + audited. deletedReason mandatory.
+  deletedAt DateTime?
+  deletedById String?
+  deletedReason String? @db.Text
+
   createdById String
   events WorkflowEvent[]
   createdAt DateTime @default(now())
@@ -169,16 +174,23 @@ Single source of truth in `@spravka/shared/core/workflow.ts`:
 | DRAFT | ADMIN_REVIEW | YURIST | SUBMIT |
 | ADMIN_REVIEW | DIRECTOR_REVIEW | ADMIN | APPROVE |
 | ADMIN_REVIEW | DRAFT | ADMIN | RETURN |
-| ADMIN_REVIEW | REJECTED | ADMIN | REJECT |
 | DIRECTOR_REVIEW | SIGNED | RAHBAR | SIGN |
 | DIRECTOR_REVIEW | ADMIN_REVIEW | RAHBAR | RETURN |
-| DRAFT / ADMIN_REVIEW / DIRECTOR_REVIEW | CANCELLED | ADMIN | CANCEL |
+| any status | (soft-deleted → arxiv) | **RAHBAR** | DELETE / RESTORE |
+
+**Edit-lock rule:** a certificate's content is **editable only before approval** — by YURIST in
+`DRAFT`, and by ADMIN in `DRAFT`/`ADMIN_REVIEW`. **Once ADMIN approves (→ `DIRECTOR_REVIEW`) the
+content is frozen: no edits by anyone** (director only signs/returns/deletes). If the director
+RETURNs it, it re-enters `ADMIN_REVIEW` and becomes editable again.
+
+**Delete-lock rule:** deletion is **RAHBAR-only** (soft-delete to arxiv, with a mandatory reason;
+restorable). ADMIN and YURIST cannot delete. A deleted certificate's public page shows invalid.
 
 | Role | App | Capabilities |
 |------|-----|--------------|
-| **YURIST** | web-yurist | Create ariza; pick firm; enter fiz-litso + contract data; submit; edit own DRAFTs; view own list + statuses |
-| **ADMIN** | web-admin | Full edit of any ariza; approve → rahbar / return / reject; **Firms CRUD** (+ upload logo/seal/imzo); **Users CRUD** (roles, passwords); analytics/timeline |
-| **RAHBAR** | web-rahbar | View admin-approved queue; **Imzolash** one-click → generates PDF, → SIGNED/public; return; read-only otherwise |
+| **YURIST** | web-yurist | Create ariza; pick firm; enter fiz-litso + contract data; submit; **edit own DRAFTs**; view/print own list + statuses |
+| **ADMIN** | web-admin | **View + edit any ariza until approval**; approve → rahbar / return; **Firms CRUD** (+ upload logo/seal/imzo); **Users CRUD** (roles, passwords); analytics/timeline; print. **No delete.** |
+| **RAHBAR** | web-rahbar | View admin-approved queue; **Imzolash** one-click → generates PDF → SIGNED/public; return; **delete/restore (arxiv)**; print; read-only otherwise |
 
 Each app authenticates **only its own role** (login rejects a mismatched role).
 
@@ -199,6 +211,9 @@ account can sign for any firm; the certificate always shows the correct firm dir
   ("qrcode dagidek, faqat file shaklida"). Each view increments `Certificate.scans`.
 - **Not-yet-signed:** the public URL shows a minimal red **«ТАСДИҚЛАНМАГАН»** status page (no valid
   file yet). Signed = valid file; unsigned = clearly marked invalid. (Verify-anytime behavior.)
+- **Print** ("Chop etish"): a print button on the document view (role apps' preview **and** the
+  public page) opens the browser print dialog with print-optimized A4 CSS (or the generated PDF for
+  signed certs) — clean printout with no app chrome.
 - Public surface is **read-only**; no write endpoints exposed.
 
 ## 6. Auth & security
@@ -210,7 +225,11 @@ account can sign for any firm; the certificate always shows the correct firm dir
 
 - Role UIs in Uzbek **Latin**; certificate body in Uzbek **Cyrillic**. Dark theme from qrcode-pro;
   `DataTable`/`AppShell`/`LoginPage`/`Modal`/forms adapted from credit-core into `@spravka/shared/ui`.
-- Visual polish with **/ui-ux-pro-max** and **/frontend-design** during implementation.
+- **Beautiful, consistent components are a priority.** A single design system in `@spravka/shared/ui`:
+  polished data tables (sorting/filtering/status badges), cards, modals, toasts, form controls,
+  timeline, tasteful motion/transitions, empty states, and skeletons — reused identically across all
+  four apps so they feel like one product. Built and refined with **/ui-ux-pro-max** and
+  **/frontend-design**.
 
 ## 8. DevOps — one system
 
@@ -239,6 +258,9 @@ account can sign for any firm; the certificate always shows the correct firm dir
 - **4 apps** total (web-qr + 3 roles); **no web-public**.
 - Firm director fixed per firm → one-click sign uses stored imzo + muhr.
 - Signed deliverable = **ideal A4 PDF file**, served via web-qr's public mechanism.
+- **Edit** allowed only pre-approval (YURIST in DRAFT; ADMIN in DRAFT/ADMIN_REVIEW); frozen after.
+- **Delete** is RAHBAR-only (soft-delete/arxiv, reason required, restorable).
+- **Print** available on document views (role apps + public).
 
 ## 12. Build phases (→ implementation plan)
 
@@ -247,6 +269,6 @@ account can sign for any firm; the certificate always shows the correct firm dir
 2. `@spravka/shared/core` (auth, workflow, numbering, PDF render, qr) + `@spravka/shared/ui`.
 3. web-yurist (create / edit / submit).
 4. web-admin (approve + Firms/Users CRUD + analytics).
-5. web-rahbar (sign → PDF generation).
-6. web-qr public certificate view (`/m/[id]`: serve PDF for signed, TASDIQLANMAGAN for unsigned).
+5. web-rahbar (sign → PDF generation; delete/restore arxiv).
+6. web-qr public certificate view (`/m/[id]`: serve PDF for signed, TASDIQLANMAGAN for unsigned; print).
 7. DevOps: one compose, one MySQL, nginx subdomains; migrate existing QR data; cutover.
