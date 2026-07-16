@@ -57,7 +57,7 @@ the on-screen HTML view.
 |---|---|---|
 | Render engine | Headless Chromium (Puppeteer) | The only engine that can reuse `CertificateDocument`. A PDF library would mean re-drawing the layout by hand and re-breaking the 1:1 fidelity with the source .docx. |
 | How Chromium gets the HTML | `renderToStaticMarkup` → `page.setContent` | No internal render route, so no auth bypass to protect. One source of layout truth. |
-| Font | Bundled Liberation Serif, base64-inlined | See §5. |
+| Font | Bundled Tinos + Arimo, base64 baked into a generated module | See §5. |
 | Storage | Filesystem under `CERT_STORAGE_DIR`, path in `pdfPath` | `pdfPath` already exists and implies it; single host; nginx + systemd already in the deploy. |
 | Public page | Keeps the HTML view, adds a "Rasmiy PDF" download | HTML reads better on a phone. The stored file stays one click away and is the legal artifact. |
 | Already-signed certs | Generated lazily on first request | One legacy row (`26062026/01`); a migration script for a single document is not worth its own failure mode. |
@@ -101,17 +101,29 @@ on the Linux production host**. Chromium does not fail on a missing font — it 
 re-flowing every line. The result would be that the layout is correct in dev, wrong in prod, wrong
 in every file already frozen by the time anyone notices, and unfixable after the fact.
 
-**Fix:** bundle **Liberation Serif** (Regular + Bold) in the repo and inline it as base64 `@font-face`
-in the generated HTML, with `font-family` resolving to it. Liberation Serif is metrically compatible
-with Times New Roman — glyph advance widths match by design — and covers Cyrillic. The rendered PDF
-then depends on nothing installed on the host, and dev and prod agree.
+The stamp has the same problem for a different reason. It names `Plus Jakarta Sans`, but that font
+ships no Cyrillic — measured, not assumed: every letter of ТАСДИҚЛАНДИ already fell through to the
+generic sans, i.e. Arial on Windows and something else on Linux. The component now says `Arial`,
+which changes nothing on screen and names something the PDF can pin.
 
-The bundled files are a build input, not an asset: they are read at render time and embedded in the
-HTML, so nothing is served over HTTP and no CDN is involved.
+**Fix:** bundle the **Croscore** substitutes — **Tinos** for Times New Roman, **Arimo** for Arial —
+and declare each `@font-face` under the name the *document* asks for, so the component needs no
+PDF-specific branch. Both are metrically compatible with the fonts they replace (advance widths
+match by design), both cover Cyrillic, and both are on npm as `@fontsource/*`. Liberation Serif,
+the first choice, is not published to npm; Tinos is its sibling and has the same relationship to
+Times New Roman.
 
-**Verification (must be part of the work, not assumed):** render the same certificate on Windows and
-on the Linux host and compare the text layout. A font fallback is not subtle once measured — line
-counts and the signature block's position move.
+Subsets are chosen from the document's own text, not by eye: **latin + cyrillic + cyrillic-ext**.
+Uzbek қ/ғ/ҳ live in cyrillic-ext — omit it and exactly those letters fall back, mid-word.
+
+The bytes are **baked into a generated `fonts.data.ts`** (`scripts/build-fonts.mjs`) rather than
+read from `node_modules` at render time. Next bundles the server with webpack, which rewrites
+`require.resolve()` into a context stub resolving nothing: the fonts disappear inside Next while
+working under tsx, and the failure surfaces as a document that is merely *wrong*. Baking them in
+leaves no lookup to break, and dev, prod, tsx and vitest all get the same bytes.
+
+**Verification (part of the work, not assumed):** the PDF's embedded font list must name Tinos and
+Arimo. That is the tripwire — a fallback shows up there long before anyone notices it by eye.
 
 ## 6. Flow
 
@@ -189,11 +201,16 @@ Unit (`packages/shared`, vitest — the existing suite is 46 tests / 6 files):
 - `ensure.ts` — with a stubbed renderer: skips rendering when `pdfPath` is set and the file exists;
   renders exactly once when absent; refuses a non-SIGNED certificate.
 
-Integration (not in the unit suite — needs Chromium):
+Integration (not in the unit suite — needs Chromium and a running app):
 
-- Render `26062026/01` and assert: starts with `%PDF`, one page, A4 (595×842pt ±1), Liberation Serif
-  is listed in the PDF's embedded fonts (this is the font-fallback tripwire), and the extracted text
-  contains the firm name, the person's name and `ТАСДИҚЛАНДИ`.
+Sign a throwaway ariza through the real HTTP route with a minted session, then assert: 200/SIGNED,
+`pdfPath` + `pdfSha256` written, the file on disk starts with `%PDF`, its digest matches the row,
+the page is A4, **Tinos and Arimo appear in the PDF's embedded fonts**, and the public route hands
+back bytes identical to the ones signed. Clean up after.
+
+Sign a *fresh* ariza — not one already frozen. Checking the download route against a certificate
+whose file was already on disk passes without ever rendering, which is how a render broken in both
+apps first looked verified.
 
 Byte-for-byte determinism is **not** asserted: Puppeteer stamps a creation date into the PDF.
 
