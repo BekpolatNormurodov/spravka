@@ -1,0 +1,44 @@
+import Link from 'next/link';
+import { prisma } from '@/lib/prisma';
+import { CertStatus, STATUS_LABELS } from '@spravka/shared/core';
+
+export const dynamic = 'force-dynamic';
+
+const CARDS: { status: CertStatus; tone: string }[] = [
+  { status: CertStatus.DRAFT, tone: 'text-slate-300' },
+  { status: CertStatus.ADMIN_REVIEW, tone: 'text-amber-300' },
+  { status: CertStatus.DIRECTOR_REVIEW, tone: 'text-violet-300' },
+  { status: CertStatus.SIGNED, tone: 'text-emerald-300' },
+];
+
+export default async function Monitoring() {
+  const [grouped, firms, users, recent] = await Promise.all([
+    prisma.certificate.groupBy({ by: ['status'], where: { deletedAt: null }, _count: { _all: true } }),
+    prisma.firm.count({ where: { isActive: true } }),
+    prisma.user.count({ where: { isActive: true } }),
+    prisma.certificate.count({ where: { deletedAt: null } }),
+  ]);
+  const countOf = (s: CertStatus) => grouped.find((g) => g.status === s)?._count._all ?? 0;
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-1">Monitoring</h1>
+      <p className="text-sm text-slate-400 mb-6">Umumiy holat va statistika</p>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        {CARDS.map((c) => (
+          <Link key={c.status} href="/imzolash" className="card p-5 hover:border-white/20 transition">
+            <div className={`text-3xl font-bold ${c.tone}`}>{countOf(c.status)}</div>
+            <div className="mt-1 text-sm text-slate-400">{STATUS_LABELS[c.status]}</div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="card p-5"><div className="text-2xl font-bold">{recent}</div><div className="text-sm text-slate-400 mt-1">Jami arizalar</div></div>
+        <div className="card p-5"><div className="text-2xl font-bold">{firms}</div><div className="text-sm text-slate-400 mt-1">Faol firmalar</div></div>
+        <div className="card p-5"><div className="text-2xl font-bold">{users}</div><div className="text-sm text-slate-400 mt-1">Foydalanuvchilar</div></div>
+      </div>
+    </div>
+  );
+}
