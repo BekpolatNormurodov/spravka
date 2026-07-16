@@ -15,7 +15,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!b.name?.trim() || !b.directorName?.trim() || !b.executorName?.trim() || !b.phone?.trim()) {
     return NextResponse.json({ error: 'Majburiy maydonlar toʻldirilmagan' }, { status: 400 });
   }
-  if (b.directorName.trim().split(/\s+/).filter(Boolean).length < 2) {
+  // Accepts both 'А.А.Бойназаров' (initials+surname, the official Uzbek form) and 'Ism Familiya'.
+  if (b.directorName.trim().split(/[.\s]+/).filter(Boolean).length < 2) {
     return NextResponse.json({ error: 'Direktorning ism va familiyasini toʻliq yozing' }, { status: 400 });
   }
 

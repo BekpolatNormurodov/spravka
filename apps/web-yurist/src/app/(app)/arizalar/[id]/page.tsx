@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
-import { StatusBadge, CertificateDocument, QrCard, ReturnNotice } from '@spravka/shared/ui';
+import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice } from '@spravka/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +54,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
             contractType={c.contractType}
             loanAmount={c.loanAmount.toString()}
             asOfDate={c.asOfDate}
-            firm={c.firm}
+            firm={firmForDocument(c.firm, c.firmSnapshot)}
             signed={c.status === CertStatus.SIGNED}
           />
         </div>

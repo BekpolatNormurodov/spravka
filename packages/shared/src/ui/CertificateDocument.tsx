@@ -16,6 +16,14 @@ export interface CertFirm {
   bankName?: string | null;
 }
 
+/**
+ * The firm to print. Once signed, `firmSnapshot` is the legal record — prefer it over the
+ * live Firm row so later edits never alter an issued document.
+ */
+export function firmForDocument(firm: CertFirm, firmSnapshot: unknown): CertFirm {
+  return (firmSnapshot as CertFirm | null) ?? firm;
+}
+
 export interface CertificateDocumentProps {
   number: string;
   issueDate: Date;

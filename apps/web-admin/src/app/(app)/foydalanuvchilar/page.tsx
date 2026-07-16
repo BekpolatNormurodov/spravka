@@ -47,6 +47,7 @@ export default async function Foydalanuvchilar() {
                   <th className="px-4 py-3 text-right font-medium">Arizalar</th>
                   <th className="px-4 py-3 text-left font-medium">Oxirgi kirish</th>
                   <th className="px-4 py-3 text-left font-medium">Holat</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -80,6 +81,7 @@ export default async function Foydalanuvchilar() {
                         {u.isActive ? 'Faol' : 'Nofaol'}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-right"><UserForm user={u} /></td>
                   </tr>
                 ))}
               </tbody>

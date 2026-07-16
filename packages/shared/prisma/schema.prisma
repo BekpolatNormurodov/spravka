@@ -128,6 +128,11 @@ model Certificate {
   bodyText         String?    @db.Text
   pdfPath          String?
 
+  /// Frozen copy of the firm's rekvizitlar taken at SIGN time. Once signed, the document
+  /// renders from this — editing the Firm later must never alter an issued maʼlumotnoma.
+  /// Null while the ariza is still editable (then it renders from the live Firm).
+  firmSnapshot     Json?
+
   signedBy         User?      @relation("CertSignedBy", fields: [signedById], references: [id])
   signedById       String?
   signedAt         DateTime?

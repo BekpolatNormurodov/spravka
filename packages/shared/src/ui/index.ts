@@ -16,5 +16,5 @@ export { Calendar, UZ_MONTHS_LAT } from './Calendar';
 export { STATUS_DOT } from './tokens';
 export type { DayData } from './Calendar';
 export { ThemeScript, StatusBadge, StatCard, PageHeader, EmptyState, Table, ReturnNotice } from './components';
-export { CertificateDocument } from './CertificateDocument';
+export { CertificateDocument, firmForDocument } from './CertificateDocument';
 export type { CertificateDocumentProps, CertFirm } from './CertificateDocument';

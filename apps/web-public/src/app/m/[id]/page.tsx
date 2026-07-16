@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import { prisma } from '@spravka/shared/db';
 import { CertStatus } from '@spravka/shared/core';
-import { CertificateDocument } from '@spravka/shared/ui';
+import { CertificateDocument, firmForDocument } from '@spravka/shared/ui';
 import { PrintButton } from '@/components/PrintButton';
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +57,7 @@ export default async function PublicCert({ params }: { params: { id: string } })
             contractType={cert.contractType}
             loanAmount={cert.loanAmount.toString()}
             asOfDate={cert.asOfDate}
-            firm={cert.firm}
+            firm={firmForDocument(cert.firm, cert.firmSnapshot)}
             signed
             qrDataUrl={qr}
           />

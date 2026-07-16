@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { maskStir, maskPhone, maskAccount, maskMfo } from '@spravka/shared/core';
-import { Modal, TextField, Ico } from '@spravka/shared/ui';
+import { Modal, TextField, Ico, RowAction } from '@spravka/shared/ui';
+
+export type FirmRow = {
+  id: string; name: string; shortName: string | null; stir: string | null;
+  directorName: string; directorPosition: string; executorName: string;
+  executorPhone: string | null; phone: string; bankName: string | null;
+  bankAccount: string | null; mfo: string | null; region: string | null; address: string | null;
+};
 
 const EMPTY = {
   name: '', shortName: '', stir: '',
@@ -12,29 +19,40 @@ const EMPTY = {
   bankName: '', bankAccount: '', mfo: '', region: '', address: '',
 };
 
-export function FirmForm() {
+const fromRow = (r: FirmRow) => ({
+  name: r.name, shortName: r.shortName ?? '', stir: r.stir ?? '',
+  directorName: r.directorName, directorPosition: r.directorPosition,
+  executorName: r.executorName, executorPhone: r.executorPhone ?? '', phone: r.phone,
+  bankName: r.bankName ?? '', bankAccount: r.bankAccount ? maskAccount(r.bankAccount) : '',
+  mfo: r.mfo ?? '', region: r.region ?? '', address: r.address ?? '',
+});
+
+/** Dual-mode: no `firm` → create; with `firm` → edit that firm. */
+export function FirmForm({ firm }: { firm?: FirmRow }) {
+  const editing = !!firm;
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState(EMPTY);
+  const [f, setF] = useState(firm ? fromRow(firm) : EMPTY);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
-  // Each firm must have exactly one director, named (ism + familiya).
-  const directorOk = f.directorName.trim().split(/\s+/).filter(Boolean).length >= 2;
+  // Exactly one director per firm. Accepts the official 'А.А.Бойназаров' form (initials +
+  // surname, no spaces) as well as 'Ism Familiya' — dots count as separators.
+  const directorOk = f.directorName.trim().split(/[.\s]+/).filter(Boolean).length >= 2;
   const valid = f.name.trim() && directorOk && f.executorName.trim() && f.phone.trim();
 
   async function submit() {
     setBusy(true);
     setErr('');
-    const res = await fetch('/api/firms', {
-      method: 'POST',
+    const res = await fetch(editing ? `/api/firms/${firm!.id}` : '/api/firms', {
+      method: editing ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...f, bankAccount: f.bankAccount.replace(/\s/g, '') }),
     });
     if (res.ok) {
-      setF(EMPTY);
+      if (!editing) setF(EMPTY);
       setOpen(false);
       router.refresh();
     } else {
@@ -46,14 +64,20 @@ export function FirmForm() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-primary">
-        <Ico.add size={18} /> Yangi firma
-      </button>
+      {editing ? (
+        <RowAction label="Tahrirlash" onClick={() => setOpen(true)}>
+          <Ico.pen size={16} />
+        </RowAction>
+      ) : (
+        <button onClick={() => setOpen(true)} className="btn-primary">
+          <Ico.add size={18} /> Yangi firma
+        </button>
+      )}
 
       <Modal
         open={open}
-        title="Yangi firma"
-        description="Rekvizitlar maʼlumotnoma blankasida chiqadi."
+        title={editing ? `Firmani tahrirlash` : 'Yangi firma'}
+        description={editing ? 'Oʻzgarish faqat YANGI hujjatlarga taʼsir qiladi — imzolangan hujjatlar oʻzgarmaydi.' : 'Rekvizitlar maʼlumotnoma blankasida chiqadi.'}
         onClose={() => setOpen(false)}
         footer={
           <>
@@ -83,7 +107,7 @@ export function FirmForm() {
               <TextField
                 label="Ism familiya" required value={f.directorName} onChange={set('directorName')}
                 placeholder="А.А.Бойназаров"
-                error={f.directorName && !directorOk ? 'Ism va familiyani toʻliq yozing' : undefined}
+                error={f.directorName && !directorOk ? 'Masalan: А.А.Бойназаров yoki Ism Familiya' : undefined}
                 hint={!f.directorName ? 'Imzo blokida shu ism chiqadi' : undefined}
               />
               <TextField label="Lavozimi" value={f.directorPosition} onChange={set('directorPosition')} />

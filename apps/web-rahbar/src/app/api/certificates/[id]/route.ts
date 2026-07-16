@@ -17,7 +17,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
-    select: { status: true, deletedAt: true },
+    select: { status: true, deletedAt: true, firm: true },
   });
   if (!cert || cert.deletedAt) return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
 
@@ -59,6 +59,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (wf === WfAction.SIGN) {
     data.signedBy = { connect: { id: session.sub } };
     data.signedAt = new Date();
+    // Freeze the firm's rekvizitlar at the moment of signing. Editing the Firm afterwards
+    // must not rewrite this already-issued document.
+    const f = cert.firm;
+    data.firmSnapshot = {
+      name: f.name, shortName: f.shortName, stir: f.stir, oked: f.oked,
+      directorName: f.directorName, directorPosition: f.directorPosition,
+      executorName: f.executorName, executorPhone: f.executorPhone,
+      phone: f.phone, email: f.email, website: f.website,
+      region: f.region, address: f.address,
+      bankName: f.bankName, bankAccount: f.bankAccount, mfo: f.mfo,
+      logoPath: f.logoPath, sealPath: f.sealPath, signaturePath: f.signaturePath,
+    };
   }
 
   await prisma.$transaction([

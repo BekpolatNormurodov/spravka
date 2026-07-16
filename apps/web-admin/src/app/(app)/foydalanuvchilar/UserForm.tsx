@@ -3,7 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Role, ROLE_LABELS, maskPhone } from '@spravka/shared/core';
-import { Modal, TextField, PasswordField, Select, Ico, type Option } from '@spravka/shared/ui';
+import { Modal, TextField, PasswordField, Select, Ico, RowAction, type Option } from '@spravka/shared/ui';
+
+export type UserRow = {
+  id: string; fullName: string; login: string; role: string;
+  position: string | null; phone: string | null;
+};
 
 const EMPTY = { fullName: '', login: '', password: '', role: Role.YURIST as string, position: '', phone: '' };
 
@@ -13,28 +18,37 @@ const ROLE_OPTIONS: Option[] = [
   { value: Role.RAHBAR, label: ROLE_LABELS[Role.RAHBAR], dot: 'bg-violet-500' },
 ];
 
-export function UserForm() {
+/** Dual-mode: no `user` → create; with `user` → edit (password optional). */
+export function UserForm({ user }: { user?: UserRow }) {
+  const editing = !!user;
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState(EMPTY);
+  const [f, setF] = useState(
+    user
+      ? { fullName: user.fullName, login: user.login, password: '', role: user.role, position: user.position ?? '', phone: user.phone ?? '' }
+      : EMPTY,
+  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   const nameOk = f.fullName.trim().split(/\s+/).filter(Boolean).length >= 2;
-  const valid = nameOk && f.login.trim().length >= 3 && f.password.length >= 6;
+  // On edit the password is optional — only validated when the admin types a new one.
+  const passOk = editing ? (f.password === '' || f.password.length >= 6) : f.password.length >= 6;
+  const valid = nameOk && f.login.trim().length >= 3 && passOk;
 
   async function submit() {
     setBusy(true);
     setErr('');
-    const res = await fetch('/api/users', {
-      method: 'POST',
+    const res = await fetch(editing ? `/api/users/${user!.id}` : '/api/users', {
+      method: editing ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(f),
     });
     if (res.ok) {
-      setF(EMPTY);
+      if (editing) setF((s) => ({ ...s, password: '' }));
+      else setF(EMPTY);
       setOpen(false);
       router.refresh();
     } else {
@@ -46,14 +60,20 @@ export function UserForm() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-primary">
-        <Ico.add size={18} /> Yangi foydalanuvchi
-      </button>
+      {editing ? (
+        <RowAction label="Tahrirlash" onClick={() => setOpen(true)}>
+          <Ico.pen size={16} />
+        </RowAction>
+      ) : (
+        <button onClick={() => setOpen(true)} className="btn-primary">
+          <Ico.add size={18} /> Yangi foydalanuvchi
+        </button>
+      )}
 
       <Modal
         open={open}
-        title="Yangi foydalanuvchi"
-        description="Login va parol bilan tizimga kiradi."
+        title={editing ? 'Foydalanuvchini tahrirlash' : 'Yangi foydalanuvchi'}
+        description={editing ? 'Parolni oʻzgartirmasangiz — boʻsh qoldiring.' : 'Login va parol bilan tizimga kiradi.'}
         onClose={() => setOpen(false)}
         footer={
           <>
@@ -85,7 +105,8 @@ export function UserForm() {
               error={f.login && f.login.trim().length < 3 ? 'Kamida 3 belgi' : undefined}
             />
             <PasswordField
-              label="Parol" required value={f.password} onChange={set('password')} placeholder="••••••••"
+              label="Parol" required={!editing} value={f.password} onChange={set('password')}
+              placeholder={editing ? 'Oʻzgartirmaslik uchun boʻsh qoldiring' : '••••••••'}
               error={f.password && f.password.length < 6 ? 'Kamida 6 belgi' : undefined}
             />
             <TextField label="Lavozim" value={f.position} onChange={set('position')} placeholder="Yurist" />
