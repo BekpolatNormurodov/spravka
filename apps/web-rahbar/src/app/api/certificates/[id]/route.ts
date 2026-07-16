@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@spravka/shared/db';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { WfAction, findTransition, canDelete, canActOnFirm } from '@spravka/shared/core';
+import { WfAction, CertStatus, findTransition, canDelete, canActOnFirm } from '@spravka/shared/core';
 import {
   buildCertificatePdf, savePdf, removePdf, readPdf, sha256, certPdfPath, CERT_PDF_INCLUDE,
   type CertificateWithFirm,
@@ -11,6 +11,28 @@ import { rahbarFirmId } from '@/lib/scope';
 
 /** A signing attempt is one human typing one password. Anything older is abandoned. */
 const CHALLENGE_TTL_MS = 10 * 60_000;
+
+/**
+ * Every signing attempt lands in the server log, whether it worked or not.
+ *
+ * The failures matter more than the successes and were previously invisible: E-IMZO reports a
+ * wrong password, a cancelled dialog or a refused domain to the *browser*, so a rahbar saying
+ * "it will not sign" left nothing behind to look at. On the host these lines go to journald
+ * (`journalctl -u spravka@rahbar`), which is where someone debugging at 9am will actually look.
+ *
+ * One line, one shape, greppable on [sign].
+ */
+function signLog(
+  outcome: 'prepare' | 'signed' | 'failed',
+  cert: { id: string; number: string },
+  session: { sub: string; login: string },
+  detail?: Record<string, unknown>,
+) {
+  const line = `[sign] ${outcome} cert=${cert.number} (${cert.id}) by=${session.login} (${session.sub})`;
+  const extra = detail ? ' ' + JSON.stringify(detail) : '';
+  if (outcome === 'failed') console.error(line + extra);
+  else console.info(line + extra);
+}
 
 const MAP: Record<string, WfAction> = {
   return: WfAction.RETURN,
@@ -38,7 +60,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { action, note, challengeId, pkcs7, signerInfo } = await req.json().catch(() => ({}));
+  const { action, note, challengeId, pkcs7, signerInfo, error, stage } = await req.json().catch(() => ({}));
 
   // The whole row, not a slice of it: signing renders the document, which needs every printed
   // field — including the contracts, which the maʼlumotnoma lists inline.
@@ -83,9 +105,36 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     also resolves the apparent circularity — the PDF carries the ТАСДИҚЛАНДИ stamp, which needs
     a signed status, which needs the PDF.
   */
+  /*
+    The browser reporting that E-IMZO refused. Nothing is written to the certificate — a failed
+    attempt must leave no trace on the document — but the attempt itself is logged and the
+    challenge is dropped, so the rendered-but-unsigned PDF cannot be completed later.
+  */
+  if (action === 'sign-error') {
+    signLog('failed', cert, session, {
+      stage: typeof stage === 'string' ? stage.slice(0, 40) : 'unknown',
+      // E-IMZO's own words — a wrong password, a cancelled dialog, «API-key ... недействителен».
+      eimzo: typeof error === 'string' ? error.slice(0, 300) : String(error).slice(0, 300),
+    });
+    if (typeof challengeId === 'string' && challengeId) {
+      await prisma.signChallenge.deleteMany({ where: { id: challengeId, certificateId: cert.id } });
+    }
+    // sign-prepare rendered a stamped PDF before anyone signed anything. Left behind, it is an
+    // unsigned document that looks issued — unreachable (only SIGNED certificates are served),
+    // but not a thing to leave lying in the store. Guarded on status: an already-signed
+    // certificate's file is the issued document and must never be deleted by a failed attempt.
+    if (cert.status !== CertStatus.SIGNED) {
+      await removePdf(certPdfPath(cert.id)).catch(() => {});
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   if (action === 'sign-prepare' || action === 'sign-commit') {
     const t = findTransition(cert.status, session.role, WfAction.SIGN);
-    if (!t) return NextResponse.json({ error: 'Bu holatda imzolab boʻlmaydi' }, { status: 400 });
+    if (!t) {
+      signLog('failed', cert, session, { stage: action, reason: `status ${cert.status} cannot be signed` });
+      return NextResponse.json({ error: 'Bu holatda imzolab boʻlmaydi' }, { status: 400 });
+    }
 
     if (action === 'sign-prepare') {
       const firmSnapshot = buildFirmSnapshot(cert.firm);
@@ -94,7 +143,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         pdf = await buildCertificatePdf({ ...cert, firmSnapshot });
         await savePdf(cert.id, pdf);
       } catch (err) {
-        console.error('[sign-prepare] PDF render failed', err);
+        signLog('failed', cert, session, {
+          stage: 'render',
+          reason: err instanceof Error ? err.message : String(err),
+        });
         return NextResponse.json({ error: 'Hujjatni PDF qilishda xatolik' }, { status: 500 });
       }
 
@@ -110,6 +162,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         },
       });
 
+      signLog('prepare', cert, session, { bytes: pdf.length, sha256: challenge.pdfSha256.slice(0, 16) });
       return NextResponse.json({
         challengeId: challenge.id,
         pdfBase64: pdf.toString('base64'),
@@ -118,15 +171,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     // ── sign-commit ────────────────────────────────────────────────────────
     if (typeof pkcs7 !== 'string' || pkcs7.length < 100) {
+      signLog('failed', cert, session, { stage: 'commit', reason: 'no pkcs7 in request' });
       return NextResponse.json({ error: 'Imzo kelmadi' }, { status: 400 });
     }
 
     const challenge = await prisma.signChallenge.findUnique({ where: { id: String(challengeId ?? '') } });
     if (!challenge || challenge.certificateId !== cert.id || challenge.userId !== session.sub) {
+      signLog('failed', cert, session, { stage: 'commit', reason: 'challenge not found / not theirs' });
       return NextResponse.json({ error: 'Imzolash seansi topilmadi — qaytadan boshlang' }, { status: 400 });
     }
     if (challenge.expiresAt < new Date()) {
       await prisma.signChallenge.delete({ where: { id: challenge.id } }).catch(() => {});
+      signLog('failed', cert, session, { stage: 'commit', reason: 'challenge expired' });
       return NextResponse.json({ error: 'Imzolash seansi eskirdi — qaytadan boshlang' }, { status: 400 });
     }
 
@@ -135,6 +191,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const pdfPath = certPdfPath(cert.id);
     const onDisk = await readPdf(pdfPath);
     if (!onDisk || sha256(onDisk) !== challenge.pdfSha256) {
+      signLog('failed', cert, session, {
+        stage: 'commit',
+        reason: onDisk ? 'pdf on disk no longer matches the challenge' : 'pdf missing from disk',
+      });
       return NextResponse.json({ error: 'Hujjat oʻzgargan — qaytadan imzolang' }, { status: 409 });
     }
 
@@ -174,6 +234,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       prisma.signChallenge.delete({ where: { id: challenge.id } }),
     ]);
 
+    signLog('signed', cert, session, {
+      pkcs7Bytes: pkcs7.length,
+      sha256: challenge.pdfSha256.slice(0, 16),
+      key: (signerInfo as { name?: string } | null)?.name ?? 'unknown',
+      // Recorded as false on purpose: nobody has checked this signature, and the log should not
+      // read as if someone had.
+      verified: false,
+    });
     return NextResponse.json({ ok: true, status: t.to });
   }
 

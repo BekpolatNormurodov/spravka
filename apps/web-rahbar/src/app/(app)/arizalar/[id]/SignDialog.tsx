@@ -80,6 +80,7 @@ export function SignDialog({
     if (!key) return;
     setErr('');
     let keyId: string | null = null;
+    let challengeId: string | null = null;
 
     try {
       // 1. The server renders the document and tells us exactly which bytes to sign. It keeps
@@ -92,6 +93,7 @@ export function SignDialog({
       });
       const prepData = await prep.json().catch(() => ({}));
       if (!prep.ok) throw new Error(prepData.error || 'Hujjat tayyorlanmadi');
+      challengeId = prepData.challengeId ?? null;
 
       // 2. E-IMZO opens its own password window. Nothing about it is ours — which is precisely
       //    why the password never reaches this page.
@@ -118,13 +120,22 @@ export function SignDialog({
 
       onSigned();
     } catch (e) {
-      setErr(
-        e instanceof EimzoError
-          ? e.message
-          : e instanceof Error
-            ? e.message
-            : 'Kutilmagan xatolik',
-      );
+      const message =
+        e instanceof EimzoError ? e.message : e instanceof Error ? e.message : 'Kutilmagan xatolik';
+      setErr(message);
+
+      // Tell the server it failed. Everything E-IMZO refuses — a wrong password, a closed
+      // dialog, a denied domain — happens in the browser and would otherwise leave nothing
+      // behind: a rahbar reporting "it will not sign" and a server log with no trace of them
+      // ever trying. Nothing is written to the certificate; only the attempt is recorded, and
+      // the challenge is dropped so the rendered PDF cannot be completed later.
+      void fetch(`/api/certificates/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sign-error', challengeId, stage: step, error: message }),
+      }).catch(() => {
+        /* reporting a failure must not itself become a failure the rahbar sees */
+      });
     } finally {
       if (keyId) void unloadKey(keyId);
       setStep(null);
