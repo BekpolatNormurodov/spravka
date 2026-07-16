@@ -138,20 +138,21 @@ export function Actions({
         </p>
 
         {/*
-          Stated plainly rather than left unsaid. The rahbar is putting their name on a legal
-          document, so they are entitled to know exactly what backs it today — the firm's own
-          system and the QR, not a state ЭЦП. Saying nothing here would let them assume the
-          stronger thing.
+          Says what is true about *this system*, not about the rahbar's machine. E-IMZO Client may
+          well be installed and running — that is not what is missing. What is missing is our side:
+          verifying an O'zDSt 1092:2009 signature needs E-IMZO-SERVER and a NIC contract, so the
+          system does not use the key even when it is right there. An earlier wording said
+          "E-IMZO: faol emas", which read as "your client is off" and was simply false.
         */}
         <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-line bg-surface-2 px-3 py-2.5">
           <span className="mt-px shrink-0 text-amber-600 dark:text-amber-400" aria-hidden>
             <Ico.shieldOff size={16} />
           </span>
           <div className="text-xs leading-relaxed">
-            <p className="font-semibold text-fg">E-IMZO (ЭЦП): faol emas</p>
+            <p className="font-semibold text-fg">Davlat ЭЦП si qoʻyilmaydi</p>
             <p className="mt-0.5 text-muted">
-              Hujjat tizim tartibida imzolanadi va haqiqiyligi QR kod orqali tekshiriladi. Davlat
-              ЭЦП si hali ulanmagan — ulangach, imzo aynan shu yerda qoʻyiladi.
+              Kompyuteringizda E-IMZO oʻrnatilgan boʻlsa ham, tizim hozircha undan foydalanmaydi.
+              Hujjat tizim tartibida imzolanadi, haqiqiyligi QR kod orqali tekshiriladi.
             </p>
           </div>
         </div>
