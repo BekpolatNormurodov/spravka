@@ -18,8 +18,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       appName="Yurist paneli"
-      initials="Y"
-      accentClass="bg-brand-600"
       nav={NAV}
       user={{ fullName: session.fullName, roleLabel: 'Yurist' }}
     >

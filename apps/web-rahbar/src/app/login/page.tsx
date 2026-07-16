@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ThemeToggle } from '@spravka/shared/ui';
+import { ThemeToggle, Logo } from '@spravka/shared/ui';
 
 export default function LoginPage() {
   const [login, setLogin] = useState('');
@@ -35,7 +35,7 @@ export default function LoginPage() {
       <ThemeToggle className="absolute right-4 top-4" />
       <form onSubmit={submit} className="card w-full max-w-sm p-8">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-brand-600 text-lg font-bold">R</div>
+          <div className="mx-auto mb-3 w-fit"><Logo size={48} /></div>
           <h1 className="text-xl font-bold">Rahbar paneli</h1>
           <p className="mt-1 text-sm text-muted">Maʼlumotnoma tizimiga kirish</p>
         </div>

@@ -1,6 +1,8 @@
 export { AppShell } from './AppShell';
 export type { NavItem, AppShellProps } from './AppShell';
 export { ThemeToggle } from './ThemeToggle';
+export { Logo, LogoLockup } from './Logo';
+export { Splash } from './Splash';
 export { Ico, NAV_ICONS } from './icons';
 export type { IconProps } from './icons';
 export { QrCard } from './QrCard';
