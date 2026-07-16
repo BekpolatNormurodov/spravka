@@ -6,8 +6,7 @@ import {
   type CertFilterParams,
 } from '@spravka/shared/core';
 import {
-  StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction, Filters, Pagination,
-} from '@spravka/shared/ui';
+  StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +23,7 @@ export default async function Dashboard({ searchParams }: { searchParams: CertFi
     prisma.certificate.findMany({
       where,
       include: {
+        contracts: { orderBy: { order: 'asc' } },
         firm: { select: { shortName: true, name: true } },
         events: { where: { action: 'RETURN' }, orderBy: { createdAt: 'desc' }, take: 1, select: { note: true } },
       },
@@ -101,7 +101,7 @@ export default async function Dashboard({ searchParams }: { searchParams: CertFi
                           <div className="truncate text-fg" title={c.firm.name}>{c.firm.shortName ?? c.firm.name}</div>
                         </td>
                         <td className="px-3 py-3 align-top">
-                          <div className="truncate font-mono text-xs text-muted">{c.contractNumber}</div>
+                          <div className="font-mono text-xs text-muted"><ContractCell contracts={c.contracts} /></div>
                         </td>
                         <td className="px-3 py-3 align-top text-right">
                           <div className="truncate font-semibold tabular-nums">{formatSum(c.loanAmount.toString())}</div>

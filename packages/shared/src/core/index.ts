@@ -3,6 +3,7 @@ export * from './workflow';
 export * from './numbering';
 export * from './session';
 export * from './labels';
+export * from './contracts';
 export * from './document';
 export * from './calendar';
 export * from './mask';

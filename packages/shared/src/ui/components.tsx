@@ -1,6 +1,7 @@
 import React from 'react';
 import { CertStatus } from '../core/enums';
 import { STATUS_LABELS } from '../core/labels';
+import { dmy } from '../core/document';
 
 /** No-flash theme bootstrap — render inside <head> before paint. Defaults to dark. */
 export function ThemeScript() {
@@ -97,5 +98,23 @@ export function Table({ head, children }: { head: React.ReactNode; children: Rea
         </table>
       </div>
     </div>
+  );
+}
+
+/**
+ * The contracts a maʼlumotnoma covers, for a table cell. The blanks routinely list two, so
+ * each gets its own line — the same shape the old single-contract cell had.
+ */
+export function ContractCell({ contracts }: { contracts: { number: string; date: Date }[] }) {
+  if (!contracts.length) return <span className="text-muted">—</span>;
+  return (
+    <>
+      {contracts.map((c, i) => (
+        <div key={`${c.number}-${i}`} className="truncate">
+          {c.number}
+          <span className="ml-1 text-[11px] opacity-70">· {dmy(c.date)}</span>
+        </div>
+      ))}
+    </>
   );
 }

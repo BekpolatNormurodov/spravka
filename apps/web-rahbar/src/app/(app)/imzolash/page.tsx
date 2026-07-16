@@ -3,7 +3,7 @@ import {
   CertStatus, dmy, formatSum, parseCertFilters, buildCertWhere, pageSlice, pageHref, PER_PAGE,
   type CertFilterParams,
 } from '@spravka/shared/core';
-import { PageHeader, EmptyState, ClickableRow, Filters, Pagination } from '@spravka/shared/ui';
+import { PageHeader, EmptyState, ClickableRow, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
 import { RowActions } from '@/components/RowActions';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ export default async function Imzolash({ searchParams }: { searchParams: CertFil
     prisma.certificate.count({ where }),
     prisma.certificate.findMany({
       where,
-      include: { firm: { select: { shortName: true, name: true } }, createdBy: { select: { fullName: true } } },
+      include: { contracts: { orderBy: { order: 'asc' } }, firm: { select: { shortName: true, name: true } }, createdBy: { select: { fullName: true } } },
       orderBy: { createdAt: 'desc' },
       ...pageSlice(p.page),
     }),
@@ -74,8 +74,7 @@ export default async function Imzolash({ searchParams }: { searchParams: CertFil
                         <div className="truncate text-fg" title={c.firm.name}>{c.firm.shortName ?? c.firm.name}</div>
                       </td>
                       <td className="px-4 py-3 align-top font-mono text-xs text-muted">
-                        <div className="truncate">{c.contractNumber}</div>
-                        <div className="truncate text-[11px]">{dmy(c.contractDate)}</div>
+                        <ContractCell contracts={c.contracts} />
                       </td>
                       <td className="px-3 py-3 align-top text-right">
                         <div className="truncate font-semibold tabular-nums">{formatSum(c.loanAmount.toString())}</div>

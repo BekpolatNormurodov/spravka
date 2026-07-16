@@ -7,7 +7,7 @@ import { PrintButton } from '@/components/PrintButton';
 export const dynamic = 'force-dynamic';
 
 export default async function PublicCert({ params }: { params: { id: string } }) {
-  const c = await prisma.certificate.findUnique({ where: { id: params.id }, include: { firm: true } });
+  const c = await prisma.certificate.findUnique({ where: { id: params.id }, include: { firm: true, contracts: { orderBy: { order: 'asc' } } } });
   const exists = c && !c.deletedAt;
   if (exists) {
     await prisma.certificate.update({ where: { id: c!.id }, data: { scans: { increment: 1 } } }).catch(() => {});
@@ -40,7 +40,16 @@ export default async function PublicCert({ params }: { params: { id: string } })
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1.5 text-sm font-semibold">
             ✓ Rasmiy tasdiqlangan hujjat
           </div>
-          <PrintButton />
+          <div className="flex items-center gap-2">
+            {/* The page below is a re-render; this is the file that was actually issued. */}
+            <a
+              href={`/m/${cert.id}/pdf`}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              Rasmiy PDF
+            </a>
+            <PrintButton />
+          </div>
         </div>
 
         <div className="cert-frame rounded-2xl shadow-xl">
@@ -51,8 +60,7 @@ export default async function PublicCert({ params }: { params: { id: string } })
             personPassport={cert.personPassport}
             passportIssuedBy={cert.passportIssuedBy}
             passportIssuedAt={cert.passportIssuedAt}
-            contractNumber={cert.contractNumber}
-            contractDate={cert.contractDate}
+            contracts={cert.contracts}
             contractType={cert.contractType}
             loanAmount={cert.loanAmount.toString()}
             asOfDate={cert.asOfDate}

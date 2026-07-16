@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { WfAction, findTransition, canEdit, isValidPinfl } from '@spravka/shared/core';
+import { WfAction, findTransition, canEdit, isValidPinfl, parseContracts } from '@spravka/shared/core';
 
 /**
  * Edit an ariza's content. Enforces the edit-lock rule from core: ADMIN may edit only while
@@ -25,13 +25,16 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 
   const b = await req.json().catch(() => ({}));
-  const required = ['personFullName', 'personPassport', 'contractNumber', 'contractDate', 'loanAmount', 'asOfDate', 'issueDate'];
+  const required = ['personFullName', 'personPassport', 'loanAmount', 'asOfDate', 'issueDate'];
   for (const k of required) {
     if (!b[k]) return NextResponse.json({ error: `Maydon toʻldirilmagan: ${k}` }, { status: 400 });
   }
   if (b.personPinfl && !isValidPinfl(b.personPinfl)) {
     return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
   }
+
+  const parsed = parseContracts(b.contracts);
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   const passportIssuedAt = b.passportIssuedAt ? new Date(b.passportIssuedAt) : null;
 
@@ -43,8 +46,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         personPassport: b.personPassport,
         passportIssuedBy: b.passportIssuedBy || null,
         passportIssuedAt,
-        contractNumber: b.contractNumber,
-        contractDate: new Date(b.contractDate),
+        // Rows carry no stable identity across an edit — the admin can add, drop or reorder
+        // them — so the list is replaced wholesale rather than diffed.
+        contracts: { deleteMany: {}, create: parsed.contracts },
         contractType: b.contractType || undefined,
         loanAmount: String(b.loanAmount).replace(/[\s,]/g, ''),
         asOfDate: new Date(b.asOfDate),

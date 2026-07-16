@@ -13,6 +13,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
     where: { id: params.id },
     include: {
       firm: true,
+      contracts: { orderBy: { order: 'asc' } },
       createdBy: { select: { fullName: true } },
       events: { include: { actor: { select: { fullName: true } } }, orderBy: { createdAt: 'desc' } },
     },
@@ -40,8 +41,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
             personPassport={c.personPassport}
             passportIssuedBy={c.passportIssuedBy}
             passportIssuedAt={c.passportIssuedAt}
-            contractNumber={c.contractNumber}
-            contractDate={c.contractDate}
+            contracts={c.contracts}
             contractType={c.contractType}
             loanAmount={c.loanAmount.toString()}
             asOfDate={c.asOfDate}

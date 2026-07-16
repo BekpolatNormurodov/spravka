@@ -43,6 +43,7 @@ export function TextField({
   inputMode,
   suffix,
   autoFocus,
+  disabled,
   ...base
 }: Base & {
   value: string;
@@ -54,6 +55,7 @@ export function TextField({
   inputMode?: 'text' | 'numeric' | 'tel' | 'decimal';
   suffix?: string;
   autoFocus?: boolean;
+  disabled?: boolean;
 }) {
   const id = useId();
   return (
@@ -65,6 +67,7 @@ export function TextField({
           inputMode={inputMode}
           value={value}
           autoFocus={autoFocus}
+          disabled={disabled}
           onChange={(e) => onChange(mask ? mask(e.target.value) : e.target.value)}
           placeholder={placeholder}
           aria-invalid={!!base.error}

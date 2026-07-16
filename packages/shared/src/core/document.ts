@@ -1,17 +1,10 @@
-// Renders the Cyrillic "qarzdorlik yo'qligi" certificate body text from a certificate's data.
-// Shared by the admin preview, the director (rahbar) view, and the public verification page.
+// Formatting for the Cyrillic "qarzdorlik yo'qligi" maʼlumotnoma. The document itself is
+// rendered by CertificateDocument; these are the pieces it cannot express as markup.
 
-export interface CertDocData {
-  firmName: string;
-  personFullName: string;
-  personPassport: string;
-  passportIssuedBy?: string | null;
-  passportIssuedAt?: Date | null;
-  contractNumber: string;
-  contractDate: Date;
-  contractType: string;
-  loanAmount: string; // decimal as string
-  asOfDate: Date;
+/** One contract the maʼlumotnoma covers, as the document prints it. */
+export interface DocContract {
+  number: string;
+  date: Date;
 }
 
 /** Date as "DD.MM.YYYY" using UTC (date-only values are stored at UTC midnight). */
@@ -38,17 +31,16 @@ export function formatSum(amount: string): string {
   return n.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
-export function certificateBody(x: CertDocData): string {
-  const passport =
-    x.passportIssuedAt && x.passportIssuedBy
-      ? `(шахс гувоҳномаси: ${x.personPassport}, ${dmy(x.passportIssuedAt)} йилда ${x.passportIssuedBy} томонидан берилган)`
-      : `(шахс гувоҳномаси: ${x.personPassport})`;
-
-  return (
-    `“${x.firmName}” билан ${x.personFullName} ${passport} ўртасида имзоланган ` +
-    `${dmy(x.contractDate)} йилдаги ${x.contractNumber}-сонли ${x.contractType}га асосан умумий ` +
-    `${formatSum(x.loanAmount)} сўм миқдорида кредитлар ажратилган. ${x.personFullName}нинг ` +
-    `${dmy(x.asOfDate)} ҳолатига кўра, ${x.contractNumber}-сонли ${x.contractType}га асосан ` +
-    `қарздорлиги тўлиқ қопланган ва ташкилот олдида қарздорлиги мавжуд эмаслигини маълум қиламиз.`
-  );
+/**
+ * '«Микроқарз» универсал шартномаси' → '«Микроқарз» универсал шартномалари'.
+ *
+ * Every blank opens in the plural («…шартномаларига асосан умумий») and closes in the
+ * singular («…шартномасига асосан қарздорлиги»), and does so whether it lists one contract
+ * or two — the form is fixed by the template, not by the count.
+ *
+ * 'Shartnoma turi' is a free-text field, so a value that does not end in the -си possessive
+ * is returned untouched rather than guessed at.
+ */
+export function contractTypePlural(contractType: string): string {
+  return contractType.replace(/си$/, 'лари');
 }

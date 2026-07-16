@@ -4,8 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { dmy, formatSum, maskPhone, PER_PAGE, pageSlice } from '@spravka/shared/core';
 import {
-  PageHeader, EmptyState, StatusBadge, ClickableRow, ViewAction, Pagination, StatCard,
-} from '@spravka/shared/ui';
+  PageHeader, EmptyState, StatusBadge, ClickableRow, ViewAction, Pagination, StatCard, ContractCell } from '@spravka/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +40,7 @@ export default async function MijozDetail({
     prisma.certificate.count({ where }),
     prisma.certificate.findMany({
       where,
-      include: { firm: { select: { shortName: true, name: true } } },
+      include: { contracts: { orderBy: { order: 'asc' } }, firm: { select: { shortName: true, name: true } } },
       orderBy: { issueDate: 'desc' },
       ...pageSlice(page),
     }),
@@ -110,8 +109,7 @@ export default async function MijozDetail({
                       <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted">{dmy(c.issueDate)}</td>
                       <td className="px-4 py-3">{c.firm.shortName ?? c.firm.name}</td>
                       <td className="px-4 py-3 text-xs text-muted">
-                        <div className="font-mono">{c.contractNumber}</div>
-                        <div className="tabular-nums">{dmy(c.contractDate)}</div>
+                        <div className="font-mono"><ContractCell contracts={c.contracts} /></div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">
                         {formatSum(c.loanAmount.toString())}

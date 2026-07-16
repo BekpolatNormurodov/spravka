@@ -6,9 +6,8 @@ const nextConfig = {
   // serve a standalone build that way.
   // @spravka/shared ships TypeScript source, not a build — Next must compile it.
   transpilePackages: ["@spravka/shared"],
-  images: {
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
-  },
+  // No `images` block: nothing here renders next/image, and `hostname: "**"` left
+  // /_next/image open as a resizing proxy for any https host. No sibling app has one.
 };
 
 module.exports = nextConfig;

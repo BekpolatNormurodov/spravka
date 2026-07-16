@@ -3,11 +3,11 @@ import { nanoid } from 'nanoid';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { nextCertNumber } from '@/lib/cert-number';
-import { CertStatus, WfAction, isValidPinfl } from '@spravka/shared/core';
+import { CertStatus, WfAction, isValidPinfl, parseContracts } from '@spravka/shared/core';
 
 const REQUIRED = [
   'firmId', 'personPinfl', 'personFullName', 'personPassport',
-  'contractNumber', 'contractDate', 'loanAmount', 'asOfDate', 'issueDate',
+  'loanAmount', 'asOfDate', 'issueDate',
 ] as const;
 
 export async function POST(req: Request) {
@@ -22,6 +22,9 @@ export async function POST(req: Request) {
   if (!isValidPinfl(b.personPinfl)) {
     return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
   }
+
+  const parsed = parseContracts(b.contracts);
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   const firm = await prisma.firm.findUnique({ where: { id: b.firmId }, select: { id: true } });
   if (!firm) return NextResponse.json({ error: 'Firma topilmadi' }, { status: 400 });
@@ -68,8 +71,7 @@ export async function POST(req: Request) {
       personPassport: b.personPassport,
       passportIssuedBy: b.passportIssuedBy || null,
       passportIssuedAt,
-      contractNumber: b.contractNumber,
-      contractDate: new Date(b.contractDate),
+      contracts: { create: parsed.contracts },
       contractType: b.contractType || undefined,
       loanAmount: String(b.loanAmount).replace(/[\s,]/g, ''),
       asOfDate: new Date(b.asOfDate),

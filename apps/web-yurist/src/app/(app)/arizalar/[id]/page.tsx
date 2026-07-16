@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
-import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice } from '@spravka/shared/ui';
+import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice, ContractCell } from '@spravka/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +14,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
     where: { id: params.id },
     include: {
       firm: true,
+      contracts: { orderBy: { order: 'asc' } },
       createdBy: { select: { fullName: true } },
       events: { include: { actor: { select: { fullName: true } } }, orderBy: { createdAt: 'desc' } },
     },
@@ -49,8 +50,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
             personPassport={c.personPassport}
             passportIssuedBy={c.passportIssuedBy}
             passportIssuedAt={c.passportIssuedAt}
-            contractNumber={c.contractNumber}
-            contractDate={c.contractDate}
+            contracts={c.contracts}
             contractType={c.contractType}
             loanAmount={c.loanAmount.toString()}
             asOfDate={c.asOfDate}
@@ -68,7 +68,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
             <dl className="space-y-2 text-fg">
               <div className="flex justify-between gap-3"><dt className="text-muted">Firma</dt><dd className="text-right">{c.firm.shortName ?? c.firm.name}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-muted">Shartnoma</dt><dd>{c.contractNumber}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted">{c.contracts.length > 1 ? `Shartnomalar (${c.contracts.length})` : 'Shartnoma'}</dt><dd className="text-right"><ContractCell contracts={c.contracts} /></dd></div>
               <div className="flex justify-between gap-3"><dt className="text-muted">Summa</dt><dd>{formatSum(c.loanAmount.toString())} soʻm</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-muted">Sana</dt><dd>{dmy(c.issueDate)}</dd></div>
             </dl>

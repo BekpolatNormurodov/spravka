@@ -130,14 +130,21 @@ model Certificate {
   passportIssuedBy String?
   passportIssuedAt DateTime?
 
-  contractNumber   String
-  contractDate     DateTime
+  /// A maʼlumotnoma covers one or more contracts — the real blanks routinely list two.
+  contracts        CertContract[]
   contractType     String     @default("«Микроқарз» универсал шартномаси")
+  /// Total across every contract listed above — the «умумий ... сўм» figure.
   loanAmount       Decimal    @db.Decimal(18, 2)
   asOfDate         DateTime
 
   bodyText         String?    @db.Text
+  /// Path (relative to CERT_STORAGE_DIR) of the document frozen at SIGN time. This file is the
+  /// issued maʼlumotnoma — the on-screen view is a re-render of it, not the other way round.
   pdfPath          String?
+  /// Digest of the bytes at pdfPath. Catches a file that was corrupted or swapped underneath the
+  /// row, which nothing else would notice, and is what an E-IMZO signature will be checked
+  /// against once that becomes possible.
+  pdfSha256        String?
 
   /// Frozen copy of the firm's rekvizitlar taken at SIGN time. Once signed, the document
   /// renders from this — editing the Firm later must never alter an issued maʼlumotnoma.
@@ -169,6 +176,21 @@ model Certificate {
   @@index([status])
   @@index([firmId])
   @@index([clientId])
+}
+
+/// One «Микроқарз» contract a maʼlumotnoma covers, printed in `order`. Kept as rows rather
+/// than a Json column so the arizalar search can still match a contract number.
+model CertContract {
+  id            String      @id @default(cuid())
+  certificate   Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  certificateId String
+  number        String
+  date          DateTime
+  order         Int         @default(0)
+  createdAt     DateTime    @default(now())
+
+  @@index([certificateId])
+  @@index([number])
 }
 
 /// Mijoz (jismoniy shaxs) — identified by PINFL (14 digits). Looked up by the yurist so

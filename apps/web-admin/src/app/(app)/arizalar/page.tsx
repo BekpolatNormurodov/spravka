@@ -4,8 +4,7 @@ import {
   type CertFilterParams,
 } from '@spravka/shared/core';
 import {
-  StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction, Filters, Pagination,
-} from '@spravka/shared/ui';
+  StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +19,7 @@ export default async function Arizalar({ searchParams }: { searchParams: CertFil
     prisma.certificate.count({ where }),
     prisma.certificate.findMany({
       where,
-      include: { firm: { select: { shortName: true, name: true } }, createdBy: { select: { fullName: true } } },
+      include: { contracts: { orderBy: { order: 'asc' } }, firm: { select: { shortName: true, name: true } }, createdBy: { select: { fullName: true } } },
       orderBy: { createdAt: 'desc' },
       ...pageSlice(p.page),
     }),
@@ -78,8 +77,7 @@ export default async function Arizalar({ searchParams }: { searchParams: CertFil
                         <div className="truncate text-fg" title={c.firm.name}>{c.firm.shortName ?? c.firm.name}</div>
                       </td>
                       <td className="px-4 py-3 align-top font-mono text-xs text-muted">
-                        <div className="truncate">{c.contractNumber}</div>
-                        <div className="truncate text-[11px]">{dmy(c.contractDate)}</div>
+                        <ContractCell contracts={c.contracts} />
                       </td>
                       <td className="px-3 py-3 align-top text-right">
                         <div className="truncate font-semibold tabular-nums">{formatSum(c.loanAmount.toString())}</div>

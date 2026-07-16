@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { maskAmount, unmaskAmount, maskPassport } from '@spravka/shared/core';
-import { Modal, TextField, DateField, Ico } from '@spravka/shared/ui';
+import {
+  Modal, TextField, DateField, Ico, ContractRows, contractRowsValid, type ContractRow,
+} from '@spravka/shared/ui';
 
 export type CertEdit = {
   id: string;
@@ -11,8 +13,7 @@ export type CertEdit = {
   personPassport: string;
   passportIssuedBy: string | null;
   passportIssuedAt: string | null;
-  contractNumber: string;
-  contractDate: string;
+  contracts: ContractRow[];
   contractType: string;
   loanAmount: string;
   asOfDate: string;
@@ -33,20 +34,20 @@ export function EditAriza({ cert }: { cert: CertEdit }) {
     personPassport: cert.personPassport,
     passportIssuedBy: cert.passportIssuedBy ?? '',
     passportIssuedAt: cert.passportIssuedAt ?? '',
-    contractNumber: cert.contractNumber,
-    contractDate: cert.contractDate,
     contractType: cert.contractType,
     loanAmount: maskAmount(cert.loanAmount),
     asOfDate: cert.asOfDate,
     issueDate: cert.issueDate,
   });
 
+  const [contracts, setContracts] = useState<ContractRow[]>(cert.contracts);
+
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   const passOk = /^[A-Z]{2}\d{7}$/.test(f.personPassport);
   const valid =
-    f.personFullName.trim().length > 3 && passOk && f.contractNumber.trim() &&
-    f.contractDate && unmaskAmount(f.loanAmount) && f.asOfDate && f.issueDate;
+    f.personFullName.trim().length > 3 && passOk && contractRowsValid(contracts) &&
+    unmaskAmount(f.loanAmount) && f.asOfDate && f.issueDate;
 
   async function save() {
     setBusy(true);
@@ -54,7 +55,7 @@ export function EditAriza({ cert }: { cert: CertEdit }) {
     const res = await fetch(`/api/certificates/${cert.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...f, loanAmount: unmaskAmount(f.loanAmount) }),
+      body: JSON.stringify({ ...f, contracts, loanAmount: unmaskAmount(f.loanAmount) }),
     });
     if (res.ok) {
       setOpen(false);
@@ -102,8 +103,14 @@ export function EditAriza({ cert }: { cert: CertEdit }) {
             />
             <TextField label="Kim tomonidan berilgan" value={f.passportIssuedBy} onChange={set('passportIssuedBy')} />
             <DateField label="Berilgan sana" value={f.passportIssuedAt} onChange={set('passportIssuedAt')} />
-            <TextField label="Shartnoma raqami" required value={f.contractNumber} onChange={set('contractNumber')} inputMode="numeric" />
-            <DateField label="Shartnoma sanasi" required value={f.contractDate} onChange={set('contractDate')} />
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Shartnomalar</p>
+            <ContractRows rows={contracts} onChange={setContracts} disabled={busy} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <TextField label="Shartnoma turi" value={f.contractType} onChange={set('contractType')} />
             <TextField
               label="Kredit summasi" required value={f.loanAmount} onChange={set('loanAmount')}

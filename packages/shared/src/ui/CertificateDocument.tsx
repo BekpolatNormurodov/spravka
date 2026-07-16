@@ -1,5 +1,22 @@
 import React from 'react';
-import { dmy, uzLongDate, formatSum } from '../core/document';
+import { dmy, uzLongDate, formatSum, contractTypePlural, type DocContract } from '../core/document';
+
+/**
+ * «14.05.2026 йилдаги **8130-сонли**, 26.05.2026 йилдаги **28324-сонли**» — the blanks list
+ * every contract inline, comma-separated, with only the number bold.
+ */
+function ContractList({ contracts }: { contracts: DocContract[] }) {
+  return (
+    <>
+      {contracts.map((c, i) => (
+        <React.Fragment key={`${c.number}-${i}`}>
+          {i > 0 && ', '}
+          {dmy(c.date)} йилдаги <b>{c.number}-сонли</b>
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
 
 export interface CertFirm {
   /** Body-text form of the name (the source docs end it 'МЧЖ'). */
@@ -49,7 +66,10 @@ function Stamp({ signed }: { signed: boolean }) {
         borderRadius: '6px',
         padding: '4px 10px',
         color: tone,
-        fontFamily: '"Plus Jakarta Sans", sans-serif',
+        // Arial, not the UI's Plus Jakarta Sans: Jakarta ships no Cyrillic, so every letter of
+        // ТАСДИҚЛАНДИ already fell through to the generic sans — measured, not assumed. Naming
+        // Arial changes nothing on screen and gives the PDF a family it can pin deterministically.
+        fontFamily: 'Arial, Helvetica, sans-serif',
         fontWeight: 800,
         letterSpacing: signed ? '2px' : '1px',
         fontSize: signed ? '12pt' : '10.5pt',
@@ -70,8 +90,8 @@ export interface CertificateDocumentProps {
   personPassport: string;
   passportIssuedBy?: string | null;
   passportIssuedAt?: Date | null;
-  contractNumber: string;
-  contractDate: Date;
+  /** At least one; printed inline in order, exactly as the blanks list them. */
+  contracts: DocContract[];
   contractType: string;
   loanAmount: string;
   asOfDate: Date;
@@ -155,16 +175,20 @@ export function CertificateDocument(p: CertificateDocumentProps) {
         МАЪЛУМОТНОМА
       </h1>
 
-      {/* ── Body (justified, first-line indent 1.25cm, 14pt) ─────────── */}
+      {/*
+        ── Body (justified, first-line indent 1.25cm, 14pt) ─────────────
+        The blanks put the contract type in the plural here and the singular below, however
+        many contracts they list — so the two paragraphs differ on purpose.
+      */}
       <p style={{ fontSize: '14pt', textAlign: 'justify', textIndent: '1.25cm', margin: 0, lineHeight: 1.45 }}>
         <b>{firm.name}</b> билан <b>{p.personFullName}</b> {passportInfo} ўртасида имзоланган{' '}
-        {dmy(p.contractDate)} йилдаги <b>{p.contractNumber}-сонли</b> {p.contractType}га асосан умумий{' '}
+        <ContractList contracts={p.contracts} /> {contractTypePlural(p.contractType)}га асосан умумий{' '}
         {formatSum(p.loanAmount)} сўм миқдорида кредитлар ажратилган.
       </p>
       <p style={{ fontSize: '14pt', textAlign: 'justify', textIndent: '1.25cm', margin: 0, lineHeight: 1.45 }}>
-        <b>{p.personFullName}</b>нинг {uzLongDate(p.asOfDate)} ҳолатида, <b>{p.contractNumber}-сонли</b>{' '}
-        {p.contractType}га асосан қарздорлиги тўлиқ қопланган ва ташкилот олдида қарздорлиги мавжуд
-        эмаслигини маълум қиламиз.
+        <b>{p.personFullName}</b>нинг {uzLongDate(p.asOfDate)} ҳолатида{' '}
+        <ContractList contracts={p.contracts} /> {p.contractType}га асосан қарздорлиги тўлиқ
+        қопланган ва ташкилот олдида қарздорлиги мавжуд эмаслигини маълум қиламиз.
       </p>
 
       {/* ── Signature block ──────────────────────────────────────────── */}

@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { maskAmount, unmaskAmount, maskPassport, maskPinfl, isValidPinfl } from '@spravka/shared/core';
-import { TextField, DateField, Select, Ico, type Option } from '@spravka/shared/ui';
+import {
+  TextField, DateField, Select, Ico, ContractRows, contractRowsValid, emptyContractRow,
+  type Option, type ContractRow,
+} from '@spravka/shared/ui';
 
 type Firm = {
   id: string;
@@ -45,13 +48,13 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
     personPassport: '',
     passportIssuedBy: '',
     passportIssuedAt: '',
-    contractNumber: '',
-    contractDate: '',
     contractType: '«Микроқарз» универсал шартномаси',
     loanAmount: '',
     asOfDate: today(),
     issueDate: today(),
   });
+
+  const [contracts, setContracts] = useState<ContractRow[]>([emptyContractRow()]);
 
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
@@ -92,7 +95,7 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
   const nameOk = f.personFullName.trim().length > 3;
   const passOk = /^[A-Z]{2}\d{7}$/.test(f.personPassport);
   const amountOk = unmaskAmount(f.loanAmount).length > 0;
-  const valid = f.firmId && pinflOk && nameOk && passOk && f.contractNumber.trim() && f.contractDate && amountOk && f.asOfDate && f.issueDate;
+  const valid = f.firmId && pinflOk && nameOk && passOk && contractRowsValid(contracts) && amountOk && f.asOfDate && f.issueDate;
 
   const firmOptions: Option[] = firms.map((fi) => ({ value: fi.id, label: fi.shortName ?? fi.name }));
 
@@ -102,7 +105,7 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
     const res = await fetch('/api/certificates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...f, loanAmount: unmaskAmount(f.loanAmount), action }),
+      body: JSON.stringify({ ...f, contracts, loanAmount: unmaskAmount(f.loanAmount), action }),
     });
     if (res.ok) {
       router.push('/');
@@ -169,10 +172,12 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-4 text-sm font-semibold">Shartnoma va qarz</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField label="Shartnoma raqami" required value={f.contractNumber} onChange={set('contractNumber')} inputMode="numeric" placeholder="24273" />
-          <DateField label="Shartnoma sanasi" required value={f.contractDate} onChange={set('contractDate')} />
+        <h2 className="mb-1 text-sm font-semibold">Shartnoma va qarz</h2>
+        <p className="mb-4 text-xs text-muted">
+          Bitta maʼlumotnoma bir nechta shartnomani qamrab olishi mumkin — hujjatda hammasi ketma-ket yoziladi.
+        </p>
+        <ContractRows rows={contracts} onChange={setContracts} disabled={!!busy} />
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <TextField className="sm:col-span-2" label="Shartnoma turi" value={f.contractType} onChange={set('contractType')} />
           <TextField
             label="Kredit summasi" required value={f.loanAmount} onChange={set('loanAmount')}

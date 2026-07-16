@@ -52,7 +52,8 @@ export function buildCertWhere(p: ParsedFilters): Record<string, unknown> {
             { number: { contains: p.q } },
             { personFullName: { contains: p.q } },
             { personPassport: { contains: p.q } },
-            { contractNumber: { contains: p.q } },
+            // A maʼlumotnoma may list several contracts — match on any of them.
+            { contracts: { some: { number: { contains: p.q } } } },
           ],
         }
       : {}),
