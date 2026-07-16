@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { CertStatus, certificateBody, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
-import { StatusBadge } from '@spravka/shared/ui';
+import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
+import { StatusBadge, CertificateDocument } from '@spravka/shared/ui';
 import { Actions } from './Actions';
 
 export const dynamic = 'force-dynamic';
@@ -18,60 +18,43 @@ export default async function CertDetail({ params }: { params: { id: string } })
   });
   if (!c || c.deletedAt) notFound();
 
-  const body = certificateBody({
-    firmName: c.firm.name.replace(/^“|”.*$/g, '').replace(/”/g, ''),
-    personFullName: c.personFullName,
-    personPassport: c.personPassport,
-    passportIssuedBy: c.passportIssuedBy,
-    passportIssuedAt: c.passportIssuedAt,
-    contractNumber: c.contractNumber,
-    contractDate: c.contractDate,
-    contractType: c.contractType,
-    loanAmount: c.loanAmount.toString(),
-    asOfDate: c.asOfDate,
-  });
-
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
+      <div className="mb-6 flex items-center gap-3">
         <Link href="/arizalar" className="text-muted hover:text-fg">← Orqaga</Link>
-        <span className="font-mono text-sm text-fg">{c.number}</span>
+        <span className="font-mono text-sm text-muted">{c.number}</span>
         <StatusBadge status={c.status} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        {/* Document preview (A4-like) */}
-        <div className="rounded-2xl bg-white text-slate-900 p-8 md:p-10 shadow-xl leading-relaxed">
-          <div className="flex justify-between text-sm mb-6">
-            <div>Сана: {dmy(c.issueDate)} й</div>
-            <div>№ {c.number}</div>
-          </div>
-          <div className="text-right font-semibold mb-1">{c.personFullName}га</div>
-          <h2 className="text-center text-lg font-bold tracking-wide my-5">МАЪЛУМОТНОМА</h2>
-          <p className="text-justify indent-8">{body}</p>
-          <div className="mt-10 flex justify-between items-end">
-            <div className="text-sm">
-              <div className="font-semibold uppercase">{c.firm.shortName ?? c.firm.name}</div>
-              <div className="mt-1">{c.firm.directorPosition}</div>
-            </div>
-            <div className="text-sm font-semibold">{c.firm.directorName}</div>
-          </div>
-          <div className="mt-6 text-xs text-neutral-500">
-            Ижрочи: {c.firm.executorName}{c.firm.executorPhone ? ` · Тел: ${c.firm.executorPhone}` : ''}
-          </div>
+      <div className="grid gap-6 xl:grid-cols-[auto_320px]">
+        <div className="cert-frame rounded-2xl shadow-xl">
+          <CertificateDocument
+            number={c.number}
+            issueDate={c.issueDate}
+            personFullName={c.personFullName}
+            personPassport={c.personPassport}
+            passportIssuedBy={c.passportIssuedBy}
+            passportIssuedAt={c.passportIssuedAt}
+            contractNumber={c.contractNumber}
+            contractDate={c.contractDate}
+            contractType={c.contractType}
+            loanAmount={c.loanAmount.toString()}
+            asOfDate={c.asOfDate}
+            firm={c.firm}
+            signed={c.status === CertStatus.SIGNED}
+          />
         </div>
 
-        {/* Side panel: facts + actions + timeline */}
         <div className="space-y-4">
           {c.status === CertStatus.ADMIN_REVIEW && (
             <div className="card p-5">
-              <h3 className="text-sm font-semibold mb-3">Amal</h3>
+              <h3 className="mb-3 text-sm font-semibold">Amal</h3>
               <Actions id={c.id} />
             </div>
           )}
 
           <div className="card p-5 text-sm">
-            <h3 className="font-semibold mb-3">Maʼlumot</h3>
+            <h3 className="mb-3 font-semibold">Maʼlumot</h3>
             <dl className="space-y-2 text-fg">
               <div className="flex justify-between gap-3"><dt className="text-muted">Firma</dt><dd className="text-right">{c.firm.shortName ?? c.firm.name}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
@@ -82,7 +65,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
           </div>
 
           <div className="card p-5 text-sm">
-            <h3 className="font-semibold mb-3">Tarix</h3>
+            <h3 className="mb-3 font-semibold">Tarix</h3>
             {c.events.length === 0 ? (
               <p className="text-muted">Hali harakat yoʻq.</p>
             ) : (
@@ -90,7 +73,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
                 {c.events.map((e) => (
                   <li key={e.id} className="flex justify-between gap-3 text-muted">
                     <span>{ACTION_LABELS[e.action]} · {e.actor.fullName}</span>
-                    <span className="text-muted">{dmy(e.createdAt)}</span>
+                    <span>{dmy(e.createdAt)}</span>
                   </li>
                 ))}
               </ul>

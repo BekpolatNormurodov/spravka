@@ -21,6 +21,17 @@ export function dmy(date: Date): string {
   return `${d}.${m}.${date.getUTCFullYear()}`;
 }
 
+/** Uzbek-Cyrillic month names, as used in the source .docx ("июнь"). */
+export const UZ_MONTHS = [
+  'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+  'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь',
+] as const;
+
+/** Long date exactly as the .docx writes it: "2026 йил 26 июнь". */
+export function uzLongDate(date: Date): string {
+  return `${date.getUTCFullYear()} йил ${date.getUTCDate()} ${UZ_MONTHS[date.getUTCMonth()]}`;
+}
+
 /** Group a numeric amount string with spaces: "4000000" -> "4 000 000". */
 export function formatSum(amount: string): string {
   const n = String(amount).replace(/[^\d]/g, '');

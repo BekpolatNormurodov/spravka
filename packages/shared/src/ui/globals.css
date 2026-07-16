@@ -62,3 +62,25 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ── Certificate sheet — exact A4 geometry from the source .docx ─────────
+   pgSz 11906×16838 twips = 210×297mm; pgMar top/bottom 1134 (20mm),
+   right 851 (15mm), left 1701 (30mm). Always light — it is paper.        */
+.cert-frame { overflow-x: auto; }
+.cert-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 20mm 15mm 20mm 30mm;
+  box-sizing: border-box;
+  background: #fff;
+  color: #000;
+  margin: 0 auto;
+}
+
+@media print {
+  @page { size: A4; margin: 0; }
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .cert-frame { overflow: visible !important; }
+  .cert-sheet { box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
+}

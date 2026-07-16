@@ -5,14 +5,21 @@ import { hashPassword } from '../src/core/password';
 async function main() {
   const firms = [
     {
+      // Rekvizitlar taken verbatim from the source .docx letterhead (word/header1.xml).
       id: 'firm_bright_future',
       name: '“BRIGHT FUTURE FINANCING MIKROMOLIYA TASHKILOTI” МЧЖ',
       shortName: 'BRIGHT FUTURE FINANCING',
       directorName: 'А.А.Бойназаров',
+      directorPosition: 'Ижрочи директори',
       executorName: 'Б.Тоиров',
       executorPhone: '+99855-503-01-90',
       phone: '+99855-503-01-90',
-      region: 'Samarqand',
+      address: 'Тошкент шахри, Олмазор тумани Гуручарик МФЙ, Сагбон кучаси 30 берк, 7/1 уй.',
+      stir: '311976765',
+      bankAccount: '20216000207212842001',
+      mfo: '01183',
+      bankName: 'АО "ANORBANK"',
+      region: 'Toshkent',
     },
     { id: 'firm_2', name: 'МИКРОМОЛИЯ ТАШКИЛОТИ 2 МЧЖ', directorName: 'Ф.И.Ш.', executorName: 'Ф.И.Ш.', phone: '+998000000002' },
     { id: 'firm_3', name: 'МИКРОМОЛИЯ ТАШКИЛОТИ 3 МЧЖ', directorName: 'Ф.И.Ш.', executorName: 'Ф.И.Ш.', phone: '+998000000003' },
