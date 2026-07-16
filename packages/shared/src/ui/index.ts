@@ -12,6 +12,8 @@ export { TextField, DateField, TextArea, PasswordField } from './Field';
 export { Filters } from './Filters';
 export { Pagination } from './Pagination';
 export type { FirmOpt } from './Filters';
+export { BarChart, DonutChart, HBarChart } from './Charts';
+export type { Series, Slice } from './Charts';
 export { Calendar, UZ_MONTHS_LAT } from './Calendar';
 export { STATUS_DOT } from './tokens';
 export type { DayData } from './Calendar';
