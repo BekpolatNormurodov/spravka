@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Modal, Ico, Spinner } from '@spravka/shared/ui';
+import { SignDialog } from './SignDialog';
 
 type Dialog = null | 'sign' | 'return' | 'delete';
-type Action = 'sign' | 'return' | 'delete';
+/** Signing has its own dialog and its own two-call flow — see SignDialog. */
+type Action = 'return' | 'delete';
 
 export function Actions({
   id,
@@ -41,7 +43,6 @@ export function Actions({
       }
       setDialog(null);
       setNote('');
-      if (action === 'sign') setSigned(true);
       if (action === 'delete') router.push('/imzolash');
       router.refresh();
     } catch {
@@ -99,68 +100,18 @@ export function Actions({
         Oʻchirish (arxiv)
       </button>
 
-      {/*
-        Signing had no confirmation at all, while archiving — which is reversible — had one. It is
-        the other way round: this is the rahbar's signature, it cannot be taken back, and the
-        document goes public the moment it lands. The dialog states which document, so the answer
-        to "are you sure" is something the rahbar can actually check.
-      */}
-      <Modal
+      <SignDialog
         open={dialog === 'sign'}
-        title="Maʼlumotnomani imzolash"
-        description="Imzolangandan keyin hujjatni tahrirlab ham, imzoni qaytarib ham boʻlmaydi."
         onClose={() => setDialog(null)}
-        footer={
-          <>
-            <button className="btn-ghost" onClick={() => setDialog(null)} type="button" disabled={busy === 'sign'}>
-              Bekor
-            </button>
-            <button className="btn-primary" disabled={busy === 'sign'} onClick={() => act('sign')} type="button">
-              {busy === 'sign' ? <Spinner size={16} /> : <Ico.pen size={16} />}
-              {busy === 'sign' ? 'Imzolanmoqda…' : 'Imzolash'}
-            </button>
-          </>
-        }
-      >
-        <Err where="sign" />
-        <dl className="space-y-1.5 rounded-xl bg-surface-2 px-4 py-3 text-sm">
-          <div className="flex justify-between gap-3">
-            <dt className="text-muted">Maʼlumotnoma</dt>
-            <dd className="font-mono tabular-nums">{number}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt className="text-muted">Jismoniy shaxs</dt>
-            <dd className="text-right font-medium">{personFullName}</dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-sm text-muted">
-          Hujjat sizning imzoyingiz bilan chiqadi va QR koddan skanerlagan har kim uni koʻra oladi.
-        </p>
-
-        {/*
-          Says what is true about *this system*, not about the rahbar's machine. E-IMZO Client may
-          well be installed and running — that is not what is missing. What is missing is our side:
-          verifying an O'zDSt 1092:2009 signature needs E-IMZO-SERVER and a NIC contract, so the
-          system does not use the key even when it is right there. An earlier wording said
-          "E-IMZO: faol emas", which read as "your client is off" and was simply false.
-        */}
-        <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-line bg-surface-2 px-3 py-2.5">
-          <span className="mt-px shrink-0 text-amber-600 dark:text-amber-400" aria-hidden>
-            <Ico.shieldOff size={16} />
-          </span>
-          <div className="text-xs leading-relaxed">
-            <p className="font-semibold text-fg">Davlat ЭЦП si qoʻyilmaydi</p>
-            <p className="mt-0.5 text-muted">
-              Kompyuteringizda E-IMZO oʻrnatilgan boʻlsa ham, tizim hozircha undan foydalanmaydi.
-              Hujjat tizim tartibida imzolanadi, haqiqiyligi QR kod orqali tekshiriladi.
-            </p>
-          </div>
-        </div>
-
-        {busy === 'sign' && (
-          <p className="mt-3 text-xs text-muted">Hujjat PDF qilinmoqda — bir necha soniya oladi.</p>
-        )}
-      </Modal>
+        id={id}
+        number={number}
+        personFullName={personFullName}
+        onSigned={() => {
+          setDialog(null);
+          setSigned(true);
+          router.refresh();
+        }}
+      />
 
       <Modal
         open={dialog === 'return'}

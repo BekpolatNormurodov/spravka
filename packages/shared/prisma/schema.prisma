@@ -151,6 +151,10 @@ model Certificate {
   /// Null while the ariza is still editable (then it renders from the live Firm).
   firmSnapshot     Json?
 
+  /// The rahbar's E-IMZO signature, when one was made. Absent means the document rests on the
+  /// system's own record and the QR alone — which is the case for everything issued so far.
+  signature        CertSignature?
+
   signedBy         User?      @relation("CertSignedBy", fields: [signedById], references: [id])
   signedById       String?
   signedAt         DateTime?
@@ -176,6 +180,56 @@ model Certificate {
   @@index([status])
   @@index([firmId])
   @@index([clientId])
+}
+
+/// The rahbar's E-IMZO signature over the frozen PDF.
+///
+/// `verified` is the whole story of this table. Producing a signature needs nothing but the
+/// rahbar's key; *checking* one needs E-IMZO-SERVER and a NIC contract, which we do not have.
+/// So the row is evidence, not proof: it is a real PKCS#7 made by a real key on the rahbar's own
+/// machine, and a third party with E-IMZO-SERVER can verify it — we cannot, yet. Until we can,
+/// nothing in the UI may call the document «tasdiqlangan» on the strength of this row.
+///
+/// Nothing here is trusted input. `signerInfo` is whatever the browser reported and could say
+/// anything; it exists so a human can see which key was used, never to decide anything.
+model CertSignature {
+  id            String      @id @default(cuid())
+  certificate   Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  certificateId String      @unique
+  /// base64 PKCS#7/CMS with the document attached.
+  pkcs7         String      @db.LongText
+  /// Digest of the PDF that was signed. Must equal Certificate.pdfSha256 — the server checks
+  /// this on the way in, so a signature can never drift from the bytes it covers.
+  pdfSha256     String
+  /// Set only once an E-IMZO-SERVER has actually checked it. Never set by the client.
+  verified      Boolean     @default(false)
+  verifiedAt    DateTime?
+  /// Untrusted, informational: the key's alias/name as the client reported it.
+  signerInfo    Json?
+  createdAt     DateTime    @default(now())
+}
+
+/// A rendered-but-uncommitted document awaiting its signature.
+///
+/// The rahbar signs bytes, so the server must know exactly which bytes it handed out: without
+/// this row, a client could sign anything at all and we would store it against the document.
+/// Short-lived by design — one signing attempt.
+model SignChallenge {
+  id            String   @id @default(cuid())
+  certificateId String
+  /// The rahbar who asked. Only they may complete it.
+  userId        String
+  /// Digest of the PDF handed to the client; the returned PKCS#7 must cover exactly this.
+  pdfSha256     String
+  /// The rekvizitlar the PDF was rendered from, carried here rather than re-read at commit: an
+  /// admin editing the Firm in the seconds between the two would otherwise leave the stored
+  /// snapshot describing a document that was never rendered.
+  firmSnapshot  Json
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([certificateId])
+  @@index([expiresAt])
 }
 
 /// One «Микроқарз» contract a maʼlumotnoma covers, printed in `order`. Kept as rows rather
