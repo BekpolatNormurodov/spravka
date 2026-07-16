@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Ico, NAV_ICONS } from './icons';
 import { ThemeToggle } from './ThemeToggle';
+import { Logo } from './Logo';
 
 export interface NavItem {
   href: string;
@@ -18,8 +19,6 @@ export interface NavItem {
 
 export interface AppShellProps {
   appName: string;
-  initials: string;
-  accentClass?: string;
   nav: NavItem[];
   user: { fullName: string; roleLabel?: string };
   logoutAction?: string;
@@ -41,8 +40,6 @@ const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(' ')
 
 export function AppShell({
   appName,
-  initials,
-  accentClass = 'bg-brand-600',
   nav,
   user,
   logoutAction = '/api/auth/logout',
@@ -119,7 +116,7 @@ export function AppShell({
         )}
       >
         <div className={cx('mb-6 flex items-center gap-2.5', rail && 'lg:justify-center')}>
-          <div className={cx('grid h-9 w-9 shrink-0 place-items-center rounded-xl font-bold text-white', accentClass)}>{initials}</div>
+          <Logo size={36} className="shrink-0" />
           <div className={cx('min-w-0', rail && 'lg:hidden')}>
             <div className="truncate text-sm font-semibold leading-tight">{appName}</div>
             <div className="text-xs text-muted">Maʼlumotnoma</div>

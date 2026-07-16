@@ -8,3 +8,4 @@ build/
 
 # TS incremental build cache
 *.tsbuildinfo
+scripts-tmp-*.ts
