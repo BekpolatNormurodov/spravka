@@ -1,7 +1,19 @@
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { createRequire } from 'node:module';
 import { CertificateDocument, type CertificateDocumentProps } from '../ui/CertificateDocument';
 import { fontFaceCss } from './fonts';
+
+/**
+ * `react-dom/server`, loaded at runtime rather than imported.
+ *
+ * Next's App Router refuses to compile any module that imports react-dom/server — a guard against
+ * accidentally server-rendering components inside RSC. Here it is a false positive: we are not
+ * rendering a page, we are generating a document artifact that Chromium then prints. Going
+ * through createRequire keeps the module out of webpack's static analysis while still resolving
+ * normally under Node.
+ */
+const renderToStaticMarkup: (el: React.ReactElement) => string =
+  createRequire(import.meta.url)('react-dom/server').renderToStaticMarkup;
 
 /**
  * The sheet geometry, copied from `ui/globals.css`. Only `.cert-sheet` is needed: everything

@@ -83,11 +83,25 @@ config unga tegmaydi.
 ```bash
 # 1. Kod
 git clone <repo> /opt/spravka && cd /opt/spravka
+
+# Chromium — imzolashda hujjatni PDF qiladi. Brauzerni Puppeteer o'zi yuklaydi,
+# lekin uning tizim kutubxonalari kerak. Bularsiz xato deploy'da emas, birinchi
+# "Imzolash" bosilganda chiqadi.
+apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+                   libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+                   libxrandr2 libgbm1 libasound2 libpango-1.0-0 libcairo2
+
+# Puppeteer keshi $HOME'da emas, app daraxtida — systemd'da ProtectHome=true.
+export PUPPETEER_CACHE_DIR=/opt/spravka/.cache/puppeteer
 npm ci
 npm run db:generate && npm run db:push && npm run db:seed
 
 # 2. Har bir app uchun .env (PORT ni ham yozing — systemd shundan oladi)
-#    DATABASE_URL, AUTH_SECRET, NEXT_PUBLIC_PUBLIC_URL, PORT
+#    DATABASE_URL, AUTH_SECRET, NEXT_PUBLIC_PUBLIC_URL, PORT, CERT_STORAGE_DIR
+
+# 2b. Imzolangan hujjatlar ombori (CERT_STORAGE_DIR)
+mkdir -p /var/lib/spravka/storage
+chown -R spravka:spravka /var/lib/spravka
 
 # 3. Build
 npm run build -w @spravka/web-yurist
@@ -129,6 +143,19 @@ ss -tlnp | grep 510          # faqat 127.0.0.1 da bo'lishi kerak, 0.0.0.0 da ema
 certbot certificates
 curl -I https://yurist.qrsystem.uz/
 ```
+
+## ⚠️ Backup: `/var/lib/spravka/storage` — bazadan kam emas
+
+Bu papkadagi PDF'lar — **berilgan huquqiy hujjatlar**, kesh emas. Rahbar imzolagan
+lahzada fayl muzlatiladi va boshqa hech qachon o'zgarmaydi; QR orqali kelgan odam
+aynan shuni yuklab oladi.
+
+Fayl yo'qolsa "qayta chizamiz" ish bermaydi. Tizim uni `firmSnapshot`'dan qayta
+chiza oladi, lekin bu **boshqa fayl** bo'ladi — boshqa baytlar, boshqa `pdfSha256`.
+Ya'ni odam qo'lidagi qog'oz bilan bazadagi yozuv o'rtasidagi bog'lanish uziladi.
+
+DB backup nimaga tushsa, `/var/lib/spravka/storage` ham **o'sha joyga, o'sha
+jadvalda** tushishi kerak. Ikkovi bir-birisiz to'liq emas.
 
 ## Eslatmalar
 

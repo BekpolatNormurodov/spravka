@@ -17,6 +17,11 @@ WorkingDirectory=/opt/spravka/apps/web-%i
 EnvironmentFile=/opt/spravka/apps/web-%i/.env
 Environment=NODE_ENV=production
 
+# Signing renders the maʼlumotnoma with headless Chromium. Puppeteer caches its browser under
+# $HOME by default, which ProtectHome= below makes unreachable — so the launch would fail at the
+# first Imzolash, long after a deploy that looked fine. Keep the cache inside the app tree.
+Environment=PUPPETEER_CACHE_DIR=/opt/spravka/.cache/puppeteer
+
 # Not `npm run start`: that script hardcodes -H 0.0.0.0 for local dev, and CLI
 # flags beat env vars — so in production every app would also answer on the
 # public IP directly, over plain http, bypassing nginx and TLS entirely.
@@ -25,12 +30,16 @@ ExecStart=/usr/bin/npx next start -H 127.0.0.1 -p ${PORT}
 Restart=always
 RestartSec=5
 
-# The app reads its own tree and writes nothing outside .next and /tmp.
+# The app reads its own tree and writes only to .next, /tmp, and the document store.
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/opt/spravka/apps/web-%i/.next
+# Issued maʼlumotnoma files (CERT_STORAGE_DIR). rahbar freezes one at each signing; public
+# re-freezes documents signed before that existed. Leading '-' so yurist/admin, which never
+# write here, still start if the directory is absent.
+ReadWritePaths=-/var/lib/spravka/storage
 
 StandardOutput=journal
 StandardError=journal
