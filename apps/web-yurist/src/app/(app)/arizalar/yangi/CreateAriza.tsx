@@ -5,9 +5,32 @@ import { useRouter } from 'next/navigation';
 import { maskAmount, unmaskAmount, maskPassport, maskPinfl, isValidPinfl } from '@spravka/shared/core';
 import { TextField, DateField, Select, Ico, type Option } from '@spravka/shared/ui';
 
-type Firm = { id: string; name: string; shortName: string | null };
+type Firm = {
+  id: string;
+  name: string;
+  shortName: string | null;
+  letterheadName: string | null;
+  stir: string | null;
+  bankAccount: string | null;
+  mfo: string | null;
+  bankName: string | null;
+  directorName: string | null;
+  directorPosition: string | null;
+};
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** One rekvizit line in the side panel. */
+function Fact({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
+  return (
+    <div>
+      <dt className="text-[11px] uppercase tracking-wide text-muted">{label}</dt>
+      <dd className={`mt-0.5 break-words text-sm ${mono ? 'font-mono tabular-nums' : ''} ${value ? '' : 'text-muted'}`}>
+        {value || '—'}
+      </dd>
+    </div>
+  );
+}
 
 export function CreateAriza({ firms }: { firms: Firm[] }) {
   const router = useRouter();
@@ -91,8 +114,14 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
     }
   }
 
+  const firm = firms.find((x) => x.id === f.firmId);
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); save('submit'); }} className="max-w-4xl space-y-6">
+    <form
+      onSubmit={(e) => { e.preventDefault(); save('submit'); }}
+      className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start"
+    >
+      <div className="min-w-0 space-y-6">
       {err && (
         <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
           {err}
@@ -154,17 +183,47 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
           <DateField label="Maʼlumotnoma sanasi" required value={f.issueDate} onChange={set('issueDate')} />
         </div>
       </section>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" className="btn-primary" disabled={!valid || !!busy}>
-          <Ico.check size={18} />
-          {busy === 'submit' ? 'Yuborilmoqda…' : 'Admin tasdigʻiga yuborish'}
-        </button>
-        <button type="button" onClick={() => save('draft')} className="btn-ghost" disabled={!!busy}>
-          {busy === 'draft' ? 'Saqlanmoqda…' : 'Qoralama saqlash'}
-        </button>
-        {!valid && <span className="text-xs text-muted">Majburiy (*) maydonlarni toʻldiring</span>}
       </div>
+
+      {/* Sticky so the rekvizitlar and the actions stay in view while the form scrolls. */}
+      <aside className="space-y-4 xl:sticky xl:top-20">
+        <div className="card p-5">
+          <h2 className="mb-4 text-sm font-semibold">Blanka</h2>
+          {firm ? (
+            <dl className="space-y-3.5">
+              <Fact label="Tashkilot" value={firm.letterheadName || firm.name} />
+              <Fact label="СТИР" value={firm.stir} mono />
+              <Fact label="Ҳ/р" value={firm.bankAccount} mono />
+              <Fact label="МФО" value={firm.mfo} mono />
+              <Fact label="Банк" value={firm.bankName} />
+              <Fact label={firm.directorPosition || 'Директор'} value={firm.directorName} />
+            </dl>
+          ) : (
+            <p className="text-xs text-muted">Firma tanlanmagan.</p>
+          )}
+          <p className="mt-4 border-t border-line pt-3 text-xs text-muted">
+            Maʼlumotnoma aynan shu rekvizitlar bilan chiqadi.
+          </p>
+        </div>
+
+        <div className="card space-y-3 p-5">
+          <button type="submit" className="btn-primary w-full justify-center" disabled={!valid || !!busy}>
+            <Ico.check size={18} />
+            {busy === 'submit' ? 'Yuborilmoqda…' : 'Admin tasdigʻiga yuborish'}
+          </button>
+          <button
+            type="button"
+            onClick={() => save('draft')}
+            className="btn-ghost w-full justify-center"
+            disabled={!!busy}
+          >
+            {busy === 'draft' ? 'Saqlanmoqda…' : 'Qoralama saqlash'}
+          </button>
+          {!valid && (
+            <p className="text-center text-xs text-muted">Majburiy (*) maydonlarni toʻldiring</p>
+          )}
+        </div>
+      </aside>
     </form>
   );
 }
