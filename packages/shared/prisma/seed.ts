@@ -169,6 +169,10 @@ const FIRMS = [
     stir: '312811527',
     region: 'Toshkent',
     address: TOSHKENT_CHINNIOBOD,
+    // The one firm no rekvizit sheet covers: no account, no МФО. Ships archived so it stays
+    // out of the firm pickers — a maʼlumotnoma printed on it would have an empty Х/р line.
+    // Reactivate from Firmalar once the rekvizitlar are known.
+    isActive: false,
   },
 ];
 
