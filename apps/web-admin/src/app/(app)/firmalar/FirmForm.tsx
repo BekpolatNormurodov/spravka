@@ -2,10 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { maskStir, maskPhone, maskAccount, maskMfo } from '@spravka/shared/core';
+import { Modal, TextField, Ico } from '@spravka/shared/ui';
 
 const EMPTY = {
-  name: '', shortName: '', directorName: '', executorName: '',
-  executorPhone: '', phone: '', stir: '', region: '', address: '',
+  name: '', shortName: '', stir: '',
+  directorName: '', directorPosition: 'Ижрочи директори',
+  executorName: '', executorPhone: '', phone: '',
+  bankName: '', bankAccount: '', mfo: '', region: '', address: '',
 };
 
 export function FirmForm() {
@@ -15,17 +19,19 @@ export function FirmForm() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setF((s) => ({ ...s, [k]: e.target.value }));
+  const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  // Each firm must have exactly one director, named (ism + familiya).
+  const directorOk = f.directorName.trim().split(/\s+/).filter(Boolean).length >= 2;
+  const valid = f.name.trim() && directorOk && f.executorName.trim() && f.phone.trim();
+
+  async function submit() {
     setBusy(true);
     setErr('');
     const res = await fetch('/api/firms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(f),
+      body: JSON.stringify({ ...f, bankAccount: f.bankAccount.replace(/\s/g, '') }),
     });
     if (res.ok) {
       setF(EMPTY);
@@ -38,31 +44,68 @@ export function FirmForm() {
     setBusy(false);
   }
 
-  if (!open) {
-    return <button onClick={() => setOpen(true)} className="btn-primary">+ Yangi firma</button>;
-  }
-
   return (
-    <form onSubmit={submit} className="card p-6 space-y-4">
-      {err && <div className="text-sm text-rose-600 dark:text-rose-300">{err}</div>}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <label className="field-label">Toʻliq nomi (kirillcha) *</label>
-          <input className="field-input" value={f.name} onChange={set('name')} placeholder="“... МИКРОМОЛИЯ ТАШКИЛОТИ” МЧЖ" required />
+    <>
+      <button onClick={() => setOpen(true)} className="btn-primary">
+        <Ico.add size={18} /> Yangi firma
+      </button>
+
+      <Modal
+        open={open}
+        title="Yangi firma"
+        description="Rekvizitlar maʼlumotnoma blankasida chiqadi."
+        onClose={() => setOpen(false)}
+        footer={
+          <>
+            <button className="btn-ghost" onClick={() => setOpen(false)} type="button">Bekor</button>
+            <button className="btn-primary" disabled={!valid || busy} onClick={submit} type="button">
+              {busy ? 'Saqlanmoqda…' : 'Saqlash'}
+            </button>
+          </>
+        }
+      >
+        {err && <p className="mb-3 text-sm text-rose-600 dark:text-rose-300">{err}</p>}
+
+        <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+          <TextField
+            label="Toʻliq nomi (kirillcha)" required value={f.name} onChange={set('name')}
+            placeholder="“... МИКРОМОЛИЯ ТАШКИЛОТИ” МЧЖ"
+            hint="Hujjat matnida va blankada shu nom chiqadi."
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Qisqa nomi" value={f.shortName} onChange={set('shortName')} placeholder="BRIGHT FUTURE FINANCING" />
+            <TextField label="STIR" value={f.stir} onChange={set('stir')} mask={maskStir} inputMode="numeric" placeholder="311976765" hint="9 raqam" />
+          </div>
+
+          <div className="rounded-xl border border-line p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">Ijrochi direktor (majburiy, bitta)</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Ism familiya" required value={f.directorName} onChange={set('directorName')}
+                placeholder="А.А.Бойназаров"
+                error={f.directorName && !directorOk ? 'Ism va familiyani toʻliq yozing' : undefined}
+                hint={!f.directorName ? 'Imzo blokida shu ism chiqadi' : undefined}
+              />
+              <TextField label="Lavozimi" value={f.directorPosition} onChange={set('directorPosition')} />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Ijrochi" required value={f.executorName} onChange={set('executorName')} placeholder="Б.Тоиров" />
+            <TextField label="Ijrochi telefoni" value={f.executorPhone} onChange={set('executorPhone')} mask={maskPhone} inputMode="tel" placeholder="+998 55 503 01 90" />
+            <TextField label="Telefon" required value={f.phone} onChange={set('phone')} mask={maskPhone} inputMode="tel" placeholder="+998 55 503 01 90" />
+            <TextField label="Region" value={f.region} onChange={set('region')} placeholder="Toshkent" />
+          </div>
+
+          <TextField label="Yuridik manzil" value={f.address} onChange={set('address')} placeholder="Тошкент шахри, ..." />
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <TextField label="Bank" value={f.bankName} onChange={set('bankName')} placeholder='АО "ANORBANK"' className="sm:col-span-3" />
+            <TextField label="Hisob raqami (х/р)" value={f.bankAccount} onChange={set('bankAccount')} mask={maskAccount} inputMode="numeric" placeholder="2021 6000 2072 1284 2001" className="sm:col-span-2" hint="20 raqam" />
+            <TextField label="MFO" value={f.mfo} onChange={set('mfo')} mask={maskMfo} inputMode="numeric" placeholder="01183" />
+          </div>
         </div>
-        <div><label className="field-label">Qisqa nomi</label><input className="field-input" value={f.shortName} onChange={set('shortName')} /></div>
-        <div><label className="field-label">STIR</label><input className="field-input" value={f.stir} onChange={set('stir')} /></div>
-        <div><label className="field-label">Direktor (F.I.SH.) *</label><input className="field-input" value={f.directorName} onChange={set('directorName')} required /></div>
-        <div><label className="field-label">Ijrochi *</label><input className="field-input" value={f.executorName} onChange={set('executorName')} required /></div>
-        <div><label className="field-label">Telefon *</label><input className="field-input" value={f.phone} onChange={set('phone')} required /></div>
-        <div><label className="field-label">Ijrochi telefoni</label><input className="field-input" value={f.executorPhone} onChange={set('executorPhone')} /></div>
-        <div><label className="field-label">Region</label><input className="field-input" value={f.region} onChange={set('region')} /></div>
-        <div className="sm:col-span-2"><label className="field-label">Manzil</label><input className="field-input" value={f.address} onChange={set('address')} /></div>
-      </div>
-      <div className="flex gap-3">
-        <button className="btn-primary" disabled={busy}>{busy ? 'Saqlanmoqda…' : 'Saqlash'}</button>
-        <button type="button" onClick={() => setOpen(false)} className="btn-ghost">Bekor</button>
-      </div>
-    </form>
+      </Modal>
+    </>
   );
 }

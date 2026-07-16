@@ -8,6 +8,7 @@ export { Modal } from './Modal';
 export { ClickableRow, RowAction, ViewAction } from './ClickableRow';
 export { Select } from './Select';
 export type { Option } from './Select';
+export { TextField, DateField, TextArea, PasswordField } from './Field';
 export { Calendar, UZ_MONTHS_LAT, STATUS_DOT } from './Calendar';
 export type { DayData } from './Calendar';
 export { ThemeScript, StatusBadge, StatCard, PageHeader, EmptyState, Table, ReturnNotice } from './components';

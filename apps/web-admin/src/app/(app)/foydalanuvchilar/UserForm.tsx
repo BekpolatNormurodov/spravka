@@ -2,8 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Role, ROLE_LABELS, maskPhone } from '@spravka/shared/core';
+import { Modal, TextField, PasswordField, Select, Ico, type Option } from '@spravka/shared/ui';
 
-const EMPTY = { fullName: '', login: '', password: '', role: 'YURIST', position: '', phone: '' };
+const EMPTY = { fullName: '', login: '', password: '', role: Role.YURIST as string, position: '', phone: '' };
+
+const ROLE_OPTIONS: Option[] = [
+  { value: Role.YURIST, label: ROLE_LABELS[Role.YURIST], dot: 'bg-brand-500' },
+  { value: Role.ADMIN, label: ROLE_LABELS[Role.ADMIN], dot: 'bg-slate-400' },
+  { value: Role.RAHBAR, label: ROLE_LABELS[Role.RAHBAR], dot: 'bg-violet-500' },
+];
 
 export function UserForm() {
   const router = useRouter();
@@ -12,11 +20,12 @@ export function UserForm() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setF((s) => ({ ...s, [k]: e.target.value }));
+  const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  const nameOk = f.fullName.trim().split(/\s+/).filter(Boolean).length >= 2;
+  const valid = nameOk && f.login.trim().length >= 3 && f.password.length >= 6;
+
+  async function submit() {
     setBusy(true);
     setErr('');
     const res = await fetch('/api/users', {
@@ -35,32 +44,55 @@ export function UserForm() {
     setBusy(false);
   }
 
-  if (!open) {
-    return <button onClick={() => setOpen(true)} className="btn-primary">+ Yangi foydalanuvchi</button>;
-  }
-
   return (
-    <form onSubmit={submit} className="card p-6 space-y-4">
-      {err && <div className="text-sm text-rose-600 dark:text-rose-300">{err}</div>}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div><label className="field-label">F.I.SH. *</label><input className="field-input" value={f.fullName} onChange={set('fullName')} required /></div>
-        <div><label className="field-label">Login *</label><input className="field-input" value={f.login} onChange={set('login')} required /></div>
-        <div><label className="field-label">Parol *</label><input className="field-input" value={f.password} onChange={set('password')} required /></div>
-        <div>
-          <label className="field-label">Rol *</label>
-          <select className="field-input" value={f.role} onChange={set('role')}>
-            <option value="YURIST">Yurist</option>
-            <option value="ADMIN">Admin</option>
-            <option value="RAHBAR">Rahbar</option>
-          </select>
+    <>
+      <button onClick={() => setOpen(true)} className="btn-primary">
+        <Ico.add size={18} /> Yangi foydalanuvchi
+      </button>
+
+      <Modal
+        open={open}
+        title="Yangi foydalanuvchi"
+        description="Login va parol bilan tizimga kiradi."
+        onClose={() => setOpen(false)}
+        footer={
+          <>
+            <button className="btn-ghost" onClick={() => setOpen(false)} type="button">Bekor</button>
+            <button className="btn-primary" disabled={!valid || busy} onClick={submit} type="button">
+              {busy ? 'Saqlanmoqda…' : 'Saqlash'}
+            </button>
+          </>
+        }
+      >
+        {err && <p className="mb-3 text-sm text-rose-600 dark:text-rose-300">{err}</p>}
+
+        <div className="space-y-4">
+          <TextField
+            label="Ism familiya" required value={f.fullName} onChange={set('fullName')}
+            placeholder="Bekzod Toirov"
+            error={f.fullName && !nameOk ? 'Ism va familiyani toʻliq yozing' : undefined}
+          />
+
+          <div>
+            <label className="field-label">Rol <span className="text-rose-500">*</span></label>
+            <Select label="Rol" value={f.role} onChange={set('role')} options={ROLE_OPTIONS} />
+            <p className="mt-1.5 text-xs text-muted">Har rol faqat oʻz paneliga kira oladi.</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="Login" required value={f.login} onChange={set('login')} placeholder="yurist2"
+              error={f.login && f.login.trim().length < 3 ? 'Kamida 3 belgi' : undefined}
+            />
+            <PasswordField
+              label="Parol" required value={f.password} onChange={set('password')} placeholder="••••••••"
+              error={f.password && f.password.length < 6 ? 'Kamida 6 belgi' : undefined}
+            />
+            <TextField label="Lavozim" value={f.position} onChange={set('position')} placeholder="Yurist" />
+            <TextField label="Telefon" value={f.phone} onChange={set('phone')} mask={maskPhone} inputMode="tel" placeholder="+998 90 123 45 67" />
+          </div>
         </div>
-        <div><label className="field-label">Lavozim</label><input className="field-input" value={f.position} onChange={set('position')} /></div>
-        <div><label className="field-label">Telefon</label><input className="field-input" value={f.phone} onChange={set('phone')} /></div>
-      </div>
-      <div className="flex gap-3">
-        <button className="btn-primary" disabled={busy}>{busy ? 'Saqlanmoqda…' : 'Saqlash'}</button>
-        <button type="button" onClick={() => setOpen(false)} className="btn-ghost">Bekor</button>
-      </div>
-    </form>
+      </Modal>
+    </>
   );
 }

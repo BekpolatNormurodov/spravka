@@ -5,5 +5,6 @@ export * from './session';
 export * from './labels';
 export * from './document';
 export * from './calendar';
+export * from './mask';
 // NOTE: password helpers (bcrypt, node-only) are intentionally NOT re-exported here so this barrel
 // stays edge-safe. Import them from '@spravka/shared/password' in Node-runtime code only.
