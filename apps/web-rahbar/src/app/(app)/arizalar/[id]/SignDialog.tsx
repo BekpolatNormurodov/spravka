@@ -28,6 +28,13 @@ function keyLocation(k: EimzoKey): string {
   return `${k.disk.replace(/[\\/]+$/, '')}${sep}${k.path}`;
 }
 
+/**
+ * E-IMZO reports a closed password window as an error («Ввод пароля отменен»). It is not one —
+ * the rahbar chose to stop — and showing it in red as a failure would say something went wrong
+ * when nothing did. Matched on E-IMZO's own wording in both languages it uses.
+ */
+const isCancelled = (m: string) => /отмен|bekor|cancel/i.test(m);
+
 const STEP_LABEL: Record<NonNullable<Step>, string> = {
   preparing: 'Hujjat PDF qilinmoqda…',
   unlocking: 'E-IMZO oynasida parolni kiriting…',
@@ -82,10 +89,22 @@ export function SignDialog({
     let keyId: string | null = null;
     let challengeId: string | null = null;
 
+    /*
+      The stage is tracked here as well as in state, and the local is what the failure report
+      uses. `step` is a closure over the render that started this call, so it reads `null` in the
+      catch no matter how far we actually got — the log said "stage: unknown" for every failure,
+      which is precisely the field worth having.
+    */
+    let stage: NonNullable<Step> = 'preparing';
+    const at = (s: NonNullable<Step>) => {
+      stage = s;
+      setStep(s);
+    };
+
     try {
       // 1. The server renders the document and tells us exactly which bytes to sign. It keeps
       //    the digest, so a signature can never be filed against bytes it does not cover.
-      setStep('preparing');
+      at('preparing');
       const prep = await fetch(`/api/certificates/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -97,14 +116,14 @@ export function SignDialog({
 
       // 2. E-IMZO opens its own password window. Nothing about it is ours — which is precisely
       //    why the password never reaches this page.
-      setStep('unlocking');
+      at('unlocking');
       keyId = await loadKey(key);
 
-      setStep('signing');
+      at('signing');
       const pkcs7 = await createPkcs7(prepData.pdfBase64, keyId);
 
       // 3. Only the finished signature crosses back.
-      setStep('saving');
+      at('saving');
       const res = await fetch(`/api/certificates/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -120,8 +139,11 @@ export function SignDialog({
 
       onSigned();
     } catch (e) {
-      const message =
+      const raw =
         e instanceof EimzoError ? e.message : e instanceof Error ? e.message : 'Kutilmagan xatolik';
+      const message = isCancelled(raw)
+        ? 'Parol kiritilmadi — imzolash bekor qilindi. Qaytadan urinib koʻring.'
+        : raw;
       setErr(message);
 
       // Tell the server it failed. Everything E-IMZO refuses — a wrong password, a closed
@@ -129,10 +151,14 @@ export function SignDialog({
       // behind: a rahbar reporting "it will not sign" and a server log with no trace of them
       // ever trying. Nothing is written to the certificate; only the attempt is recorded, and
       // the challenge is dropped so the rendered PDF cannot be completed later.
+      //
+      // `raw`, not `message`: the log gets E-IMZO's own words. The softened wording above is for
+      // the rahbar; rewriting it in the log would hide what actually happened from whoever has
+      // to diagnose it.
       void fetch(`/api/certificates/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sign-error', challengeId, stage: step, error: message }),
+        body: JSON.stringify({ action: 'sign-error', challengeId, stage, error: raw }),
       }).catch(() => {
         /* reporting a failure must not itself become a failure the rahbar sees */
       });
