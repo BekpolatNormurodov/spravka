@@ -1,14 +1,19 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
+import { CertStatus, dmy, formatSum, ACTION_LABELS, canEdit, Role } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
 import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice } from '@spravka/shared/ui';
 import { Actions } from './Actions';
+import { EditAriza } from './EditAriza';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
+const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '');
+
 export default async function CertDetail({ params }: { params: { id: string } }) {
+  const session = await getSession();
   const c = await prisma.certificate.findUnique({
     where: { id: params.id },
     include: {
@@ -23,6 +28,8 @@ export default async function CertDetail({ params }: { params: { id: string } })
   const qr = await certQrDataUrl(c.id);
   // Rahbar sent it back → admin sees the reason.
   const returned = c.events[0]?.action === 'RETURN' ? c.events[0] : null;
+  // Edit-lock (core rule): admin may edit only before approval.
+  const editable = canEdit(session!.role as Role, c.status);
 
   return (
     <div>
@@ -58,10 +65,29 @@ export default async function CertDetail({ params }: { params: { id: string } })
         </div>
 
         <div className="space-y-4">
-          {c.status === CertStatus.ADMIN_REVIEW && (
+          {(c.status === CertStatus.ADMIN_REVIEW || editable) && (
             <div className="card p-5">
               <h3 className="mb-3 text-sm font-semibold">Amal</h3>
-              <Actions id={c.id} />
+              <div className="space-y-2">
+                {c.status === CertStatus.ADMIN_REVIEW && <Actions id={c.id} />}
+                {editable && (
+                  <EditAriza
+                    cert={{
+                      id: c.id,
+                      personFullName: c.personFullName,
+                      personPassport: c.personPassport,
+                      passportIssuedBy: c.passportIssuedBy,
+                      passportIssuedAt: iso(c.passportIssuedAt),
+                      contractNumber: c.contractNumber,
+                      contractDate: iso(c.contractDate),
+                      contractType: c.contractType,
+                      loanAmount: c.loanAmount.toString(),
+                      asOfDate: iso(c.asOfDate),
+                      issueDate: iso(c.issueDate),
+                    }}
+                  />
+                )}
+              </div>
             </div>
           )}
 

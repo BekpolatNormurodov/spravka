@@ -1,7 +1,72 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { WfAction, findTransition } from '@spravka/shared/core';
+import { WfAction, findTransition, canEdit, isValidPinfl } from '@spravka/shared/core';
+
+/**
+ * Edit an ariza's content. Enforces the edit-lock rule from core: ADMIN may edit only while
+ * DRAFT/ADMIN_REVIEW. Once approved (DIRECTOR_REVIEW) or SIGNED the document is frozen.
+ */
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const cert = await prisma.certificate.findUnique({
+    where: { id: params.id },
+    select: { status: true, deletedAt: true, clientId: true },
+  });
+  if (!cert || cert.deletedAt) return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
+
+  if (!canEdit(session.role, cert.status)) {
+    return NextResponse.json(
+      { error: 'Bu holatda tahrirlab boʻlmaydi — hujjat tasdiqlangan/imzolangan' },
+      { status: 403 },
+    );
+  }
+
+  const b = await req.json().catch(() => ({}));
+  const required = ['personFullName', 'personPassport', 'contractNumber', 'contractDate', 'loanAmount', 'asOfDate', 'issueDate'];
+  for (const k of required) {
+    if (!b[k]) return NextResponse.json({ error: `Maydon toʻldirilmagan: ${k}` }, { status: 400 });
+  }
+  if (b.personPinfl && !isValidPinfl(b.personPinfl)) {
+    return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
+  }
+
+  const passportIssuedAt = b.passportIssuedAt ? new Date(b.passportIssuedAt) : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.certificate.update({
+      where: { id: params.id },
+      data: {
+        personFullName: b.personFullName,
+        personPassport: b.personPassport,
+        passportIssuedBy: b.passportIssuedBy || null,
+        passportIssuedAt,
+        contractNumber: b.contractNumber,
+        contractDate: new Date(b.contractDate),
+        contractType: b.contractType || undefined,
+        loanAmount: String(b.loanAmount).replace(/[\s,]/g, ''),
+        asOfDate: new Date(b.asOfDate),
+        issueDate: new Date(b.issueDate),
+      },
+    });
+    // Keep the linked client in step so future arizas autofill the corrected data.
+    if (cert.clientId) {
+      await tx.client.update({
+        where: { id: cert.clientId },
+        data: {
+          fullName: b.personFullName,
+          passport: b.personPassport,
+          passportIssuedBy: b.passportIssuedBy || null,
+          passportIssuedAt,
+        },
+      });
+    }
+  });
+
+  return NextResponse.json({ ok: true });
+}
 
 const ACTION_MAP: Record<string, WfAction> = {
   approve: WfAction.APPROVE,
