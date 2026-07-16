@@ -48,23 +48,28 @@ admin.qrsystem.uz      -> 213.230.64.140  (CNAME qrsystem.uz)
 rahbar.qrsystem.uz     -> 213.230.64.140  (CNAME qrsystem.uz)
 ```
 
-## ⚠️ Public domen hali tanlanmagan
+## Public domen: `qrsystem.uz` → web-public (:5100)
 
-`web-public` (:5100) — bu **chop etilgan QR ochadigan sahifa**. Unga hech qanday
-domen ajratilmagan (`spravka.qrsystem.uz` — NXDOMAIN).
+`web-public` (:5100) — bu **chop etilgan QR ochadigan sahifa**, `/m/<id>`. Unga
+apex domen — `qrsystem.uz` — ajratildi: QR uchun eng qisqa va eng barqaror nom,
+DNS'da allaqachon IP'ga hal bo'ladi.
 
-QR kod qog'ozga bosiladi va **keyin o'zgartirib bo'lmaydi**: berilgan
-ma'lumotnomani qayta chop etib bo'lmaydi. Shuning uchun domen bir marta
-tanlanib, abadiy o'zgarmasligi kerak. Tanlangach:
+**Bu qiymat build paytida kodga qotib qoladi.** Next `NEXT_PUBLIC_*` ni
+`next build` da inline qiladi. Ya'ni:
 
-1. DNS'ga A yoki CNAME yozuvi qo'shing.
-2. To'rttala `.env` da `NEXT_PUBLIC_PUBLIC_URL=https://<domen>` qiling.
-3. `setup-ssl.sh` dagi `DOMAINS` ga qo'shing.
-4. `nginx/spravka-http.conf` ga :80 blokini, `nginx/spravka-ssl.conf` oxiridagi
-   izohga olingan :443 blokini oching.
+- `.env` **build'dan oldin** to'g'ri bo'lishi shart;
+- `.env` ni keyin o'zgartirish **hech narsani o'zgartirmaydi** — qayta build kerak;
+- noto'g'ri qiymat bilan chiqarilgan hujjatlarning QR'i **abadiy noto'g'ri**
+  qoladi, chunki PDF muzlatilgan va qayta chop etib bo'lmaydi.
 
-Hozircha `.env` da `http://localhost:5100` turibdi — **shu holicha prod'ga
-chiqarilsa, har bir QR ishlamaydigan bo'lib bosiladi.**
+```bash
+NEXT_PUBLIC_PUBLIC_URL="https://qrsystem.uz"   # har bir app'ning .env'ida
+```
+
+⚠️ **Avval `:5000` (web-qr) turgan edi — o'sha appda `/m/` marshruti umuman
+yo'q.** O'sha qiymat bilan chiqarilgan har bir QR 404 ga olib boradi. Prod'ga
+chiqishdan oldin `.env` ni tekshiring, va agar shu holatda hujjat chiqarilgan
+bo'lsa — ularning QR'i tuzalmaydi.
 
 ## Tuzilma
 
@@ -98,12 +103,18 @@ npm run db:generate && npm run db:push && npm run db:seed
 
 # 2. Har bir app uchun .env (PORT ni ham yozing — systemd shundan oladi)
 #    DATABASE_URL, AUTH_SECRET, NEXT_PUBLIC_PUBLIC_URL, PORT, CERT_STORAGE_DIR
+#    NEXT_PUBLIC_PUBLIC_URL="https://qrsystem.uz" — BUILD'DAN OLDIN to'g'ri bo'lsin,
+#    u kodga qotib qoladi (yuqoridagi bo'limga qarang).
 
 # 2b. Imzolangan hujjatlar ombori (CERT_STORAGE_DIR)
 mkdir -p /var/lib/spravka/storage
 chown -R spravka:spravka /var/lib/spravka
 
-# 3. Build
+# 2c. web-qr runtime'da shu ikkisiga yozadi (systemd'da ReadWritePaths ochilgan)
+mkdir -p /opt/spravka/apps/web-qr/public/uploads /opt/spravka/apps/web-qr/public/qr
+
+# 3. Build — beshalasi ham
+npm run build -w @spravka/web-qr
 npm run build -w @spravka/web-yurist
 npm run build -w @spravka/web-admin
 npm run build -w @spravka/web-rahbar
@@ -114,7 +125,7 @@ useradd -r -s /usr/sbin/nologin spravka || true
 chown -R spravka:spravka /opt/spravka
 cp deploy/systemd/spravka@.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now spravka@yurist spravka@admin spravka@rahbar spravka@public
+systemctl enable --now spravka@public spravka@yurist spravka@admin spravka@rahbar spravka@qr
 
 # 5. nginx — AVVAL faqat :80 (sertifikat hali yo'q)
 cp deploy/nginx/snippets/spravka-proxy.conf /etc/nginx/snippets/

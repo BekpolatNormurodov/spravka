@@ -1,8 +1,11 @@
 # Template unit — one instance per app:
-#   systemctl enable --now spravka@yurist spravka@admin spravka@rahbar spravka@public
+#   systemctl enable --now spravka@public spravka@yurist spravka@admin spravka@rahbar spravka@qr
 # Install to: /etc/systemd/system/spravka@.service
 #
-# Each app's .env must carry its own PORT (public 5100, yurist 5101, admin 5102,
+# All five. nginx routes bright.qrsystem.uz at :5000, so leaving spravka@qr out of this line
+# means that subdomain answers 502 while everything else looks healthy.
+#
+# Each app's .env must carry its own PORT (qr 5000, public 5100, yurist 5101, admin 5102,
 # rahbar 5103) — systemd expands ${PORT} below from the EnvironmentFile.
 
 [Unit]
@@ -40,6 +43,11 @@ ReadWritePaths=/opt/spravka/apps/web-%i/.next
 # re-freezes documents signed before that existed. Leading '-' so yurist/admin, which never
 # write here, still start if the directory is absent.
 ReadWritePaths=-/var/lib/spravka/storage
+# web-qr writes uploads and generated QR PNGs into its own public/ at runtime. ProtectSystem=strict
+# makes everything else read-only, so without these the app starts fine and then fails on the first
+# upload with EROFS. '-' because only web-qr has these directories.
+ReadWritePaths=-/opt/spravka/apps/web-qr/public/uploads
+ReadWritePaths=-/opt/spravka/apps/web-qr/public/qr
 
 StandardOutput=journal
 StandardError=journal
