@@ -5,6 +5,7 @@ export { Ico, NAV_ICONS } from './icons';
 export type { IconProps } from './icons';
 export { QrCard } from './QrCard';
 export { Modal } from './Modal';
+export { ClickableRow, RowAction, ViewAction } from './ClickableRow';
 export { ThemeScript, StatusBadge, StatCard, PageHeader, EmptyState, Table, ReturnNotice } from './components';
 export { CertificateDocument } from './CertificateDocument';
 export type { CertificateDocumentProps, CertFirm } from './CertificateDocument';
