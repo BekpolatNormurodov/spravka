@@ -17,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const nav: NavItem[] = [
     { href: '/', label: 'Monitoring', icon: 'chart', section: 'Menyu' },
     { href: '/arizalar', label: 'Arizalar', icon: 'files', badge: queue, section: 'Menyu' },
+    { href: '/kalendar', label: 'Kalendar', icon: 'calendar', section: 'Menyu' },
     { href: '/firmalar', label: 'Firmalar', icon: 'building', section: 'Boshqaruv' },
     { href: '/foydalanuvchilar', label: 'Foydalanuvchilar', icon: 'users', section: 'Boshqaruv' },
   ];

@@ -18,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: '/', label: 'Monitoring', icon: 'chart', section: 'Menyu' },
     { href: '/imzolash', label: 'Imzolash', icon: 'pen', badge: queue, section: 'Menyu' },
     { href: '/imzolangan', label: 'Imzolangan', icon: 'check', section: 'Menyu' },
+    { href: '/kalendar', label: 'Kalendar', icon: 'calendar', section: 'Menyu' },
   ];
 
   return (

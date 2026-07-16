@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CertStatus, STATUS_LABELS } from '@spravka/shared/core';
-import { Ico } from '@spravka/shared/ui';
+import { Ico, Select, STATUS_DOT, type Option } from '@spravka/shared/ui';
 
 type Firm = { id: string; name: string; shortName: string | null };
 
@@ -63,21 +63,29 @@ export function Filters({ firms }: { firms: Firm[] }) {
           />
         </div>
 
-        {/* Status */}
-        <select className="field-input" value={status} onChange={(e) => apply({ status: e.target.value })} aria-label="Holat">
-          <option value="">Barcha holatlar</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-          ))}
-        </select>
+        {/* Status — pro dropdown with colour dots */}
+        <Select
+          label="Holat"
+          placeholder="Barcha holatlar"
+          value={status}
+          onChange={(v) => apply({ status: v })}
+          options={[
+            { value: '', label: 'Barcha holatlar' },
+            ...STATUSES.map<Option>((s) => ({ value: s, label: STATUS_LABELS[s], dot: STATUS_DOT[s] })),
+          ]}
+        />
 
         {/* Firm */}
-        <select className="field-input" value={firm} onChange={(e) => apply({ firm: e.target.value })} aria-label="Firma">
-          <option value="">Barcha firmalar</option>
-          {firms.map((f) => (
-            <option key={f.id} value={f.id}>{f.shortName ?? f.name}</option>
-          ))}
-        </select>
+        <Select
+          label="Firma"
+          placeholder="Barcha firmalar"
+          value={firm}
+          onChange={(v) => apply({ firm: v })}
+          options={[
+            { value: '', label: 'Barcha firmalar' },
+            ...firms.map<Option>((f) => ({ value: f.id, label: f.shortName ?? f.name })),
+          ]}
+        />
 
         {/* Date range */}
         <input
