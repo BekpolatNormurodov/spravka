@@ -40,9 +40,10 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={title}>
-      {/* Light scrim + real blur: enough separation without blacking the page out. */}
+      {/* Plain dim, no backdrop-blur — blur over a near-black page just reads as a black smear.
+          The panel separates on its border + shadow instead. */}
       <div
-        className="absolute inset-0 bg-slate-900/20 backdrop-blur-md dark:bg-slate-950/45"
+        className="absolute inset-0 bg-slate-900/25 dark:bg-slate-950/40"
         onClick={onClose}
         aria-hidden
       />

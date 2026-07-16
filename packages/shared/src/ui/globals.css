@@ -11,6 +11,9 @@
   --fg: #0f172a;
   --muted: #64748b;
   --line: #e4ecfc;
+  /* Inputs need their own fill: on --surface they'd be invisible inside a card. */
+  --field: #f7faff;
+  --field-line: #d3dff5;
 }
 .dark {
   --bg: #070b16;
@@ -19,6 +22,8 @@
   --fg: #e6edf7;
   --muted: #93a4bf;
   --line: rgba(255, 255, 255, 0.09);
+  --field: #080f1c;
+  --field-line: rgba(255, 255, 255, 0.14);
 }
 
 html { color-scheme: light dark; }
@@ -52,7 +57,7 @@ body {
   .btn-danger { @apply btn border border-rose-500/30 text-rose-600 hover:bg-rose-500/10 dark:text-rose-300; }
   .field-label { @apply mb-1.5 block text-sm font-medium text-muted; }
   .field-input {
-    @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-fg outline-none transition
+    @apply w-full rounded-xl border border-[var(--field-line)] bg-[var(--field)] px-3.5 py-2.5 text-sm text-fg outline-none transition
            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25;
   }
   .field-input::placeholder { color: var(--muted); opacity: 0.6; }

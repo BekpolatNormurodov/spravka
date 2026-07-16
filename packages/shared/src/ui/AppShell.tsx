@@ -105,7 +105,7 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       {open && (
-        <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-md dark:bg-slate-950/45 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
+        <div className="fixed inset-0 z-40 bg-slate-900/25 dark:bg-slate-950/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
       )}
 
       <aside
