@@ -12,13 +12,20 @@ type Step = null | 'preparing' | 'unlocking' | 'signing' | 'saving';
 
 /**
  * 'C:\' + 'DSKEYS' → 'C:\DSKEYS'. E-IMZO hands `disk` back with its separator already attached,
- * so appending another one printed 'C:\\DSKEYS'; stripping first survives either shape.
+ * so appending another one printed 'C:\\DSKEYS'.
+ *
+ * The separator is whatever the *signer's* machine uses, not ours: E-IMZO ships for Linux and
+ * macOS too, where a key lives under something like '/home/user' and a backslash would be
+ * nonsense. Take it from the value rather than assuming Windows.
  */
 function keyLocation(k: EimzoKey): string {
-  // A key may sit in the drive root — E-IMZO allows path to be empty — and 'E:' is not the root,
+  // A key may sit in the drive root — E-IMZO allows an empty path — and 'E:' is not the root,
   // 'E:\' is.
   if (!k.path) return k.disk;
-  return `${k.disk.replace(/\\+$/, '')}\\${k.path}`;
+  // A drive letter means Windows even when the separator was trimmed off ('D:').
+  const windows = k.disk.includes('\\') || /^[A-Za-z]:/.test(k.disk);
+  const sep = windows ? '\\' : '/';
+  return `${k.disk.replace(/[\\/]+$/, '')}${sep}${k.path}`;
 }
 
 const STEP_LABEL: Record<NonNullable<Step>, string> = {
