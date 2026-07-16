@@ -1,0 +1,40 @@
+# Template unit — one instance per app:
+#   systemctl enable --now spravka@yurist spravka@admin spravka@rahbar spravka@public
+# Install to: /etc/systemd/system/spravka@.service
+#
+# Each app's .env must carry its own PORT (public 5100, yurist 5101, admin 5102,
+# rahbar 5103) — systemd expands ${PORT} below from the EnvironmentFile.
+
+[Unit]
+Description=Spravka web-%i
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=spravka
+WorkingDirectory=/opt/spravka/apps/web-%i
+EnvironmentFile=/opt/spravka/apps/web-%i/.env
+Environment=NODE_ENV=production
+
+# Not `npm run start`: that script hardcodes -H 0.0.0.0 for local dev, and CLI
+# flags beat env vars — so in production every app would also answer on the
+# public IP directly, over plain http, bypassing nginx and TLS entirely.
+ExecStart=/usr/bin/npx next start -H 127.0.0.1 -p ${PORT}
+
+Restart=always
+RestartSec=5
+
+# The app reads its own tree and writes nothing outside .next and /tmp.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/spravka/apps/web-%i/.next
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=spravka-%i
+
+[Install]
+WantedBy=multi-user.target
