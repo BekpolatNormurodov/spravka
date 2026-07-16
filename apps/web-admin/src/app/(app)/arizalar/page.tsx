@@ -52,7 +52,7 @@ export default async function Arizalar() {
                   <td className="px-4 py-3 text-muted">{fmtDate(c.issueDate)}</td>
                   <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                   <td className="px-4 py-3 text-right">
-                    <Link href={`/arizalar/${c.id}`} className="text-brand-600 dark:text-brand-400 hover:underline">Ochish</Link>
+                    <Link href={`/arizalar/${c.id}`} className="btn-ghost px-3 py-1.5 text-xs">Ochish</Link>
                   </td>
                 </tr>
               ))}

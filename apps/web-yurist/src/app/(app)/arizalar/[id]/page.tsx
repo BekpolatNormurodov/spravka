@@ -1,14 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
 import { StatusBadge, CertificateDocument, QrCard } from '@spravka/shared/ui';
-import { Actions } from './Actions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CertDetail({ params }: { params: { id: string } }) {
+  const session = await getSession();
   const c = await prisma.certificate.findUnique({
     where: { id: params.id },
     include: {
@@ -17,7 +18,8 @@ export default async function CertDetail({ params }: { params: { id: string } })
       events: { include: { actor: { select: { fullName: true } } }, orderBy: { createdAt: 'desc' } },
     },
   });
-  if (!c || c.deletedAt) notFound();
+  // A yurist only sees their own arizas.
+  if (!c || c.deletedAt || c.createdById !== session!.sub) notFound();
 
   const publicUrl = certPublicUrl(c.id);
   const qr = await certQrDataUrl(c.id);
@@ -25,7 +27,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/arizalar" className="text-muted hover:text-fg">← Orqaga</Link>
+        <Link href="/" className="text-muted hover:text-fg">← Orqaga</Link>
         <span className="font-mono text-sm text-muted">{c.number}</span>
         <StatusBadge status={c.status} />
       </div>
@@ -50,13 +52,6 @@ export default async function CertDetail({ params }: { params: { id: string } })
         </div>
 
         <div className="space-y-4">
-          {c.status === CertStatus.ADMIN_REVIEW && (
-            <div className="card p-5">
-              <h3 className="mb-3 text-sm font-semibold">Amal</h3>
-              <Actions id={c.id} />
-            </div>
-          )}
-
           <QrCard dataUrl={qr} url={publicUrl} signed={c.status === CertStatus.SIGNED} />
 
           <div className="card p-5 text-sm">
@@ -66,7 +61,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
               <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-muted">Shartnoma</dt><dd>{c.contractNumber}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-muted">Summa</dt><dd>{formatSum(c.loanAmount.toString())} soʻm</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-muted">Yurist</dt><dd>{c.createdBy.fullName}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted">Sana</dt><dd>{dmy(c.issueDate)}</dd></div>
             </dl>
           </div>
 

@@ -41,6 +41,7 @@ export default async function Dashboard() {
                 <th className="text-left font-medium px-4 py-3">Firma</th>
                 <th className="text-left font-medium px-4 py-3">Sana</th>
                 <th className="text-left font-medium px-4 py-3">Holat</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -51,6 +52,9 @@ export default async function Dashboard() {
                   <td className="px-4 py-3 text-fg">{c.firm.shortName ?? c.firm.name}</td>
                   <td className="px-4 py-3 text-muted">{fmtDate(c.issueDate)}</td>
                   <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
+                  <td className="px-4 py-3 text-right">
+                    <Link href={`/arizalar/${c.id}`} className="btn-ghost px-3 py-1.5 text-xs">Ochish</Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

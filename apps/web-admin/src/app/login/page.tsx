@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ThemeToggle } from '@spravka/shared/ui';
 
 export default function LoginPage() {
   const [login, setLogin] = useState('');
@@ -30,7 +31,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen grid place-items-center p-4 bg-bg">
+    <main className="relative min-h-screen grid place-items-center p-4 bg-bg">
+      <ThemeToggle className="absolute right-4 top-4" />
       <form onSubmit={submit} className="card w-full max-w-sm p-8">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-brand-600 text-lg font-bold">A</div>

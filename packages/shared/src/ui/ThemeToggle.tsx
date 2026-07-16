@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Ico } from './icons';
 
-export function ThemeToggle() {
+/** Light/dark switch. Persists to localStorage; the ThemeScript applies it before paint. */
+export function ThemeToggle({ className = '' }: { className?: string }) {
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
@@ -21,11 +22,13 @@ export function ThemeToggle() {
 
   return (
     <button
+      type="button"
       onClick={toggle}
-      className="cursor-pointer rounded-lg p-2 text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+      title={dark ? 'Yorugʻ rejim' : 'Qorongʻi rejim'}
       aria-label={dark ? 'Yorugʻ rejimga oʻtish' : 'Qorongʻi rejimga oʻtish'}
+      className={`cursor-pointer rounded-lg p-2 text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${className}`}
     >
-      {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      {dark ? <Ico.sun /> : <Ico.moon />}
     </button>
   );
 }

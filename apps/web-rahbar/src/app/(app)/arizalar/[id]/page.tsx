@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
-import { StatusBadge, CertificateDocument } from '@spravka/shared/ui';
+import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
+import { StatusBadge, CertificateDocument, QrCard } from '@spravka/shared/ui';
 import { Actions } from './Actions';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,8 @@ export default async function CertDetail({ params }: { params: { id: string } })
   if (!c || c.deletedAt) notFound();
 
   const signed = c.status === CertStatus.SIGNED;
-  const publicUrl = `${process.env.NEXT_PUBLIC_PUBLIC_URL ?? 'http://localhost:5100'}/m/${c.id}`;
+  const publicUrl = certPublicUrl(c.id);
+  const qr = await certQrDataUrl(c.id);
 
   return (
     <div>
@@ -54,14 +56,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
             <Actions id={c.id} status={c.status} />
           </div>
 
-          {signed && (
-            <div className="card p-5 text-sm">
-              <h3 className="mb-2 font-semibold text-accent-600 dark:text-accent-400">Public havola</h3>
-              <a href={publicUrl} target="_blank" className="break-all text-brand-600 hover:underline dark:text-brand-400">
-                {publicUrl}
-              </a>
-            </div>
-          )}
+          <QrCard dataUrl={qr} url={publicUrl} signed={signed} />
 
           <div className="card p-5 text-sm">
             <h3 className="mb-3 font-semibold">Maʼlumot</h3>

@@ -38,7 +38,7 @@ export default async function Imzolangan() {
                   <td className="px-4 py-3 text-fg">{c.firm.shortName ?? c.firm.name}</td>
                   <td className="px-4 py-3 text-muted">{c.signedAt ? dmy(c.signedAt) : '—'}</td>
                   <td className="px-4 py-3 text-right">
-                    <Link href={`/arizalar/${c.id}`} className="text-brand-600 dark:text-brand-400 hover:underline">Ochish</Link>
+                    <Link href={`/arizalar/${c.id}`} className="btn-ghost px-3 py-1.5 text-xs">Ochish</Link>
                   </td>
                 </tr>
               ))}
