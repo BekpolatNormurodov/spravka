@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+  background-image:
+    radial-gradient(60rem 60rem at 110% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(50rem 50rem at -10% 110%, rgba(56, 189, 248, 0.12), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-600;
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  .input {
+    @apply w-full rounded-xl bg-slate-900/70 border border-white/10 px-4 py-2.5 text-sm
+           text-slate-100 placeholder:text-slate-500 outline-none transition
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30;
+  }
+  .label {
+    @apply block text-xs font-medium text-slate-400 mb-1.5;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 hover:bg-brand-500 text-white shadow-glow;
+  }
+  .btn-ghost {
+    @apply btn bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600/90 hover:bg-rose-500 text-white;
+  }
+  .card {
+    @apply glass rounded-2xl;
+  }
+}
+
+/* Foydalanuvchi yaratgan HTML kontent uchun asosiy uslublar */
+.qr-html-content h1 { @apply text-2xl font-bold mb-3; }
+.qr-html-content h2 { @apply text-xl font-bold mb-2; }
+.qr-html-content h3 { @apply text-lg font-semibold mb-2; }
+.qr-html-content p { @apply mb-3 text-slate-300 leading-relaxed; }
+.qr-html-content a { @apply text-brand-400 underline; }
+.qr-html-content ul { @apply list-disc pl-6 mb-3 space-y-1; }
+.qr-html-content ol { @apply list-decimal pl-6 mb-3 space-y-1; }
+.qr-html-content img { @apply rounded-xl my-3 max-w-full h-auto; }
+.qr-html-content input,
+.qr-html-content textarea,
+.qr-html-content select {
+  @apply w-full rounded-xl bg-slate-900/70 border border-white/10 px-4 py-2.5 text-sm
+         text-slate-100 placeholder:text-slate-500 outline-none mb-3
+         focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30;
+}
+.qr-html-content label { @apply block text-sm text-slate-400 mb-1; }
+.qr-html-content button {
+  @apply inline-flex items-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-500
+         px-4 py-2.5 text-sm font-semibold text-white transition;
+}
+.qr-html-content table { @apply w-full border-collapse mb-3; }
+.qr-html-content th,
+.qr-html-content td { @apply border border-white/10 px-3 py-2 text-left; }

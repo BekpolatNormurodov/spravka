@@ -1,0 +1,14 @@
+node_modules
+.next
+.env
+*.log
+.DS_Store
+
+# Yuklangan fayllar va generatsiya qilingan QR rasmlar
+/public/uploads/*
+!/public/uploads/.gitkeep
+/public/qr/*
+!/public/qr/.gitkeep
+
+# OS / editor
+Thumbs.db

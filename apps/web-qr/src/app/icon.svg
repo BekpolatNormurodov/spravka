@@ -1,0 +1,27 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <g fill="#ffffff">
+    <!-- Top-left finder -->
+    <path d="M14 14h14v14H14V14zm3 3v8h8v-8h-8z"/>
+    <rect x="19" y="19" width="4" height="4"/>
+    <!-- Top-right finder -->
+    <path d="M36 14h14v14H36V14zm3 3v8h8v-8h-8z"/>
+    <rect x="41" y="19" width="4" height="4"/>
+    <!-- Bottom-left finder -->
+    <path d="M14 36h14v14H14V36zm3 3v8h8v-8h-8z"/>
+    <rect x="19" y="41" width="4" height="4"/>
+    <!-- Data modules -->
+    <rect x="36" y="36" width="4" height="4"/>
+    <rect x="42" y="36" width="4" height="4"/>
+    <rect x="46" y="40" width="4" height="4"/>
+    <rect x="36" y="42" width="4" height="4"/>
+    <rect x="40" y="46" width="4" height="4"/>
+    <rect x="46" y="46" width="4" height="4"/>
+  </g>
+</svg>
