@@ -31,7 +31,12 @@ export default {
         'splash-bar': { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
         'fade-in': { '0%': { opacity: '0', transform: 'translateY(6px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
       },
-      animation: { 'fade-in': 'fade-in .35s ease-out both', 'splash-pop': 'splash-pop .4s ease-out both', 'splash-bar': 'splash-bar 1.1s ease-in-out infinite' },
+      // 'fade-in' uses `backwards`, not `both`: AppShell wraps every page in it, and `both`
+      // holds the keyframe's transform forever after the animation ends. A lingering transform
+      // makes that wrapper the containing block for `position: fixed`, so modals centred on the
+      // content column instead of the screen and the dim stopped at the sidebar. `backwards`
+      // still prevents the pre-animation flash, then reverts to transform: none.
+      animation: { 'fade-in': 'fade-in .35s ease-out backwards', 'splash-pop': 'splash-pop .4s ease-out both', 'splash-bar': 'splash-bar 1.1s ease-in-out infinite' },
     },
   },
   plugins: [],

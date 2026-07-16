@@ -31,9 +31,14 @@ const config: Config = {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-      },
+      },      // 'fade-in' uses `backwards`, not `both`: AppShell wraps every page in it, and `both`
+      // holds the keyframe's transform forever after the animation ends. A lingering transform
+      // makes that wrapper the containing block for `position: fixed`, so modals centred on the
+      // content column instead of the screen and the dim stopped at the sidebar. `backwards`
+      // still prevents the pre-animation flash, then reverts to transform: none.
+
       animation: {
-        "fade-in": "fade-in 0.4s ease-out both",
+        "fade-in": "fade-in 0.4s ease-out backwards",
       },
     },
   },

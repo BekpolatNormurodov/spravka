@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Ico } from './icons';
 
 const FOCUSABLE =
@@ -33,6 +34,9 @@ export function Modal({
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
+  // createPortal needs a real document; the server render has none.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Escape route (Apple HIG): Esc always dismisses. Tab stays inside — `aria-modal` tells a
   // screen reader the rest of the page is inert, but it does not stop the keyboard walking out
@@ -84,9 +88,22 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  /*
+    Rendered into <body>, not where it is written.
+
+    `position: fixed` is only relative to the viewport while no ancestor has a transform, filter
+    or backdrop-filter — any of those makes the ancestor the containing block instead. AppShell
+    wraps every page in `animate-fade-in`, whose keyframes hold a transform, so the dialog was
+    being centred on the content column and the dim stopped at the sidebar. Measured: the same
+    markup lands at centerX 785 inside a transformed wrapper versus 640 (the viewport centre)
+    outside it.
+
+    The fill-mode is fixed too, but that only removes today's culprit. Portalling removes the
+    whole class: no ancestor can reach it here.
+  */
+  return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={title}>
       {/* Plain dim, no backdrop-blur — blur over a near-black page just reads as a black smear.
           The panel separates on its border + shadow instead. */}
@@ -109,6 +126,7 @@ export function Modal({
         <div className="mt-4">{children}</div>
         {footer && <div className="mt-5 flex justify-end gap-2">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
