@@ -13,7 +13,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { action, reason } = await req.json().catch(() => ({}));
+  const { action, note } = await req.json().catch(() => ({}));
 
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
@@ -24,11 +24,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   // Soft-delete (RAHBAR-only) — not a status transition.
   if (action === 'delete') {
     if (!canDelete(session.role)) return NextResponse.json({ error: 'Ruxsat yoʻq' }, { status: 403 });
-    if (!reason?.trim()) return NextResponse.json({ error: 'Sabab majburiy' }, { status: 400 });
+    if (!note?.trim()) return NextResponse.json({ error: 'Sabab majburiy' }, { status: 400 });
     await prisma.$transaction([
       prisma.certificate.update({
         where: { id: params.id },
-        data: { deletedAt: new Date(), deletedById: session.sub, deletedReason: reason.trim() },
+        data: { deletedAt: new Date(), deletedById: session.sub, deletedReason: note.trim() },
       }),
       prisma.workflowEvent.create({
         data: {
@@ -37,7 +37,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
           action: WfAction.DELETE,
           fromStatus: cert.status,
           toStatus: cert.status,
-          note: reason.trim(),
+          note: note.trim(),
         },
       }),
     ]);
@@ -46,6 +46,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const wf = MAP[action];
   if (!wf) return NextResponse.json({ error: 'Notoʻgʻri amal' }, { status: 400 });
+
+  // Returning must explain why — admin/yurist act on this text.
+  if (wf === WfAction.RETURN && !note?.trim()) {
+    return NextResponse.json({ error: 'Qaytarish sababi majburiy' }, { status: 400 });
+  }
 
   const t = findTransition(cert.status, session.role, wf);
   if (!t) return NextResponse.json({ error: 'Bu holatda amalni bajarib boʻlmaydi' }, { status: 400 });
@@ -65,7 +70,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         action: wf,
         fromStatus: t.from,
         toStatus: t.to,
-        note: reason || null,
+        note: note?.trim() || null,
       },
     }),
   ]);

@@ -64,6 +64,19 @@ export function PageHeader({
   );
 }
 
+/** Shown when a certificate was sent back — carries the reviewer's reason. */
+export function ReturnNotice({ note, by, at }: { note: string; by: string; at: string }) {
+  return (
+    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+      <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
+        Qaytarildi — tuzatib qayta yuboring
+      </p>
+      <p className="mt-1.5 whitespace-pre-wrap text-sm text-fg">{note}</p>
+      <p className="mt-2 text-xs text-muted">{by} · {at}</p>
+    </div>
+  );
+}
+
 export function EmptyState({ title, hint }: { title: string; hint?: React.ReactNode }) {
   return (
     <div className="card p-12 text-center">

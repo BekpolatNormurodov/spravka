@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
-import { StatusBadge, CertificateDocument, QrCard } from '@spravka/shared/ui';
+import { StatusBadge, CertificateDocument, QrCard, ReturnNotice } from '@spravka/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +23,8 @@ export default async function CertDetail({ params }: { params: { id: string } })
 
   const publicUrl = certPublicUrl(c.id);
   const qr = await certQrDataUrl(c.id);
+  // Most recent event is a RETURN → the reviewer sent it back with a reason.
+  const returned = c.events[0]?.action === 'RETURN' ? c.events[0] : null;
 
   return (
     <div>
@@ -31,6 +33,12 @@ export default async function CertDetail({ params }: { params: { id: string } })
         <span className="font-mono text-sm text-muted">{c.number}</span>
         <StatusBadge status={c.status} />
       </div>
+
+      {returned?.note && (
+        <div className="mb-6">
+          <ReturnNotice note={returned.note} by={returned.actor.fullName} at={dmy(returned.createdAt)} />
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[auto_320px]">
         <div className="cert-frame rounded-2xl shadow-xl">

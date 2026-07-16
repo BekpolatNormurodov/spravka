@@ -176,8 +176,8 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="p-4 md:p-8">
-          <div className="mx-auto max-w-6xl animate-fade-in">{children}</div>
+        <main className="p-4 md:p-6 lg:p-8">
+          <div className="mx-auto max-w-screen-2xl animate-fade-in">{children}</div>
         </main>
       </div>
     </div>

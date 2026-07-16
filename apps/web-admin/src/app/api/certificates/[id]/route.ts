@@ -16,6 +16,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const wf = ACTION_MAP[action];
   if (!wf) return NextResponse.json({ error: 'Notoʻgʻri amal' }, { status: 400 });
 
+  // Returning to the yurist must explain why — they act on this text.
+  if (wf === WfAction.RETURN && !note?.trim()) {
+    return NextResponse.json({ error: 'Qaytarish sababi majburiy' }, { status: 400 });
+  }
+
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
     select: { status: true, deletedAt: true },
@@ -34,7 +39,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         action: wf,
         fromStatus: t.from,
         toStatus: t.to,
-        note: note || null,
+        note: note?.trim() || null,
       },
     }),
   ]);
