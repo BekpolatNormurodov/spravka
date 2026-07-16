@@ -36,17 +36,23 @@ Individuals (fiz-litso) are **not** users. They are certificate subjects, keyed 
                   → back to ADMIN_REVIEW
 ```
 
-Rules that the code enforces, not just convention (`packages/shared/src/core/workflow.ts`):
+Rules the code enforces, not just convention:
 
-- **Returning requires a reason.** Both RETURN transitions reject an empty note — the person
-  fixing the document needs to know what is wrong.
-- **Edit-lock.** `canEdit` allows YURIST on DRAFT, ADMIN on DRAFT/ADMIN_REVIEW. Once approved or
-  signed, the content is frozen and the API answers 403.
-- **Delete is RAHBAR-only** (`canDelete`), and it is a soft-delete to arxiv with a mandatory
-  reason. A deleted document stops verifying in public.
-- **Signing freezes the firm.** SIGN writes the firm's rekvizitlar into `Certificate.firmSnapshot`,
-  and the document renderer prefers that snapshot over the live `Firm` row. Editing a firm later
-  can never rewrite a document it already issued.
+- **Edit-lock.** `canEdit` (`packages/shared/src/core/workflow.ts`) allows YURIST on DRAFT, ADMIN
+  on DRAFT/ADMIN_REVIEW. Once approved or signed the content is frozen and the API answers 403.
+- **Delete is RAHBAR-only** — `canDelete` (same file). It is a soft-delete to arxiv, and a deleted
+  document stops verifying in public.
+- **Returning requires a reason**, and so does archiving. Not in `workflow.ts` — each API route
+  checks it: `apps/web-admin/src/app/api/certificates/[id]/route.ts` and
+  `apps/web-rahbar/src/app/api/certificates/[id]/route.ts`. The person fixing the document needs
+  to know what is wrong.
+- **Signing freezes the firm.** SIGN writes the firm's rekvizitlar into `Certificate.firmSnapshot`
+  (`apps/web-rahbar/src/app/api/certificates/[id]/route.ts`), and the document renderer prefers
+  that snapshot over the live `Firm` row. Editing a firm later can never rewrite a document it
+  already issued.
+
+`workflow.ts` owns the state machine (`TRANSITIONS`, `findTransition`) and the permission
+predicates; everything about *notes and snapshots* lives in the routes.
 
 Each role's web app only accepts its own role at login — an admin password will not open the
 yurist app.
@@ -58,12 +64,28 @@ yurist app.
 
 ## Setup
 
+Bring up MySQL either way — a native install, or the throwaway dev container:
+
+```bash
+docker compose -f deploy/docker-compose.dev.yml up -d   # publishes on :3310, db `spravka`
+```
+
+Mind the port: the dev container maps **3310**, a native MySQL is usually **3306**. Whichever
+you use has to match `DATABASE_URL` — `.env.example` at the root assumes the container (3310).
+
 ```bash
 npm install
 
-# Point every app at the same database. Each app reads its own .env:
-#   apps/web-*/.env  ->  DATABASE_URL="mysql://root:PASSWORD@localhost:3306/spravka"
-# See apps/web-qr/.env.example for the full key list.
+# Point every app at the same database. Each app reads its own .env, so the value is
+# repeated per app:
+#   apps/web-*/.env  ->  DATABASE_URL="mysql://root:PASSWORD@localhost:3310/spravka"
+#
+# Keys: see .env.example at the root for the role apps (DATABASE_URL, AUTH_SECRET,
+# NEXT_PUBLIC_PUBLIC_URL, CERT_STORAGE_DIR) and apps/web-qr/.env.example for web-qr,
+# which has its own set (ADMIN_USERNAME/ADMIN_PASSWORD/NEXT_PUBLIC_APP_URL).
+#
+# NEXT_PUBLIC_PUBLIC_URL is the base the certificate QR codes encode: the shared
+# helper appends /m/<id> to it, and /m/ is web-public's route (5100).
 
 npm run db:generate     # prisma generate from packages/shared/prisma/schema.prisma
 npm run db:push         # create/refresh the tables

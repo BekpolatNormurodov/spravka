@@ -9,7 +9,13 @@ export interface QrStyle {
   level?: string;
 }
 
-function appUrl(): string {
+/**
+ * Base URL the QR links are built from. One definition on purpose: the link the
+ * dashboard shows and the link baked into the PNG must never disagree. The
+ * dashboard used to keep its own copy that fell back to :3000 — qrcode-pro's old
+ * port — so with NEXT_PUBLIC_APP_URL unset the two silently pointed elsewhere.
+ */
+export function appUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5000";
 }
 
