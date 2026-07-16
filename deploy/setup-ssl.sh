@@ -18,6 +18,8 @@ DOMAINS=(
   yurist.qrsystem.uz
   admin.qrsystem.uz
   rahbar.qrsystem.uz
+  bright.qrsystem.uz
+  www.bright.qrsystem.uz
   # Add the public (web-public) hostname here once it is chosen — see README.
 )
 
