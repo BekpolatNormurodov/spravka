@@ -47,6 +47,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
             asOfDate={c.asOfDate}
             firm={firmForDocument(c.firm, c.firmSnapshot)}
             signed={signed}
+            qrDataUrl={qr}
           />
         </div>
 

@@ -1,6 +1,6 @@
-import QRCode from 'qrcode';
 import { prisma } from '@spravka/shared/db';
 import { CertStatus } from '@spravka/shared/core';
+import { certQrDataUrl } from '@spravka/shared/qr';
 import { CertificateDocument, firmForDocument } from '@spravka/shared/ui';
 import { PrintButton } from '@/components/PrintButton';
 
@@ -31,8 +31,7 @@ export default async function PublicCert({ params }: { params: { id: string } })
   }
 
   const cert = c!;
-  const publicUrl = `${process.env.NEXT_PUBLIC_PUBLIC_URL ?? 'http://localhost:5100'}/m/${cert.id}`;
-  const qr = await QRCode.toDataURL(publicUrl, { width: 220, margin: 1 });
+  const qr = await certQrDataUrl(cert.id);
 
   return (
     <main className="min-h-screen py-8 px-4">

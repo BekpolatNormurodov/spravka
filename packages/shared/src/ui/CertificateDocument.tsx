@@ -30,6 +30,39 @@ export function firmForDocument(firm: CertFirm, firmSnapshot: unknown): CertFirm
   return (firmSnapshot as CertFirm | null) ?? firm;
 }
 
+/**
+ * The rubber stamp over the signature block. Both states use the same geometry so a document
+ * reads the same before and after signing and only the verdict changes; «ТАСДИҚЛАНМАГАН» is
+ * three characters longer, so it carries its own tracking to stay inside the right margin.
+ */
+function Stamp({ signed }: { signed: boolean }) {
+  const tone = signed ? '#059669' : '#dc2626';
+  return (
+    <div
+      aria-label={signed ? 'Тасдиқланди' : 'Тасдиқланмаган'}
+      style={{
+        position: 'absolute',
+        right: '8mm',
+        top: '-6mm',
+        transform: 'rotate(-12deg)',
+        border: `3px solid ${tone}`,
+        borderRadius: '6px',
+        padding: '4px 10px',
+        color: tone,
+        fontFamily: '"Plus Jakarta Sans", sans-serif',
+        fontWeight: 800,
+        letterSpacing: signed ? '2px' : '1px',
+        fontSize: signed ? '12pt' : '10.5pt',
+        opacity: 0.85,
+        pointerEvents: 'none',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {signed ? 'ТАСДИҚЛАНДИ' : 'ТАСДИҚЛАНМАГАН'}
+    </div>
+  );
+}
+
 export interface CertificateDocumentProps {
   number: string;
   issueDate: Date;
@@ -72,6 +105,9 @@ export function CertificateDocument(p: CertificateDocumentProps) {
     .join(' ');
 
   const bankLine = [firm.bankName, firm.phone && `Тел: ${firm.phone}`].filter(Boolean).join(' ');
+
+  const executorPhone = firm.executorPhone ?? firm.phone;
+  const hasExecutor = !!(firm.executorName || executorPhone);
 
   const passportInfo =
     p.passportIssuedAt && p.passportIssuedBy
@@ -148,44 +184,46 @@ export function CertificateDocument(p: CertificateDocumentProps) {
           <span>{firm.directorName}</span>
         </div>
 
-        {p.signed && (
-          <div
-            aria-label="Тасдиқланди"
-            style={{
-              position: 'absolute',
-              right: '8mm',
-              top: '-6mm',
-              transform: 'rotate(-12deg)',
-              border: '3px solid #059669',
-              borderRadius: '6px',
-              padding: '4px 10px',
-              color: '#059669',
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              fontWeight: 800,
-              letterSpacing: '2px',
-              fontSize: '12pt',
-              opacity: 0.85,
-              pointerEvents: 'none',
-            }}
-          >
-            ТАСДИҚЛАНДИ
-          </div>
-        )}
+        <Stamp signed={!!p.signed} />
       </div>
 
-      {/* ── Executor (10pt) — omitted entirely when the firm has named nobody ── */}
-      {(firm.executorName || firm.executorPhone || firm.phone) && (
-        <div style={{ marginTop: '26pt', fontSize: '10pt', lineHeight: 1.35 }}>
-          {firm.executorName && <div>Ижрочи: {firm.executorName}</div>}
-          {(firm.executorPhone ?? firm.phone) && <div>Тел: {firm.executorPhone ?? firm.phone}</div>}
-        </div>
-      )}
+      {/*
+        ── Footer ────────────────────────────────────────────────────────
+        Ижрочи keeps its .docx position (bottom-left, 10pt). The QR is ours, not the blank's,
+        so it sits in the empty right corner behind a hairline that marks where the document
+        ends and verification begins — rather than floating under the page on its own.
+      */}
+      {(hasExecutor || p.qrDataUrl) && (
+        <div
+          style={{
+            marginTop: '26pt',
+            paddingTop: p.qrDataUrl ? '4mm' : 0,
+            borderTop: p.qrDataUrl ? '0.5pt solid #cbd5e1' : 'none',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: '8mm',
+          }}
+        >
+          <div style={{ fontSize: '10pt', lineHeight: 1.35 }}>
+            {firm.executorName && <div>Ижрочи: {firm.executorName}</div>}
+            {executorPhone && <div>Тел: {executorPhone}</div>}
+          </div>
 
-      {/* ── QR (our addition, not in the .docx) ──────────────────────── */}
-      {p.qrDataUrl && (
-        <div style={{ marginTop: '10pt', display: 'flex', justifyContent: 'flex-end' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.qrDataUrl} alt="QR" style={{ width: '22mm', height: '22mm' }} />
+          {p.qrDataUrl && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2.5mm', flexShrink: 0 }}>
+              <div style={{ textAlign: 'right', fontSize: '8pt', lineHeight: 1.35, color: '#475569' }}>
+                <div style={{ fontWeight: 700 }}>Ҳужжат ҳақиқийлигини текширинг</div>
+                <div>QR кодни сканерланг</div>
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.qrDataUrl}
+                alt={`${p.number}-сонли маълумотномани текшириш учун QR код`}
+                style={{ width: '22mm', height: '22mm', display: 'block' }}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

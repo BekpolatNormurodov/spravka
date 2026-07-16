@@ -33,7 +33,7 @@ export function QrCard({ dataUrl, url, signed }: { dataUrl: string; url: string;
       </div>
 
       <p className={`mt-3 text-center text-xs font-medium ${signed ? 'text-accent-600 dark:text-accent-400' : 'text-amber-600 dark:text-amber-300'}`}>
-        {signed ? 'Skanerlanganda tasdiqlangan hujjat ochiladi' : 'Hozircha «ТАСДИҚЛАНМАГАН» deb chiqadi'}
+        {signed ? 'Skanerlanganda tasdiqlangan hujjat ochiladi' : 'Rahbar imzolagunicha «ТАСДИҚЛАНМАГАН» deb chiqadi'}
       </p>
 
       <div className="mt-3 flex gap-2">
