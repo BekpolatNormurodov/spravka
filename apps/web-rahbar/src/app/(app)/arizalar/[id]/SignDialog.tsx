@@ -35,12 +35,55 @@ function keyLocation(k: EimzoKey): string {
  */
 const isCancelled = (m: string) => /отмен|bekor|cancel/i.test(m);
 
-const STEP_LABEL: Record<NonNullable<Step>, string> = {
-  preparing: 'Hujjat PDF qilinmoqda…',
-  unlocking: 'E-IMZO oynasida parolni kiriting…',
-  signing: 'Imzolanmoqda…',
-  saving: 'Saqlanmoqda…',
-};
+/** In order. The stepper walks this, so it is also the definition of "what happens next". */
+const STEPS: { key: NonNullable<Step>; label: string; done: string }[] = [
+  { key: 'preparing', label: 'Hujjat tayyorlanmoqda', done: 'Hujjat tayyor' },
+  { key: 'unlocking', label: 'Parol kutilmoqda', done: 'Kalit ochildi' },
+  { key: 'signing', label: 'Imzolanmoqda', done: 'Imzolandi' },
+  { key: 'saving', label: 'Saqlanmoqda', done: 'Saqlandi' },
+];
+
+/**
+ * Where the signing has got to.
+ *
+ * Worth the space because of what the logs showed: two real attempts died at «Ввод пароля
+ * отменен» — the password window opens as a separate desktop window, lands behind the browser,
+ * and the rahbar never sees it. A single line saying "signing…" gives them nothing to act on.
+ * So the waiting-on-you step says so, in its own words, and the rest of the list makes it
+ * obvious that the system is waiting rather than stuck.
+ */
+function SignProgress({ current }: { current: NonNullable<Step> }) {
+  const at = STEPS.findIndex((s) => s.key === current);
+
+  return (
+    <ol className="space-y-0.5" aria-live="polite">
+      {STEPS.map((s, i) => {
+        const state = i < at ? 'done' : i === at ? 'active' : 'todo';
+        return (
+          <li key={s.key} className="flex items-center gap-2.5 py-1">
+            {/* Never colour alone: done is a tick, active spins, todo is an empty ring. */}
+            <span className="grid h-5 w-5 shrink-0 place-items-center" aria-hidden>
+              {state === 'done' && <span className="text-accent-600 dark:text-accent-400"><Ico.check size={18} /></span>}
+              {state === 'active' && <span className="text-brand-600 dark:text-brand-400"><Spinner size={16} /></span>}
+              {state === 'todo' && <span className="h-2 w-2 rounded-full ring-1 ring-line" />}
+            </span>
+            <span
+              className={
+                state === 'active'
+                  ? 'text-sm font-semibold text-fg'
+                  : state === 'done'
+                    ? 'text-sm text-muted'
+                    : 'text-sm text-muted/60'
+              }
+            >
+              {state === 'done' ? s.done : s.label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 export function SignDialog({
   open,
@@ -214,7 +257,26 @@ export function SignDialog({
         </div>
       </dl>
 
-      <div className="mt-4">
+      {/*
+        Once it is running, the picker and the notices are answered questions — the rahbar's only
+        job left is the password window. Swap them for the stepper rather than stacking it under
+        a dialog full of choices they have already made.
+      */}
+      {busy && (
+        <div className="mt-4 rounded-xl border border-line bg-surface-2 px-4 py-3">
+          <SignProgress current={step!} />
+
+          {/* The step that actually loses people — say where to look. */}
+          {step === 'unlocking' && (
+            <p className="mt-2 border-t border-line pt-2.5 text-xs leading-relaxed text-muted">
+              E-IMZO parol oynasini <b className="text-fg">alohida oyna</b> qilib ochadi — u brauzer
+              ortida qolib ketishi mumkin. Koʻrinmasa, vazifalar panelidan E-IMZO ni toping.
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className={busy ? 'hidden' : 'mt-4'}>
         {status === 'checking' && (
           <p className="flex items-center gap-2 text-sm text-muted">
             <Spinner size={16} /> E-IMZO tekshirilmoqda…
@@ -295,13 +357,15 @@ export function SignDialog({
         Said plainly, because the rahbar is putting their name on a legal document and is entitled
         to know what it rests on. The signature below is real — made by their key, on their
         machine — but nobody has checked it: that needs E-IMZO-SERVER and a NIC contract.
-      */}
-      <p className="mt-3 text-xs leading-relaxed text-muted">
-        Imzo hujjatga biriktiriladi va saqlanadi, lekin hozircha <b>tekshirilmaydi</b> — buning
-        uchun davlat E-IMZO serveriga ulanish kerak. Hujjat haqiqiyligi QR kod orqali tasdiqlanadi.
-      </p>
 
-      {busy && <p className="mt-3 text-xs font-medium text-fg">{STEP_LABEL[step!]}</p>}
+        Hidden while signing: they have read it, and the stepper is what matters then.
+      */}
+      {!busy && (
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          Imzo hujjatga biriktiriladi va saqlanadi, lekin hozircha <b>tekshirilmaydi</b> — buning
+          uchun davlat E-IMZO serveriga ulanish kerak. Hujjat haqiqiyligi QR kod orqali tasdiqlanadi.
+        </p>
+      )}
     </Modal>
   );
 }
