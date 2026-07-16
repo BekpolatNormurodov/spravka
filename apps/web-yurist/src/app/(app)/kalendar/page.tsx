@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import {
-  dmy, formatSum, groupByDay, isoDay, isoMonth, isValidMonth, monthRange, shiftMonth,
+  dmy, formatSum, groupByDay, isoDay, isoMonth, isValidDay, isValidMonth, monthRange,
+  sameDayInMonth, shiftMonth,
 } from '@spravka/shared/core';
 import { Calendar, PageHeader, EmptyState, StatusBadge, ClickableRow, ViewAction } from '@spravka/shared/ui';
 
@@ -16,7 +17,17 @@ export default async function Kalendar({ searchParams }: { searchParams: SP }) {
   const now = new Date();
   const todayIso = isoDay(now);
   const month = isValidMonth(searchParams.month) ? searchParams.month : isoMonth(now);
-  const day = searchParams.day;
+
+  // A day is always selected: today when you land on the current month, otherwise the 1st.
+  // ?day is honoured only when it belongs to the month on screen — a stale pair would show
+  // one month's grid next to another month's list.
+  const day =
+    isValidDay(searchParams.day) && searchParams.day.startsWith(`${month}-`)
+      ? searchParams.day
+      : month === isoMonth(now)
+        ? todayIso
+        : `${month}-01`;
+
   const { gte, lt } = monthRange(month);
 
   const [monthRows, dayCerts] = await Promise.all([
@@ -24,21 +35,25 @@ export default async function Kalendar({ searchParams }: { searchParams: SP }) {
       where: { ...mine, issueDate: { gte, lt } },
       select: { issueDate: true, status: true },
     }),
-    day
-      ? prisma.certificate.findMany({
-          where: {
-            ...mine,
-            issueDate: { gte: new Date(`${day}T00:00:00.000Z`), lte: new Date(`${day}T23:59:59.999Z`) },
-          },
-          include: { firm: { select: { shortName: true, name: true } } },
-          orderBy: { createdAt: 'desc' },
-        })
-      : Promise.resolve([]),
+    prisma.certificate.findMany({
+      where: {
+        ...mine,
+        issueDate: { gte: new Date(`${day}T00:00:00.000Z`), lte: new Date(`${day}T23:59:59.999Z`) },
+      },
+      include: { firm: { select: { shortName: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+    }),
   ]);
 
   const days = groupByDay(monthRows.map((r) => ({ date: r.issueDate, status: r.status })));
 
-  const href = (m: string, d?: string) => `/kalendar?month=${m}${d ? `&day=${d}` : ''}`;
+  const href = (m: string, d: string) => `/kalendar?month=${m}&day=${d}`;
+  // Stepping a month keeps the day-of-month, so the side list never empties on arrow-through.
+  const dayNum = Number(day.slice(-2));
+  const stepHref = (delta: number) => {
+    const m = shiftMonth(month, delta);
+    return href(m, sameDayInMonth(m, dayNum));
+  };
 
   return (
     <div>
@@ -51,19 +66,17 @@ export default async function Kalendar({ searchParams }: { searchParams: SP }) {
           selected={day}
           todayIso={todayIso}
           hrefForDay={(iso) => href(month, iso)}
-          prevHref={href(shiftMonth(month, -1))}
-          nextHref={href(shiftMonth(month, 1))}
+          prevHref={stepHref(-1)}
+          nextHref={stepHref(1)}
           todayHref={href(isoMonth(now), todayIso)}
         />
 
         <aside className="space-y-3">
           <h2 className="text-sm font-semibold">
-            {day ? `${dmy(new Date(`${day}T00:00:00.000Z`))} — ${dayCerts.length} ta` : 'Kun tanlang'}
+            {dmy(new Date(`${day}T00:00:00.000Z`))} — {dayCerts.length} ta
           </h2>
 
-          {!day ? (
-            <EmptyState title="Kun tanlanmagan" hint="Kalendardan kunni bosing." />
-          ) : dayCerts.length === 0 ? (
+          {dayCerts.length === 0 ? (
             <EmptyState title="Bu kunda ariza yoʻq" />
           ) : (
             <div className="card overflow-hidden">

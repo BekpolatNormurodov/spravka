@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { dmy, PER_PAGE, pageSlice } from '@spravka/shared/core';
-import { PageHeader, EmptyState } from '@spravka/shared/ui';
+import { PageHeader, EmptyState, ClickableRow, ViewAction, Pagination } from '@spravka/shared/ui';
 import { ClientSearch } from './ClientSearch';
 
 export const dynamic = 'force-dynamic';
@@ -48,11 +48,12 @@ export default async function Mijozlar({ searchParams }: { searchParams: SP }) {
                     <th className="px-4 py-3 text-left font-medium">Kim bergan</th>
                     <th className="px-4 py-3 text-right font-medium">Arizalar</th>
                     <th className="px-4 py-3 text-left font-medium">Qoʻshilgan</th>
+                    <th className="w-12 px-3 py-3" />
                   </tr>
                 </thead>
                 <tbody>
                   {clients.map((c) => (
-                    <tr key={c.id} className="border-t border-line transition-colors hover:bg-surface-2">
+                    <ClickableRow key={c.id} href={`/mijozlar/${c.id}`}>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs tabular-nums text-fg">{c.pinfl}</td>
                       <td className="px-4 py-3 font-medium">{c.fullName}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">{c.passport}</td>
@@ -62,25 +63,17 @@ export default async function Mijozlar({ searchParams }: { searchParams: SP }) {
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums">{c._count.certificates}</td>
                       <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted">{dmy(c.createdAt)}</td>
-                    </tr>
+                      <td className="px-3 py-3 text-right">
+                        <ViewAction href={`/mijozlar/${c.id}`} />
+                      </td>
+                    </ClickableRow>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {pages > 1 && (
-            <nav className="mt-4 flex items-center justify-between gap-3" aria-label="Sahifalash">
-              <p className="text-xs tabular-nums text-muted">
-                {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} / {total}
-              </p>
-              <div className="flex items-center gap-1">
-                {page > 1 ? <a href={href(page - 1)} className="btn-ghost px-3 py-1.5 text-xs">← Oldingi</a> : <span className="btn-ghost pointer-events-none px-3 py-1.5 text-xs opacity-40">← Oldingi</span>}
-                <span className="px-3 text-xs tabular-nums text-muted">{page} / {pages}</span>
-                {page < pages ? <a href={href(page + 1)} className="btn-ghost px-3 py-1.5 text-xs">Keyingi →</a> : <span className="btn-ghost pointer-events-none px-3 py-1.5 text-xs opacity-40">Keyingi →</span>}
-              </div>
-            </nav>
-          )}
+          <Pagination page={page} pages={pages} total={total} perPage={PER_PAGE} hrefFor={href} />
         </>
       )}
     </div>

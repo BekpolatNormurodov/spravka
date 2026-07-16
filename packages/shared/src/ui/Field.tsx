@@ -2,6 +2,7 @@
 
 import React, { useId, useState } from 'react';
 import { Ico } from './icons';
+import { DatePicker } from './DatePicker';
 
 interface Base {
   label: string;
@@ -81,36 +82,39 @@ export function TextField({
 }
 
 /**
- * Pro date field. Wraps the native date input on purpose — ui-ux-pro-max `system-controls`:
- * prefer native/system controls (mobile pickers, keyboard, locale, a11y) over custom ones.
+ * Pro date field: DD.MM.YYYY text entry with a popover month grid.
+ *
+ * The native date input was the earlier choice (ui-ux-pro-max `system-controls`), but its
+ * rendering is browser-dependent and it cannot show the Uzbek month names or mark today the
+ * way the rest of the app does. Value in/out stays ISO 'YYYY-MM-DD', same as before.
  */
 export function DateField({
   value,
   onChange,
   min,
   max,
+  disabled,
   ...base
-}: Base & { value: string; onChange: (v: string) => void; min?: string; max?: string }) {
+}: Base & {
+  value: string;
+  onChange: (v: string) => void;
+  min?: string;
+  max?: string;
+  disabled?: boolean;
+}) {
   const id = useId();
   return (
     <Shell {...base} id={id}>
-      <div className="relative">
-        <input
-          id={id}
-          type="date"
-          value={value}
-          min={min}
-          max={max}
-          onChange={(e) => onChange(e.target.value)}
-          aria-invalid={!!base.error}
-          className={`field-input pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 ${
-            base.error ? 'border-rose-500/60 focus:border-rose-500 focus:ring-rose-500/25' : ''
-          }`}
-        />
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
-          <Ico.calendar size={16} />
-        </span>
-      </div>
+      <DatePicker
+        id={id}
+        value={value}
+        onChange={onChange}
+        min={min}
+        max={max}
+        disabled={disabled}
+        error={!!base.error}
+        hint={base.hint}
+      />
     </Shell>
   );
 }

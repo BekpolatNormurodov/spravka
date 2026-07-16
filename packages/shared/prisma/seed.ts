@@ -5,19 +5,22 @@ import { hashPassword } from '../src/core/password';
 /**
  * Real firms.
  *
- * Two sources, and where they disagree the .docx wins because it is the blank that actually
+ * Three sources, and where they disagree the .docx wins because it is the blank that actually
  * prints:
  *   • «Сухроб МКО лар бўйича маълумот.xlsx» — Наименование / Адрес / Директор / Бухгалтер / ИНН
+ *   • «ММТ Реквизитлар.xlsx» — ИНН / БАНК / СЧЕТ / МФО for eight firms. Every one of them
+ *     banks at ANORBANK, МФО 01183. The four accounts it shares with a .docx match digit for
+ *     digit, which is why the other four are taken from it as-is.
  *   • the firms' own maʼlumotnoma .docx letterheads — name, address, ИНН, Х/р, МФО, bank,
  *     phone, Ижрочи, director position and the exact signature spelling.
  *
- * Four firms have a .docx (BRIGHT FUTURE, URBAN, COMMUNITY, FUNDFLOW) and are complete. The
- * other five only have the spreadsheet, so their `phone`, `executorName` and bank rekvizitlar
- * stay empty — nothing here is invented; the admin fills them from the firm edit form.
+ * Four firms have a .docx (BRIGHT FUTURE, URBAN, COMMUNITY, FUNDFLOW) and are complete; the
+ * rest still lack `phone`/`executorName`. PRESTIGE MOLIYA appears in no rekvizit sheet, so it
+ * has no account. Nothing here is invented — the admin fills the gaps from the firm edit form.
  *
- * `directorName` is the short form the signature block prints. Three were verifiable against
- * a .docx and all three matched what the register implies (Ё.А.Хасанов, Ф.Ф.Сувонов, and
- * COMMUNITY's, which the blank writes with a single initial: Д.Мамадалиев).
+ * `directorName` is the short form the signature block prints, taken from the .docx blanks.
+ * The Директор column of «ММТ Реквизитлар.xlsx» names a different person for five firms; it is
+ * deliberately NOT applied here, because that name is what gets signed on a legal document.
  */
 const TOSHKENT_GURUCHARIK = 'Тошкент шахри, Олмазор тумани Гуручарик МФЙ, Сагбон кучаси 30 берк, 7/1 уй';
 const TOSHKENT_CHINNIOBOD = 'Тошкент шахри, Олмазор тумани, Чинниобод МФЙ, Чинниобод 2 мавзеси, 7 уй';
@@ -72,6 +75,8 @@ const FIRMS = [
     stir: '311939991',
     region: 'Toshkent',
     address: TOSHKENT_GURUCHARIK,
+    ...ANORBANK,
+    bankAccount: '20216000007205557001',
   },
   {
     id: 'firm_community',
@@ -119,6 +124,8 @@ const FIRMS = [
     stir: '312192769',
     region: 'Toshkent',
     address: TOSHKENT_CHINNIOBOD,
+    ...ANORBANK,
+    bankAccount: '20216000007255899001',
   },
   {
     id: 'firm_darrowmad',
@@ -132,6 +139,8 @@ const FIRMS = [
     stir: '312510309',
     region: 'Toshkent',
     address: TOSHKENT_CHINNIOBOD,
+    ...ANORBANK,
+    bankAccount: '20216000307331734001',
   },
   {
     id: 'firm_zaymly',
@@ -145,6 +154,8 @@ const FIRMS = [
     stir: '312500154',
     region: 'Toshkent',
     address: TOSHKENT_CHINNIOBOD,
+    ...ANORBANK,
+    bankAccount: '20216000407331685001',
   },
   {
     id: 'firm_prestige_moliya',

@@ -67,3 +67,11 @@ export function maskPinfl(v: string): string {
 export function isValidPinfl(v: string): boolean {
   return /^\d{14}$/.test(v);
 }
+
+/** Typed date — digits auto-dotted as DD.MM.YYYY (see DatePicker). */
+export function maskDmy(v: string): string {
+  const d = digits(v).slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
+}

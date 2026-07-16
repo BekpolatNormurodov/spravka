@@ -11,6 +11,7 @@ export { ClickableRow, RowAction, ViewAction } from './ClickableRow';
 export { Select } from './Select';
 export type { Option } from './Select';
 export { TextField, DateField, TextArea, PasswordField } from './Field';
+export { DatePicker } from './DatePicker';
 export { Filters } from './Filters';
 export { Pagination } from './Pagination';
 export type { FirmOpt } from './Filters';

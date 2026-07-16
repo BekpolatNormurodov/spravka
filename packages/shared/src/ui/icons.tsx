@@ -2,7 +2,7 @@
 
 import React from 'react';
 import {
-  Add, Archive, ArrowRight2, Calendar, Category, Chart2, CloseCircle, DocumentText,
+  Add, Archive, ArrowLeft2, ArrowRight2, Calendar, Category, Chart2, CloseCircle, DocumentText,
   Edit2, Eye, HambergerMenu, LogoutCurve, Moon, People, Printer, ScanBarcode, Sun1,
   TickCircle, Buildings2, AddSquare, User,
 } from 'iconsax-react';
@@ -37,8 +37,19 @@ export const Ico = {
   eye: mk(Eye),
   print: mk(Printer),
   chevron: mk(ArrowRight2),
+  chevronLeft: mk(ArrowLeft2),
   add: mk(Add),
 };
+
+/**
+ * Named exports for *server* components.
+ *
+ * The RSC boundary turns each named export of a 'use client' module into a client reference.
+ * Properties of an exported object are not named exports, so `<Ico.chevron />` inside a server
+ * component throws at render. Client components keep using the `Ico` registry.
+ */
+export const IconChevronLeft = mk(ArrowLeft2);
+export const IconChevronRight = mk(ArrowRight2);
 
 /** Registry for nav items — referenced by string key so server components can pass nav data. */
 export const NAV_ICONS: Record<string, React.ComponentType<IconProps>> = {

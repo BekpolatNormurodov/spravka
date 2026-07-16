@@ -1,15 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { CertStatus, STATUS_LABELS } from '../core';
+import { UZ_MONTHS_LAT, WEEKDAYS_LAT, monthGrid } from '../core/calendar';
 import { STATUS_DOT } from './tokens';
+// Named exports, not `Ico.*` — this file is a server component (see icons.tsx).
+import { IconChevronLeft, IconChevronRight } from './icons';
 
-export const UZ_MONTHS_LAT = [
-  'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-  'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
-] as const;
-
-const WEEKDAYS = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
-
+export { UZ_MONTHS_LAT } from '../core/calendar';
 export { STATUS_DOT } from './tokens';
 
 export interface DayData {
@@ -40,16 +37,9 @@ export function Calendar({
   todayHref: string;
 }) {
   const [y, m] = month.split('-').map(Number);
-  const first = new Date(Date.UTC(y!, m! - 1, 1));
-  const startWd = (first.getUTCDay() + 6) % 7; // Monday-first
-  const daysInMonth = new Date(Date.UTC(y!, m!, 0)).getUTCDate();
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < startWd; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-
+  const cells = monthGrid(month);
   const iso = (d: number) => `${month}-${String(d).padStart(2, '0')}`;
+  const showsToday = month === todayIso.slice(0, 7);
 
   return (
     <div className="card overflow-hidden">
@@ -59,15 +49,26 @@ export function Calendar({
           {UZ_MONTHS_LAT[m! - 1]} <span className="text-muted tabular-nums">{y}</span>
         </h2>
         <div className="flex items-center gap-1">
-          <Link href={prevHref} aria-label="Oldingi oy" className="btn-ghost px-2.5 py-1.5 text-xs">←</Link>
-          <Link href={todayHref} className="btn-ghost px-3 py-1.5 text-xs">Bugun</Link>
-          <Link href={nextHref} aria-label="Keyingi oy" className="btn-ghost px-2.5 py-1.5 text-xs">→</Link>
+          <Link href={prevHref} aria-label="Oldingi oy" className="btn-ghost px-2 py-2" prefetch>
+            <IconChevronLeft size={16} />
+          </Link>
+          {/* Disabled-looking but still a link: it re-selects today within the current month. */}
+          <Link
+            href={todayHref}
+            className={`btn-ghost px-3 py-1.5 text-xs ${showsToday ? 'text-muted' : ''}`}
+            prefetch
+          >
+            Bugun
+          </Link>
+          <Link href={nextHref} aria-label="Keyingi oy" className="btn-ghost px-2 py-2" prefetch>
+            <IconChevronRight size={16} />
+          </Link>
         </div>
       </div>
 
       {/* Weekday header */}
       <div className="grid grid-cols-7 border-b border-line bg-surface-2">
-        {WEEKDAYS.map((w, i) => (
+        {WEEKDAYS_LAT.map((w, i) => (
           <div
             key={w}
             className={`px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide ${i >= 5 ? 'text-rose-500/70' : 'text-muted'}`}
