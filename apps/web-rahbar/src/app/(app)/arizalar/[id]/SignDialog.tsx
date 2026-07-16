@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Modal, Ico, Spinner, Select,
-  eimzoAvailable, listKeys, loadKey, createPkcs7, unloadKey, EimzoError,
+  probeEimzo, loadKey, createPkcs7, unloadKey, EimzoError,
   type EimzoKey, type EimzoStatus, type Option,
 } from '@spravka/shared/ui';
 
@@ -55,23 +55,20 @@ export function SignDialog({
   const [alias, setAlias] = useState('');
   const [step, setStep] = useState<Step>(null);
   const [err, setErr] = useState('');
+  const [denyReason, setDenyReason] = useState('');
 
   const probe = useCallback(async () => {
     setStatus('checking');
     setErr('');
-    if (!(await eimzoAvailable())) {
-      setStatus('unavailable');
-      return;
+    setDenyReason('');
+    const r = await probeEimzo();
+    if (r.status === 'ready') {
+      setKeys(r.keys);
+      setAlias(r.keys.length === 1 ? r.keys[0]!.alias : '');
+    } else if (r.status === 'domain-denied') {
+      setDenyReason(r.reason);
     }
-    try {
-      const found = await listKeys();
-      setKeys(found);
-      setAlias(found.length === 1 ? found[0]!.alias : '');
-      setStatus('ready');
-    } catch (e) {
-      setStatus('unavailable');
-      setErr(e instanceof EimzoError ? e.message : 'Kalitlarni oʻqib boʻlmadi');
-    }
+    setStatus(r.status);
   }, []);
 
   useEffect(() => {
@@ -187,7 +184,8 @@ export function SignDialog({
           </p>
         )}
 
-        {status === 'unavailable' && (
+        {/* Theirs to fix: the app is not open. */}
+        {status === 'not-running' && (
           <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
             <span className="mt-px shrink-0 text-amber-600 dark:text-amber-400" aria-hidden>
               <Ico.shieldOff size={16} />
@@ -201,6 +199,28 @@ export function SignDialog({
               <button onClick={() => void probe()} type="button" className="mt-2 cursor-pointer text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400">
                 Qayta tekshirish
               </button>
+            </div>
+          </div>
+        )}
+
+        {/*
+          Ours to fix, and the opposite message. E-IMZO is running and refusing this site because
+          the domain has no API-KEY from the centre — restarting anything achieves nothing, so do
+          not send the rahbar to fix the one part that works. «Qayta tekshirish» is deliberately
+          absent for the same reason.
+        */}
+        {status === 'domain-denied' && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5">
+            <span className="mt-px shrink-0 text-rose-600 dark:text-rose-400" aria-hidden>
+              <Ico.shieldOff size={16} />
+            </span>
+            <div className="text-xs leading-relaxed">
+              <p className="font-semibold text-fg">E-IMZO bu saytga ruxsat bermadi</p>
+              <p className="mt-0.5 text-muted">
+                Dastur ishlayapti — muammo sizda emas. Saytga E-IMZO markazidan domen kaliti
+                olinmagan. Buni tizim maʼmuri hal qiladi.
+              </p>
+              {denyReason && <p className="mt-1.5 font-mono text-[11px] text-muted">{denyReason}</p>}
             </div>
           </div>
         )}

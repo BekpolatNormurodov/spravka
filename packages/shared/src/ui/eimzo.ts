@@ -24,7 +24,17 @@ export interface EimzoKey {
   alias: string;
 }
 
-export type EimzoStatus = 'checking' | 'ready' | 'unavailable';
+export type EimzoStatus = 'checking' | 'ready' | 'not-running' | 'domain-denied';
+
+/**
+ * Why E-IMZO could not be used — the two reasons look identical to the user and are opposite in
+ * meaning. 'not-running' is theirs to fix (open the app). 'domain-denied' is ours (the site has
+ * no API-KEY for this domain) and no amount of restarting will help.
+ */
+export type EimzoProbe =
+  | { status: 'ready'; keys: EimzoKey[] }
+  | { status: 'not-running' }
+  | { status: 'domain-denied'; reason: string };
 
 interface Reply {
   success?: boolean;
@@ -35,6 +45,16 @@ interface Reply {
 
 /** E-IMZO refused or is not there. Carries a message meant for the rahbar, not a stack trace. */
 export class EimzoError extends Error {}
+
+/**
+ * E-IMZO's own code for "this domain has no API-KEY": measured, not documented — the client
+ * answers -1022 «API-key для домена <origin> недействителен» to any origin outside its built-in
+ * list, which is localhost and 127.0.0.1 only. A production domain needs a key from the centre.
+ */
+const DOMAIN_DENIED = -1022;
+
+/** Raised when the *site*, not the signer's machine, is the problem. */
+export class EimzoDomainError extends EimzoError {}
 
 /**
  * One websocket per call — E-IMZO's own client does the same, and a long-lived socket would
@@ -80,35 +100,36 @@ function call<T extends Reply>(plugin: string, name: string, args: unknown[] = [
       done(() => {
         // `success: false` is E-IMZO reporting a real problem — a wrong password, a cancelled
         // dialog, an unreadable key. Its own reason is more useful than anything we could invent.
-        if (data.success === false) reject(new EimzoError(data.reason || 'E-IMZO amalni bajarmadi'));
-        else resolve(data);
+        if (data.success === false) {
+          const Err = data.status === DOMAIN_DENIED ? EimzoDomainError : EimzoError;
+          reject(new Err(data.reason || 'E-IMZO amalni bajarmadi'));
+        } else resolve(data);
       });
     };
     ws.onopen = () => ws.send(JSON.stringify({ plugin, name, arguments: args.map(String) }));
   });
 }
 
-/** Is E-IMZO running on this machine? Cheap call, short timeout — drives the status shown up front. */
-export async function eimzoAvailable(): Promise<boolean> {
-  try {
-    await Promise.race([
-      call('app', 'get_jvm_version'),
-      new Promise((_, r) => setTimeout(() => r(new EimzoError('timeout')), 4000)),
-    ]);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Every key E-IMZO can see, across every disk — including a flash drive, if one is plugged in.
- * Keys live in a `DSKEYS` folder; E-IMZO finds them itself, so the rahbar picks from a list
- * rather than hunting for a file.
+ * Ask E-IMZO for the keys, and learn from the answer why it will not work when it will not.
+ *
+ * One call rather than a separate liveness ping, because the two failures need telling apart and
+ * this is the call that distinguishes them. A dead socket means the app is not running — the
+ * rahbar can fix that. A -1022 means the app is running fine and refusing *this site* — no amount
+ * of restarting helps, and telling them "E-IMZO is not running" would send them to fix the one
+ * thing that is not broken.
+ *
+ * Keys come from every disk E-IMZO can see, a flash drive included; it finds them itself, so the
+ * rahbar picks from a list rather than hunting for a file.
  */
-export async function listKeys(): Promise<EimzoKey[]> {
-  const r = await call<{ certificates?: EimzoKey[] }>('pfx', 'list_all_certificates');
-  return r.certificates ?? [];
+export async function probeEimzo(): Promise<EimzoProbe> {
+  try {
+    const r = await call<{ certificates?: EimzoKey[] }>('pfx', 'list_all_certificates');
+    return { status: 'ready', keys: r.certificates ?? [] };
+  } catch (e) {
+    if (e instanceof EimzoDomainError) return { status: 'domain-denied', reason: e.message };
+    return { status: 'not-running' };
+  }
 }
 
 /**
