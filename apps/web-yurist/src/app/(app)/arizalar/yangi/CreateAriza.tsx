@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { maskAmount, unmaskAmount, maskPassport } from '@spravka/shared/core';
+import { maskAmount, unmaskAmount, maskPassport, maskPinfl, isValidPinfl } from '@spravka/shared/core';
 import { TextField, DateField, Select, Ico, type Option } from '@spravka/shared/ui';
 
 type Firm = { id: string; name: string; shortName: string | null };
@@ -13,8 +13,11 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
   const router = useRouter();
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState<'' | 'draft' | 'submit'>('');
+  const [lookup, setLookup] = useState<'' | 'searching' | 'found' | 'new'>('');
+  const [prevCount, setPrevCount] = useState(0);
   const [f, setF] = useState({
     firmId: firms[0]?.id ?? '',
+    personPinfl: '',
     personFullName: '',
     personPassport: '',
     passportIssuedBy: '',
@@ -29,10 +32,44 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
 
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
+  // PINFL lookup — autofills a repeat client so the data stays consistent across arizas.
+  useEffect(() => {
+    if (!isValidPinfl(f.personPinfl)) {
+      setLookup('');
+      return;
+    }
+    let cancelled = false;
+    setLookup('searching');
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/clients?pinfl=${f.personPinfl}`);
+        const d = await res.json();
+        if (cancelled) return;
+        if (d.found) {
+          setF((s) => ({
+            ...s,
+            personFullName: d.client.fullName,
+            personPassport: d.client.passport,
+            passportIssuedBy: d.client.passportIssuedBy ?? '',
+            passportIssuedAt: d.client.passportIssuedAt ? String(d.client.passportIssuedAt).slice(0, 10) : '',
+          }));
+          setPrevCount(d.client._count?.certificates ?? 0);
+          setLookup('found');
+        } else {
+          setLookup('new');
+        }
+      } catch {
+        if (!cancelled) setLookup('');
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [f.personPinfl]);
+
+  const pinflOk = isValidPinfl(f.personPinfl);
   const nameOk = f.personFullName.trim().length > 3;
   const passOk = /^[A-Z]{2}\d{7}$/.test(f.personPassport);
   const amountOk = unmaskAmount(f.loanAmount).length > 0;
-  const valid = f.firmId && nameOk && passOk && f.contractNumber.trim() && f.contractDate && amountOk && f.asOfDate && f.issueDate;
+  const valid = f.firmId && pinflOk && nameOk && passOk && f.contractNumber.trim() && f.contractDate && amountOk && f.asOfDate && f.issueDate;
 
   const firmOptions: Option[] = firms.map((fi) => ({ value: fi.id, label: fi.shortName ?? fi.name }));
 
@@ -70,8 +107,22 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-4 text-sm font-semibold">Jismoniy shaxs</h2>
+        <h2 className="mb-1 text-sm font-semibold">Mijoz (jismoniy shaxs)</h2>
+        <p className="mb-4 text-xs text-muted">PINFL kiriting — mijoz bazada boʻlsa maʼlumotlari avtomatik toʻladi.</p>
+
         <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            className="sm:col-span-2"
+            label="PINFL (JSHSHIR)" required value={f.personPinfl} onChange={set('personPinfl')}
+            mask={maskPinfl} inputMode="numeric" placeholder="12345678901234"
+            error={f.personPinfl && !pinflOk ? '14 ta raqam boʻlishi kerak' : undefined}
+            hint={
+              lookup === 'searching' ? 'Qidirilmoqda…'
+              : lookup === 'found' ? `✓ Mijoz topildi — maʼlumotlar toʻldirildi (avval ${prevCount} ta ariza)`
+              : lookup === 'new' ? 'Yangi mijoz — saqlanganda bazaga qoʻshiladi'
+              : '14 ta raqam'
+            }
+          />
           <TextField
             className="sm:col-span-2"
             label="F.I.SH. (kirillcha)" required value={f.personFullName} onChange={set('personFullName')}

@@ -57,3 +57,13 @@ export function maskAccount(v: string): string {
 export function maskMfo(v: string): string {
   return digits(v).slice(0, 5);
 }
+
+/** PINFL / JSHSHIR — exactly 14 digits. */
+export function maskPinfl(v: string): string {
+  return digits(v).slice(0, 14);
+}
+
+/** True when the value is a well-formed PINFL. */
+export function isValidPinfl(v: string): boolean {
+  return /^\d{14}$/.test(v);
+}

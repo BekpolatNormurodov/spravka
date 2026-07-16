@@ -137,6 +137,13 @@ model Certificate {
   deletedById      String?
   deletedReason    String?    @db.Text
 
+  // Link to the reusable client record. The person* fields above stay as an immutable
+  // snapshot of what this document says — editing the Client must never alter an
+  // already-issued maʼlumotnoma.
+  client           Client?    @relation(fields: [clientId], references: [id])
+  clientId         String?
+  personPinfl      String?    @db.VarChar(14)
+
   createdBy        User       @relation("CertCreatedBy", fields: [createdById], references: [id])
   createdById      String
   events           WorkflowEvent[]
@@ -145,6 +152,28 @@ model Certificate {
 
   @@index([status])
   @@index([firmId])
+  @@index([clientId])
+}
+
+/// Mijoz (jismoniy shaxs) — identified by PINFL (14 digits). Looked up by the yurist so
+/// repeat clients autofill. The Certificate keeps its own snapshot of the person fields so
+/// editing a client never rewrites an already-issued document.
+model Client {
+  id               String        @id @default(cuid())
+  pinfl            String        @unique @db.VarChar(14)
+  fullName         String
+  passport         String
+  passportIssuedBy String?
+  passportIssuedAt DateTime?
+  birthDate        DateTime?
+  phone            String?
+  address          String?
+  certificates     Certificate[]
+  createdById      String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([fullName])
 }
 
 model WorkflowEvent {

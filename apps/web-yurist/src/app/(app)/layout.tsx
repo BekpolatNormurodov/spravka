@@ -8,6 +8,7 @@ const NAV: NavItem[] = [
   { href: '/', label: 'Boshqaruv', icon: 'dashboard', section: 'Menyu' },
   { href: '/arizalar/yangi', label: 'Yangi ariza', icon: 'file-plus', section: 'Menyu' },
   { href: '/kalendar', label: 'Kalendar', icon: 'calendar', section: 'Menyu' },
+  { href: '/mijozlar', label: 'Mijozlar', icon: 'user', section: 'Menyu' },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

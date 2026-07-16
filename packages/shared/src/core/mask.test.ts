@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   maskAmount, unmaskAmount, maskPhone, unmaskPhone,
-  maskPassport, maskStir, maskAccount, maskMfo,
+  maskPassport, maskStir, maskAccount, maskMfo, maskPinfl, isValidPinfl,
 } from './mask';
 
 describe('maskAmount', () => {
@@ -60,5 +60,18 @@ describe('bank + tax masks', () => {
   });
   it('account groups 20 digits in 4s', () => {
     expect(maskAccount('20216000207212842001')).toBe('2021 6000 2072 1284 2001');
+  });
+});
+
+describe('maskPinfl', () => {
+  it('keeps digits only, max 14', () => {
+    expect(maskPinfl('12345678901234')).toBe('12345678901234');
+    expect(maskPinfl('1234 5678 9012 34')).toBe('12345678901234');
+    expect(maskPinfl('123456789012349999')).toBe('12345678901234');
+  });
+  it('validates a full pinfl', () => {
+    expect(isValidPinfl('12345678901234')).toBe(true);
+    expect(isValidPinfl('1234567890123')).toBe(false);
+    expect(isValidPinfl('abcdefghijklmn')).toBe(false);
   });
 });
