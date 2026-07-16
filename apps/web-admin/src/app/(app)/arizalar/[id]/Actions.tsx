@@ -27,7 +27,7 @@ export function Actions({ id }: { id: string }) {
 
   return (
     <div className="space-y-2">
-      {err && <div className="text-sm text-red-400">{err}</div>}
+      {err && <div className="text-sm text-rose-600 dark:text-rose-300">{err}</div>}
       <button onClick={() => act('approve')} disabled={!!busy} className="btn-primary w-full">
         {busy === 'approve' ? 'Tasdiqlanmoqda…' : 'Tasdiqlash → Rahbarga'}
       </button>

@@ -13,7 +13,7 @@ export default async function NewArizaPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-1">Yangi ariza</h1>
-      <p className="text-sm text-slate-400 mb-6">Qarzdorlik yoʻqligi toʻgʻrisidagi maʼlumotnoma uchun maʼlumotlarni kiriting</p>
+      <p className="text-sm text-muted mb-6">Qarzdorlik yoʻqligi toʻgʻrisidagi maʼlumotnoma uchun maʼlumotlarni kiriting</p>
       <CreateAriza firms={firms} />
     </div>
   );

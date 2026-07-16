@@ -1,2 +1,4 @@
-// Populated in Plan 2 (shared UI). Kept so the ./ui export resolves.
-export {};
+export { AppShell } from './AppShell';
+export type { NavItem, AppShellProps } from './AppShell';
+export { ThemeToggle } from './ThemeToggle';
+export { ThemeScript, StatusBadge, StatCard, PageHeader, EmptyState, Table } from './components';

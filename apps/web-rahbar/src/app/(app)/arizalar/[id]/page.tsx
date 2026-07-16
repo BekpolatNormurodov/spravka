@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { CertStatus, certificateBody, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge } from '@spravka/shared/ui';
 import { Actions } from './Actions';
 
 export const dynamic = 'force-dynamic';
@@ -37,8 +37,8 @@ export default async function CertDetail({ params }: { params: { id: string } })
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/imzolash" className="text-slate-400 hover:text-white">← Orqaga</Link>
-        <span className="font-mono text-sm text-slate-300">{c.number}</span>
+        <Link href="/imzolash" className="text-muted hover:text-fg">← Orqaga</Link>
+        <span className="font-mono text-sm text-fg">{c.number}</span>
         <StatusBadge status={c.status} />
       </div>
 
@@ -63,7 +63,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
             </div>
             <div className="text-sm font-semibold">{c.firm.directorName}</div>
           </div>
-          <div className="mt-6 text-xs text-slate-500">
+          <div className="mt-6 text-xs text-neutral-500">
             Ижрочи: {c.firm.executorName}{c.firm.executorPhone ? ` · Тел: ${c.firm.executorPhone}` : ''}
           </div>
         </div>
@@ -76,18 +76,18 @@ export default async function CertDetail({ params }: { params: { id: string } })
 
           {signed && (
             <div className="card p-5 text-sm">
-              <h3 className="font-semibold mb-2 text-emerald-300">Public havola</h3>
-              <a href={publicUrl} target="_blank" className="text-brand-400 break-all hover:underline">{publicUrl}</a>
+              <h3 className="font-semibold mb-2 text-accent-600 dark:text-accent-400">Public havola</h3>
+              <a href={publicUrl} target="_blank" className="text-brand-600 dark:text-brand-400 break-all hover:underline">{publicUrl}</a>
             </div>
           )}
 
           <div className="card p-5 text-sm">
             <h3 className="font-semibold mb-3">Maʼlumot</h3>
-            <dl className="space-y-2 text-slate-300">
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Firma</dt><dd className="text-right">{c.firm.shortName ?? c.firm.name}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Passport</dt><dd>{c.personPassport}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Summa</dt><dd>{formatSum(c.loanAmount.toString())} soʻm</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Yurist</dt><dd>{c.createdBy.fullName}</dd></div>
+            <dl className="space-y-2 text-fg">
+              <div className="flex justify-between gap-3"><dt className="text-muted">Firma</dt><dd className="text-right">{c.firm.shortName ?? c.firm.name}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted">Summa</dt><dd>{formatSum(c.loanAmount.toString())} soʻm</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted">Yurist</dt><dd>{c.createdBy.fullName}</dd></div>
             </dl>
           </div>
 
@@ -95,9 +95,9 @@ export default async function CertDetail({ params }: { params: { id: string } })
             <h3 className="font-semibold mb-3">Tarix</h3>
             <ul className="space-y-2">
               {c.events.map((e) => (
-                <li key={e.id} className="flex justify-between gap-3 text-slate-400">
+                <li key={e.id} className="flex justify-between gap-3 text-muted">
                   <span>{ACTION_LABELS[e.action]} · {e.actor.fullName}</span>
-                  <span className="text-slate-500">{dmy(e.createdAt)}</span>
+                  <span className="text-muted">{dmy(e.createdAt)}</span>
                 </li>
               ))}
             </ul>

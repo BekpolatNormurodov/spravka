@@ -41,7 +41,7 @@ export function UserForm() {
 
   return (
     <form onSubmit={submit} className="card p-6 space-y-4">
-      {err && <div className="text-sm text-red-400">{err}</div>}
+      {err && <div className="text-sm text-rose-600 dark:text-rose-300">{err}</div>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label className="field-label">F.I.SH. *</label><input className="field-input" value={f.fullName} onChange={set('fullName')} required /></div>
         <div><label className="field-label">Login *</label><input className="field-input" value={f.login} onChange={set('login')} required /></div>

@@ -55,11 +55,11 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
       className="space-y-6"
     >
       {err && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{err}</div>
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">{err}</div>
       )}
 
       <section className="card p-6">
-        <h2 className="text-sm font-semibold text-slate-200 mb-4">Firma</h2>
+        <h2 className="text-sm font-semibold text-fg mb-4">Firma</h2>
         <label className="field-label">Mikromoliya tashkiloti *</label>
         <select className="field-input" value={f.firmId} onChange={set('firmId')} required>
           {firms.map((fi) => (
@@ -69,7 +69,7 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
       </section>
 
       <section className="card p-6">
-        <h2 className="text-sm font-semibold text-slate-200 mb-4">Jismoniy shaxs</h2>
+        <h2 className="text-sm font-semibold text-fg mb-4">Jismoniy shaxs</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="field-label">F.I.SH. (kirillcha) *</label>
@@ -91,7 +91,7 @@ export function CreateAriza({ firms }: { firms: Firm[] }) {
       </section>
 
       <section className="card p-6">
-        <h2 className="text-sm font-semibold text-slate-200 mb-4">Shartnoma va qarz</h2>
+        <h2 className="text-sm font-semibold text-fg mb-4">Shartnoma va qarz</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="field-label">Shartnoma raqami *</label>

@@ -33,7 +33,7 @@ export function Actions({ id, status }: { id: string; status: string }) {
 
   return (
     <div className="space-y-2">
-      {err && <div className="text-sm text-red-400">{err}</div>}
+      {err && <div className="text-sm text-rose-600 dark:text-rose-300">{err}</div>}
       {status === 'DIRECTOR_REVIEW' && (
         <>
           <button onClick={() => act('sign')} disabled={!!busy} className="btn-primary w-full">
@@ -44,7 +44,7 @@ export function Actions({ id, status }: { id: string; status: string }) {
           </button>
         </>
       )}
-      <button onClick={onDelete} disabled={!!busy} className="btn w-full border border-red-500/30 text-red-300 hover:bg-red-500/10">
+      <button onClick={onDelete} disabled={!!busy} className="btn w-full border border-red-500/30 text-rose-600 dark:text-rose-300 hover:bg-red-500/10">
         {busy === 'delete' ? 'Oʻchirilmoqda…' : 'Oʻchirish (arxiv)'}
       </button>
     </div>
