@@ -7,10 +7,12 @@ import { Modal, TextField, PasswordField, Select, Ico, RowAction, type Option } 
 
 export type UserRow = {
   id: string; fullName: string; login: string; role: string;
-  position: string | null; phone: string | null;
+  position: string | null; phone: string | null; firmId: string | null;
 };
 
-const EMPTY = { fullName: '', login: '', password: '', role: Role.YURIST as string, position: '', phone: '' };
+export type FirmOption = { id: string; name: string; shortName: string | null; directorName: string };
+
+const EMPTY = { fullName: '', login: '', password: '', role: Role.YURIST as string, position: '', phone: '', firmId: '' };
 
 const ROLE_OPTIONS: Option[] = [
   { value: Role.YURIST, label: ROLE_LABELS[Role.YURIST], dot: 'bg-brand-500' },
@@ -19,13 +21,13 @@ const ROLE_OPTIONS: Option[] = [
 ];
 
 /** Dual-mode: no `user` → create; with `user` → edit (password optional). */
-export function UserForm({ user }: { user?: UserRow }) {
+export function UserForm({ user, firms }: { user?: UserRow; firms: FirmOption[] }) {
   const editing = !!user;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState(
     user
-      ? { fullName: user.fullName, login: user.login, password: '', role: user.role, position: user.position ?? '', phone: user.phone ?? '' }
+      ? { fullName: user.fullName, login: user.login, password: '', role: user.role, position: user.position ?? '', phone: user.phone ?? '', firmId: user.firmId ?? '' }
       : EMPTY,
   );
   const [busy, setBusy] = useState(false);
@@ -36,7 +38,10 @@ export function UserForm({ user }: { user?: UserRow }) {
   const nameOk = f.fullName.trim().split(/\s+/).filter(Boolean).length >= 2;
   // On edit the password is optional — only validated when the admin types a new one.
   const passOk = editing ? (f.password === '' || f.password.length >= 6) : f.password.length >= 6;
-  const valid = nameOk && f.login.trim().length >= 3 && passOk;
+  // A RAHBAR *is* a firm's director — they must be attached to exactly one firm.
+  const isRahbar = f.role === Role.RAHBAR;
+  const firmOk = !isRahbar || !!f.firmId;
+  const valid = nameOk && f.login.trim().length >= 3 && passOk && firmOk;
 
   async function submit() {
     setBusy(true);
@@ -71,6 +76,7 @@ export function UserForm({ user }: { user?: UserRow }) {
       )}
 
       <Modal
+        size="lg"
         open={open}
         title={editing ? 'Foydalanuvchini tahrirlash' : 'Yangi foydalanuvchi'}
         description={editing ? 'Parolni oʻzgartirmasangiz — boʻsh qoldiring.' : 'Login va parol bilan tizimga kiradi.'}
@@ -98,6 +104,28 @@ export function UserForm({ user }: { user?: UserRow }) {
             <Select label="Rol" value={f.role} onChange={set('role')} options={ROLE_OPTIONS} />
             <p className="mt-1.5 text-xs text-muted">Har rol faqat oʻz paneliga kira oladi.</p>
           </div>
+
+          {isRahbar && (
+            <div>
+              <label className="field-label">Firma <span className="text-rose-500">*</span></label>
+              <Select
+                label="Firma"
+                placeholder="Firmani tanlang"
+                value={f.firmId}
+                onChange={set('firmId')}
+                options={firms.map<Option>((fi) => ({
+                  value: fi.id,
+                  label: `${fi.shortName ?? fi.name} — ${fi.directorName}`,
+                }))}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                Rahbar — shu firmaning ijrochi direktori. Har firmada bitta boʻladi.
+              </p>
+              {!firmOk && f.role === Role.RAHBAR && (
+                <p className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-300">Rahbar uchun firma majburiy.</p>
+              )}
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField

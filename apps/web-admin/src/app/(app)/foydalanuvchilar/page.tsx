@@ -12,14 +12,25 @@ const ROLE_TONE: Record<string, string> = {
 };
 
 export default async function Foydalanuvchilar() {
-  const users = await prisma.user.findMany({
-    orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
-    select: {
-      id: true, fullName: true, login: true, role: true, position: true, phone: true,
-      plainPassword: true, isActive: true, lastLoginAt: true,
-      _count: { select: { createdCerts: true, signedCerts: true } },
-    },
-  });
+  const [users, firms] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true, fullName: true, login: true, role: true, position: true, phone: true,
+        plainPassword: true, isActive: true, lastLoginAt: true, firmId: true,
+        _count: { select: { createdCerts: true, signedCerts: true } },
+      },
+    }),
+    prisma.firm.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, shortName: true, directorName: true },
+    }),
+  ]);
+  const firmName = (id: string | null) => {
+    const f = firms.find((x) => x.id === id);
+    return f ? (f.shortName ?? f.name) : null;
+  };
 
   const byRole = (r: Role) => users.filter((u) => u.role === r).length;
 
@@ -28,7 +39,7 @@ export default async function Foydalanuvchilar() {
       <PageHeader
         title="Foydalanuvchilar"
         subtitle={`${byRole(Role.YURIST)} yurist · ${byRole(Role.ADMIN)} admin · ${byRole(Role.RAHBAR)} rahbar`}
-        action={<UserForm />}
+        action={<UserForm firms={firms} />}
       />
 
       {users.length === 0 ? (
@@ -36,13 +47,14 @@ export default async function Foydalanuvchilar() {
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1040px] text-sm">
+            <table className="w-full min-w-[1180px] text-sm">
               <thead className="bg-surface-2 text-muted">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">F.I.SH.</th>
                   <th className="px-4 py-3 text-left font-medium">Login</th>
                   <th className="px-4 py-3 text-left font-medium">Parol</th>
                   <th className="px-4 py-3 text-left font-medium">Rol</th>
+                  <th className="px-4 py-3 text-left font-medium">Firma</th>
                   <th className="px-4 py-3 text-left font-medium">Telefon</th>
                   <th className="px-4 py-3 text-right font-medium">Arizalar</th>
                   <th className="px-4 py-3 text-left font-medium">Oxirgi kirish</th>
@@ -69,6 +81,7 @@ export default async function Foydalanuvchilar() {
                     <td className="px-4 py-3">
                       <span className={`badge ${ROLE_TONE[u.role]}`}>{ROLE_LABELS[u.role as Role]}</span>
                     </td>
+                    <td className="px-4 py-3 text-xs text-muted">{firmName(u.firmId) ?? '—'}</td>
                     <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted">{u.phone ?? '—'}</td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums">
                       {u.role === Role.RAHBAR ? u._count.signedCerts : u._count.createdCerts}
@@ -81,7 +94,7 @@ export default async function Foydalanuvchilar() {
                         {u.isActive ? 'Faol' : 'Nofaol'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right"><UserForm user={u} /></td>
+                    <td className="px-4 py-3 text-right"><UserForm user={u} firms={firms} /></td>
                   </tr>
                 ))}
               </tbody>

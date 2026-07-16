@@ -75,6 +75,7 @@ export function FirmForm({ firm }: { firm?: FirmRow }) {
       )}
 
       <Modal
+        size="xl"
         open={open}
         title={editing ? `Firmani tahrirlash` : 'Yangi firma'}
         description={editing ? 'Oʻzgarish faqat YANGI hujjatlarga taʼsir qiladi — imzolangan hujjatlar oʻzgarmaydi.' : 'Rekvizitlar maʼlumotnoma blankasida chiqadi.'}
@@ -90,7 +91,7 @@ export function FirmForm({ firm }: { firm?: FirmRow }) {
       >
         {err && <p className="mb-3 text-sm text-rose-600 dark:text-rose-300">{err}</p>}
 
-        <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+        <div className="max-h-[65vh] space-y-4 overflow-y-auto pr-1">
           <TextField
             label="Toʻliq nomi (kirillcha)" required value={f.name} onChange={set('name')}
             placeholder="“... МИКРОМОЛИЯ ТАШКИЛОТИ” МЧЖ"

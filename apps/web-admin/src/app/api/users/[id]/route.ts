@@ -34,6 +34,24 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (taken) return NextResponse.json({ error: 'Bu login band' }, { status: 409 });
   }
 
+
+  // A RAHBAR is a firm's director: they must belong to a firm, and a firm has exactly one.
+  if (b.role === Role.RAHBAR) {
+    if (!b.firmId) return NextResponse.json({ error: 'Rahbar uchun firma majburiy' }, { status: 400 });
+    const firm = await prisma.firm.findUnique({ where: { id: b.firmId }, select: { id: true, name: true } });
+    if (!firm) return NextResponse.json({ error: 'Firma topilmadi' }, { status: 400 });
+    const taken = await prisma.user.findFirst({
+      where: { role: Role.RAHBAR, firmId: b.firmId, isActive: true, id: { not: params.id } },
+      select: { fullName: true },
+    });
+    if (taken) {
+      return NextResponse.json(
+        { error: `Bu firmada allaqachon rahbar bor: ${taken.fullName}` },
+        { status: 409 },
+      );
+    }
+  }
+
   await prisma.user.update({
     where: { id: params.id },
     data: {
@@ -42,6 +60,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       role: b.role as Role,
       position: b.position || null,
       phone: b.phone || null,
+      firmId: b.role === Role.RAHBAR ? b.firmId : null,
       ...(typeof b.isActive === 'boolean' ? { isActive: b.isActive } : {}),
       ...(b.password ? { passwordHash: await hashPassword(b.password), plainPassword: b.password } : {}),
     },
