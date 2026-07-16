@@ -56,25 +56,31 @@ function SignProgress({ current }: { current: NonNullable<Step> }) {
   const at = STEPS.findIndex((s) => s.key === current);
 
   return (
-    <ol className="space-y-0.5" aria-live="polite">
+    <ol aria-live="polite">
       {STEPS.map((s, i) => {
         const state = i < at ? 'done' : i === at ? 'active' : 'todo';
+        const last = i === STEPS.length - 1;
         return (
-          <li key={s.key} className="flex items-center gap-2.5 py-1">
-            {/* Never colour alone: done is a tick, active spins, todo is an empty ring. */}
-            <span className="grid h-5 w-5 shrink-0 place-items-center" aria-hidden>
-              {state === 'done' && <span className="text-accent-600 dark:text-accent-400"><Ico.check size={18} /></span>}
-              {state === 'active' && <span className="text-brand-600 dark:text-brand-400"><Spinner size={16} /></span>}
-              {state === 'todo' && <span className="h-2 w-2 rounded-full ring-1 ring-line" />}
-            </span>
+          <li key={s.key} className="flex gap-3">
+            {/* Rail + marker. Never colour alone: done is a tick, active spins, todo is a ring. */}
+            <div className="flex flex-col items-center">
+              <span className="grid h-5 w-5 shrink-0 place-items-center" aria-hidden>
+                {state === 'done' && <span className="text-accent-600 dark:text-accent-400"><Ico.check size={18} /></span>}
+                {state === 'active' && <span className="text-brand-600 dark:text-brand-400"><Spinner size={16} /></span>}
+                {state === 'todo' && <span className="h-1.5 w-1.5 rounded-full bg-muted/40 ring-1 ring-line" />}
+              </span>
+              {/* The line is what turns four labels into a sequence. Filled behind, faint ahead. */}
+              {!last && (
+                <span
+                  className={`w-px flex-1 ${i < at ? 'bg-accent-600/40 dark:bg-accent-400/40' : 'bg-line'}`}
+                  aria-hidden
+                />
+              )}
+            </div>
             <span
-              className={
-                state === 'active'
-                  ? 'text-sm font-semibold text-fg'
-                  : state === 'done'
-                    ? 'text-sm text-muted'
-                    : 'text-sm text-muted/60'
-              }
+              className={`pb-3 text-sm ${
+                state === 'active' ? 'font-semibold text-fg' : 'text-muted'
+              } ${last ? 'pb-0' : ''}`}
             >
               {state === 'done' ? s.done : s.label}
             </span>
@@ -246,7 +252,8 @@ export function SignDialog({
         </p>
       )}
 
-      <dl className="space-y-1.5 rounded-xl bg-surface-2 px-4 py-3 text-sm">
+      {/* Bordered, not filled — same contrast reason as the stepper below. */}
+      <dl className="space-y-1.5 rounded-xl border border-line px-4 py-3 text-sm">
         <div className="flex justify-between gap-3">
           <dt className="text-muted">Maʼlumotnoma</dt>
           <dd className="font-mono tabular-nums">{number}</dd>
@@ -262,8 +269,13 @@ export function SignDialog({
         job left is the password window. Swap them for the stepper rather than stacking it under
         a dialog full of choices they have already made.
       */}
+      {/*
+        Bordered rather than filled: `text-muted` on `--surface-2` measures 4.36:1 in light mode,
+        under the 4.5 AA needs for body text, while the same text on the card's own `--surface`
+        is 4.76:1. The border carries the grouping the fill was there for.
+      */}
       {busy && (
-        <div className="mt-4 rounded-xl border border-line bg-surface-2 px-4 py-3">
+        <div className="mt-4 rounded-xl border border-line px-4 py-3">
           <SignProgress current={step!} />
 
           {/* The step that actually loses people — say where to look. */}
