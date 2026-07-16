@@ -63,7 +63,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     // must not rewrite this already-issued document.
     const f = cert.firm;
     data.firmSnapshot = {
-      name: f.name, shortName: f.shortName, stir: f.stir, oked: f.oked,
+      name: f.name, letterheadName: f.letterheadName, shortName: f.shortName, stir: f.stir, oked: f.oked,
       directorName: f.directorName, directorFullName: f.directorFullName,
       directorPosition: f.directorPosition, accountantName: f.accountantName,
       executorName: f.executorName, executorPhone: f.executorPhone,

@@ -80,7 +80,11 @@ model User {
 
 model Firm {
   id               String   @id @default(cuid())
+  /// Body-text form of the name — the source documents end it 'МЧЖ'.
   name             String
+  /// Letterhead + signature form. The firms' own blanks end it 'MCHJ' while the body says
+  /// 'МЧЖ', and it is not consistent between firms, so it is stored rather than derived.
+  letterheadName   String?
   shortName        String?
   stir             String?
   oked             String?

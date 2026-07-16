@@ -6,7 +6,7 @@ import { maskStir, maskPhone, maskAccount, maskMfo } from '@spravka/shared/core'
 import { Modal, TextField, Ico, RowAction } from '@spravka/shared/ui';
 
 export type FirmRow = {
-  id: string; name: string; shortName: string | null; stir: string | null;
+  id: string; name: string; letterheadName: string | null; shortName: string | null; stir: string | null;
   directorName: string; directorFullName: string | null; directorPosition: string;
   accountantName: string | null; executorName: string | null;
   executorPhone: string | null; phone: string | null; bankName: string | null;
@@ -14,14 +14,14 @@ export type FirmRow = {
 };
 
 const EMPTY = {
-  name: '', shortName: '', stir: '',
+  name: '', letterheadName: '', shortName: '', stir: '',
   directorName: '', directorFullName: '', directorPosition: 'Ижрочи директори',
   accountantName: '', executorName: '', executorPhone: '', phone: '',
   bankName: '', bankAccount: '', mfo: '', region: '', address: '',
 };
 
 const fromRow = (r: FirmRow) => ({
-  name: r.name, shortName: r.shortName ?? '', stir: r.stir ?? '',
+  name: r.name, letterheadName: r.letterheadName ?? '', shortName: r.shortName ?? '', stir: r.stir ?? '',
   directorName: r.directorName, directorFullName: r.directorFullName ?? '',
   directorPosition: r.directorPosition, accountantName: r.accountantName ?? '',
   executorName: r.executorName ?? '', executorPhone: r.executorPhone ?? '', phone: r.phone ?? '',
@@ -95,9 +95,14 @@ export function FirmForm({ firm }: { firm?: FirmRow }) {
 
         <div className="max-h-[65vh] space-y-4 overflow-y-auto pr-1">
           <TextField
-            label="Toʻliq nomi (kirillcha)" required value={f.name} onChange={set('name')}
-            placeholder="“... МИКРОМОЛИЯ ТАШКИЛОТИ” МЧЖ"
-            hint="Hujjat matnida va blankada shu nom chiqadi."
+            label="Nomi — hujjat matnida" required value={f.name} onChange={set('name')}
+            placeholder="“... MIKROMOLIYA TASHKILOTI” МЧЖ"
+            hint="Maʼlumotnoma matnidagi «... билан ... ўртасида» jumlasida shu nom chiqadi."
+          />
+          <TextField
+            label="Nomi — blankada va imzoda" value={f.letterheadName} onChange={set('letterheadName')}
+            placeholder="«... MIKROMOLIYA TASHKILOTI» MCHJ"
+            hint="Firmalar blankasida odatda «MCHJ», matnda esa «МЧЖ» yoziladi. Boʻsh boʻlsa — yuqoridagi nom ishlatiladi."
           />
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField label="Qisqa nomi" value={f.shortName} onChange={set('shortName')} placeholder="BRIGHT FUTURE FINANCING" />

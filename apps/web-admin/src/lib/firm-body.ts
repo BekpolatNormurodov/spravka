@@ -14,6 +14,7 @@ export type FirmBody = ReturnType<typeof firmData>;
 export function firmData(b: Record<string, unknown>) {
   return {
     name: str(b.name),
+    letterheadName: orNull(b.letterheadName),
     shortName: orNull(b.shortName),
     stir: orNull(b.stir),
     directorName: str(b.directorName),

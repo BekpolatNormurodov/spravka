@@ -2,7 +2,13 @@ import React from 'react';
 import { dmy, uzLongDate, formatSum } from '../core/document';
 
 export interface CertFirm {
+  /** Body-text form of the name (the source docs end it 'МЧЖ'). */
   name: string;
+  /**
+   * Letterhead + signature form. The firms write these two differently (their letterheads
+   * end 'MCHJ' while the body says 'МЧЖ'), so it is stored, not derived. Falls back to `name`.
+   */
+  letterheadName?: string | null;
   shortName?: string | null;
   directorName: string;
   directorPosition: string;
@@ -54,6 +60,7 @@ export interface CertificateDocumentProps {
  */
 export function CertificateDocument(p: CertificateDocumentProps) {
   const { firm } = p;
+  const blankName = firm.letterheadName || firm.name;
 
   const addressLine = [
     firm.address,
@@ -73,24 +80,39 @@ export function CertificateDocument(p: CertificateDocumentProps) {
 
   return (
     <div className="cert-sheet" style={{ fontFamily: '"Times New Roman", Times, serif', color: '#000' }}>
-      {/* ── Letterhead (word/header1.xml) ─────────────────────────────── */}
+      {/* ── Letterhead (word/header1.xml) — no rule under it in any source doc ── */}
       <header style={{ textAlign: 'center', lineHeight: 1.25 }}>
-        <div style={{ fontSize: '12pt', fontWeight: 700 }}>{firm.name}</div>
+        <div style={{ fontSize: '12pt', fontWeight: 700 }}>{blankName}</div>
         {addressLine && <div style={{ fontSize: '12pt' }}>{addressLine}</div>}
         {bankLine && <div style={{ fontSize: '12pt' }}>{bankLine}</div>}
-        <div style={{ borderBottom: '1.5pt solid #000', marginTop: '4pt' }} />
       </header>
 
-      {/* ── Сана / № (top-left, bold 12pt) ───────────────────────────── */}
-      <div style={{ fontSize: '12pt', fontWeight: 700, marginTop: '14pt', lineHeight: 1.35 }}>
-        <div>Сана: {dmy(p.issueDate)} й</div>
-        <div>№ {p.number}</div>
-      </div>
-
-      {/* ── Addressee (right, bold 14pt) ─────────────────────────────── */}
-      <div style={{ fontSize: '14pt', fontWeight: 700, textAlign: 'right', marginTop: '18pt' }}>
-        {p.personFullName}га
-      </div>
+      {/*
+        ── Сана/№ | addressee ────────────────────────────────────────────
+        A borderless 2-column table, exactly as the .docx has it:
+        w:tblW 9374 dxa split 5226 / 4148 → 55.75% / 44.25%, all w:tblBorders "none".
+        Left cell 12pt bold ('Сана: 14.07.2026' — no trailing 'й', '№14072026/01' — no
+        space after №). Right cell 14pt bold.
+      */}
+      <table
+        style={{ width: '100%', borderCollapse: 'collapse', marginTop: '14pt', tableLayout: 'fixed' }}
+      >
+        <tbody>
+          <tr>
+            <td style={{ width: '55.75%', verticalAlign: 'top', padding: 0, border: 0 }}>
+              <div style={{ fontSize: '12pt', fontWeight: 700, lineHeight: 1.35 }}>
+                <div>Сана: {dmy(p.issueDate)}</div>
+                <div>№{p.number}</div>
+              </div>
+            </td>
+            <td style={{ width: '44.25%', verticalAlign: 'top', padding: 0, border: 0 }}>
+              <div style={{ fontSize: '14pt', fontWeight: 700, lineHeight: 1.3 }}>
+                {p.personFullName}ГА
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* ── Title (center, bold 14pt) ────────────────────────────────── */}
       <h1 style={{ fontSize: '14pt', fontWeight: 700, textAlign: 'center', margin: '14pt 0 12pt' }}>
@@ -111,7 +133,7 @@ export function CertificateDocument(p: CertificateDocumentProps) {
 
       {/* ── Signature block ──────────────────────────────────────────── */}
       <div style={{ position: 'relative', marginTop: '30pt' }}>
-        <div style={{ fontSize: '14pt', fontWeight: 700, maxWidth: '58mm', lineHeight: 1.3 }}>{firm.name}</div>
+        <div style={{ fontSize: '14pt', fontWeight: 700, maxWidth: '58mm', lineHeight: 1.3 }}>{blankName}</div>
         <div
           style={{
             display: 'flex',

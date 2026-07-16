@@ -3,24 +3,33 @@ import { Role } from '../src/core/index';
 import { hashPassword } from '../src/core/password';
 
 /**
- * Real firms, taken from «Сухроб МКО лар бўйича маълумот.xlsx».
+ * Real firms.
  *
- * That sheet only carries Наименование / Адрес / Директор / Бухгалтер / ИНН, so `phone`,
- * `executorName` and the bank rekvizitlar are left empty for every firm except BRIGHT
- * FUTURE — those come from the source .docx letterhead and are the only ones we can vouch
- * for. Nothing here is invented; the admin fills the gaps from the firm edit form.
+ * Two sources, and where they disagree the .docx wins because it is the blank that actually
+ * prints:
+ *   • «Сухроб МКО лар бўйича маълумот.xlsx» — Наименование / Адрес / Директор / Бухгалтер / ИНН
+ *   • the firms' own maʼlumotnoma .docx letterheads — name, address, ИНН, Х/р, МФО, bank,
+ *     phone, Ижрочи, director position and the exact signature spelling.
  *
- * `directorName` is the short form the signature block prints (verified against the .docx:
- * BOYNAZAROV AKRAM ANVAROVICH → А.А.Бойназаров); `directorFullName` keeps the register's
- * own spelling.
+ * Four firms have a .docx (BRIGHT FUTURE, URBAN, COMMUNITY, FUNDFLOW) and are complete. The
+ * other five only have the spreadsheet, so their `phone`, `executorName` and bank rekvizitlar
+ * stay empty — nothing here is invented; the admin fills them from the firm edit form.
+ *
+ * `directorName` is the short form the signature block prints. Three were verifiable against
+ * a .docx and all three matched what the register implies (Ё.А.Хасанов, Ф.Ф.Сувонов, and
+ * COMMUNITY's, which the blank writes with a single initial: Д.Мамадалиев).
  */
-const TOSHKENT_GURUCHARIK = 'Тошкент шахри, Олмазор тумани, Гуручарик МФЙ, Сагбон кучаси 30 берк, 7/1 уй';
+const TOSHKENT_GURUCHARIK = 'Тошкент шахри, Олмазор тумани Гуручарик МФЙ, Сагбон кучаси 30 берк, 7/1 уй';
 const TOSHKENT_CHINNIOBOD = 'Тошкент шахри, Олмазор тумани, Чинниобод МФЙ, Чинниобод 2 мавзеси, 7 уй';
+// Every .docx we have names the same executor and back-office number.
+const EXECUTOR = { executorName: 'Б.Тоиров', executorPhone: '+99855-503-01-90', phone: '+99855-503-01-90' };
+const ANORBANK = { mfo: '01183', bankName: 'АО "ANORBANK"' };
 
 const FIRMS = [
   {
     id: 'firm_bright_future',
     name: '“BRIGHT FUTURE FINANCING MIKROMOLIYA TASHKILOTI” МЧЖ',
+    letterheadName: '“BRIGHT FUTURE FINANCING MIKROMOLIYA TASHKILOTI” МЧЖ',
     shortName: 'BRIGHT FUTURE FINANCING',
     directorName: 'А.А.Бойназаров',
     directorFullName: 'BOYNAZAROV AKRAM ANVAROVICH',
@@ -29,33 +38,36 @@ const FIRMS = [
     stir: '311976765',
     region: 'Toshkent',
     address: `${TOSHKENT_GURUCHARIK}.`,
-    // Only this firm's letterhead is documented (word/header1.xml of the source .docx).
-    executorName: 'Б.Тоиров',
-    executorPhone: '+99855-503-01-90',
-    phone: '+99855-503-01-90',
+    ...EXECUTOR,
+    ...ANORBANK,
     bankAccount: '20216000207212842001',
-    mfo: '01183',
-    bankName: 'АО "ANORBANK"',
   },
   {
     id: 'firm_urban_finance',
     name: '“URBAN FINANCE SOLUTIONS MIKROMOLIYA TASHKILOTI” МЧЖ',
+    letterheadName: '«URBAN FINANCE SOLUTIONS MIKROMOLIYA TASHKILOTI» MCHJ',
     shortName: 'URBAN FINANCE SOLUTIONS',
     directorName: 'Ё.А.Хасанов',
     directorFullName: 'XASANOV YORQIN ALIYEVICH',
-    directorPosition: 'Директори',
+    directorPosition: 'Ижрочи директори',
     accountantName: 'XASANOV KOMIL QOBIL OʻGʻLI',
     stir: '311943592',
-    region: 'Fargʻona',
-    address: 'Фарғона вилояти, Фарғона шахар, Навруз МФЙ, Университет кучаси 24/4',
+    // The blank prints a Toshkent/Chinniobod address; the spreadsheet's Адрес column says
+    // Fargʻona. Kept verbatim from the blank — including its half-translated wording.
+    region: 'Toshkent',
+    address: 'Тошкент шаҳар, Олмазор тумани, Toshkent shahri, Olmazor tumani, Chinniobod MFY, Chinniobod-2 mavzesi, 7-uy.',
+    ...EXECUTOR,
+    ...ANORBANK,
+    bankAccount: '20216000307206292001',
   },
   {
     id: 'firm_muvaffaqiyat',
     name: '“MUVAFFAQIYAT MIKROMOLIYA TASHKILOTI” МЧЖ',
+    letterheadName: null,
     shortName: 'MUVAFFAQIYAT',
     directorName: 'Ж.К.Султанов',
     directorFullName: 'SULTANOV JOʻRABEK KAMOLDINOVICH',
-    directorPosition: 'Директори',
+    directorPosition: 'Ижрочи директори',
     accountantName: null,
     stir: '311939991',
     region: 'Toshkent',
@@ -63,35 +75,46 @@ const FIRMS = [
   },
   {
     id: 'firm_community',
-    name: '“COMMUNITY MICROFINANCE MIKROMOLIYA TASHKILOTI” МЧЖ',
+    name: '«COMMUNITY MICROFINANCE MIKROMOLIYA TASHKILOTI» МЧЖ',
+    letterheadName: '“COMMUNITY MICROFINANCE MIKROMOLIYA TASHKILOTI” MCHJ',
     shortName: 'COMMUNITY MICROFINANCE',
-    directorName: 'Д.Р.Мамадалиев',
+    // The blank signs with a single initial, not 'Д.Р.Мамадалиев'.
+    directorName: 'Д.Мамадалиев',
     directorFullName: 'MAMADALIYEV DILSHOD RAHIMOVICH',
-    directorPosition: 'Директори',
+    directorPosition: 'Ижрочи директори',
     accountantName: 'TURAPOV DILSHOD ABDUKABILOVICH',
     stir: '312191604',
-    region: 'Andijon',
-    address: 'Андижон вилояти, Андижон шахар, Бобуршох кучаси 20/г',
+    // The blank prints Toshkent/Chinniobod; the spreadsheet's Адрес column says Andijon.
+    region: 'Toshkent',
+    address: 'Тошкент шахри, Олмазор тумани Чинниобод МФЙ, Чинниобод 2 мавзеси, 7 уй.',
+    ...EXECUTOR,
+    ...ANORBANK,
+    bankAccount: '20216000307255890001',
   },
   {
     id: 'firm_fundflow',
-    name: '“FUNDFLOW MIKROMOLIYA TASHKILOTI” МЧЖ',
+    name: '«FUNDFLOW MIKROMOLIYA TASHKILOTI» МЧЖ',
+    letterheadName: '«FUNDFLOW MIKROMOLIYA TASHKILOTI» MCHJ',
     shortName: 'FUNDFLOW',
     directorName: 'Ф.Ф.Сувонов',
     directorFullName: 'SUVONOV FARRUXJON FAXRIDDINOVICH',
-    directorPosition: 'Директори',
+    directorPosition: 'Ижрочи директори',
     accountantName: 'RIXSIBOYEV BAXODIR XASANOVICH',
     stir: '311979413',
     region: 'Toshkent',
-    address: TOSHKENT_GURUCHARIK,
+    address: `${TOSHKENT_GURUCHARIK}.`,
+    ...EXECUTOR,
+    ...ANORBANK,
+    bankAccount: '20216000307214276001',
   },
   {
     id: 'firm_dynamic_credit',
     name: '“DYNAMIC CREDIT SOLUTIONS MIKROMOLIYA TASHKILOTI” МЧЖ',
+    letterheadName: null,
     shortName: 'DYNAMIC CREDIT SOLUTIONS',
     directorName: 'Д.Ш.Сулейманова',
     directorFullName: 'SULEYMANOVA DINARA SHAVKATOVNA',
-    directorPosition: 'Директори',
+    directorPosition: 'Ижрочи директори',
     accountantName: null,
     stir: '312192769',
     region: 'Toshkent',
@@ -100,10 +123,11 @@ const FIRMS = [
   {
     id: 'firm_darrowmad',
     name: '“DARROWMAD MIKROMOLIYA TASHKILOTI” МЧЖ',
+    letterheadName: null,
     shortName: 'DARROWMAD',
     directorName: 'Р.Р.Камолдинов',
     directorFullName: 'KAMOLDINOV RUSTAMBEK ROʻZIBOY OʻGʻLI',
-    directorPosition: 'Директори',
+    directorPosition: 'Ижрочи директори',
     accountantName: null,
     stir: '312510309',
     region: 'Toshkent',
@@ -112,10 +136,11 @@ const FIRMS = [
   {
     id: 'firm_zaymly',
     name: '“ZAYMLY MIKROMOLIYA TASHKILOTI” МЧЖ',
+    letterheadName: null,
     shortName: 'ZAYMLY',
     directorName: 'А.Р.Бозоров',
     directorFullName: 'BOZOROV ALISHER RAYIMBERDIYEVICH',
-    directorPosition: 'Директори',
+    directorPosition: 'Ижрочи директори',
     accountantName: 'MIRZAMADINOV ASRORJON ANVARJON OʻGʻLI',
     stir: '312500154',
     region: 'Toshkent',
@@ -124,10 +149,11 @@ const FIRMS = [
   {
     id: 'firm_prestige_moliya',
     name: '“PRESTIGE MOLIYA MIKROMOLIYA TASHKILOTI” МЧЖ',
+    letterheadName: null,
     shortName: 'PRESTIGE MOLIYA',
     directorName: 'С.Т.Шералиев',
     directorFullName: 'SHERALIYEV SUXROB TAJIMATOVICH',
-    directorPosition: 'Директори',
+    directorPosition: 'Ижрочи директори',
     accountantName: null,
     stir: '312811527',
     region: 'Toshkent',
