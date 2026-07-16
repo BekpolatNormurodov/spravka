@@ -37,37 +37,54 @@ export default async function Imzolash({ searchParams }: { searchParams: CertFil
         <>
           <div className="card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1060px] text-sm">
+              {/* Passport under the person, yurist under the date — keeps all nine columns'
+                  data inside ~924px instead of scrolling at 1060px. */}
+              <table className="w-full min-w-[860px] table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[12%]" />
+                  <col className="w-[25%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[9%]" />
+                </colgroup>
                 <thead className="bg-surface-2 text-muted">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium">№</th>
+                    <th className="px-3 py-3 text-left font-medium">№</th>
                     <th className="px-4 py-3 text-left font-medium">Jismoniy shaxs</th>
-                    <th className="px-4 py-3 text-left font-medium">Passport</th>
                     <th className="px-4 py-3 text-left font-medium">Firma</th>
                     <th className="px-4 py-3 text-left font-medium">Shartnoma</th>
-                    <th className="px-4 py-3 text-right font-medium">Summa (soʻm)</th>
-                    <th className="px-4 py-3 text-left font-medium">Yurist</th>
-                    <th className="px-4 py-3 text-left font-medium">Sana</th>
-                    <th className="px-4 py-3"></th>
+                    <th className="px-3 py-3 text-right font-medium">Summa</th>
+                    <th className="px-3 py-3 text-left font-medium">Sana</th>
+                    <th className="px-2 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {certs.map((c) => (
                     <ClickableRow key={c.id} href={`/arizalar/${c.id}`}>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs tabular-nums text-fg">{c.number}</td>
-                      <td className="px-4 py-3 font-medium">{c.personFullName}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">{c.personPassport}</td>
-                      <td className="px-4 py-3 text-fg">{c.firm.shortName ?? c.firm.name}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
-                        {c.contractNumber}
-                        <span className="ml-1.5 text-[11px]">· {dmy(c.contractDate)}</span>
+                      <td className="px-3 py-3 align-top">
+                        <div className="truncate font-mono text-xs tabular-nums text-fg" title={c.number}>{c.number}</div>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">
-                        {formatSum(c.loanAmount.toString())}
+                      <td className="px-4 py-3 align-top">
+                        <div className="truncate font-medium" title={c.personFullName}>{c.personFullName}</div>
+                        <div className="truncate font-mono text-xs text-muted">{c.personPassport}</div>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-muted">{c.createdBy.fullName}</td>
-                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted">{dmy(c.issueDate)}</td>
-                      <td className="px-4 py-3"><RowActions id={c.id} number={c.number} /></td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="truncate text-fg" title={c.firm.name}>{c.firm.shortName ?? c.firm.name}</div>
+                      </td>
+                      <td className="px-4 py-3 align-top font-mono text-xs text-muted">
+                        <div className="truncate">{c.contractNumber}</div>
+                        <div className="truncate text-[11px]">{dmy(c.contractDate)}</div>
+                      </td>
+                      <td className="px-3 py-3 align-top text-right">
+                        <div className="truncate font-semibold tabular-nums">{formatSum(c.loanAmount.toString())}</div>
+                      </td>
+                      <td className="px-3 py-3 align-top text-muted">
+                        <div className="truncate tabular-nums">{dmy(c.issueDate)}</div>
+                        <div className="truncate text-xs" title={c.createdBy.fullName}>{c.createdBy.fullName}</div>
+                      </td>
+                      <td className="px-2 py-3 align-top"><RowActions id={c.id} number={c.number} /></td>
                     </ClickableRow>
                   ))}
                 </tbody>
