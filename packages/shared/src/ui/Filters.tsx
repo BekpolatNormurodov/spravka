@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { STATUS_LABELS, type CertStatus } from '../core';
 import { Ico } from './icons';
 import { Select, type Option } from './Select';
+import { DatePicker } from './DatePicker';
 import { STATUS_DOT } from './tokens';
 
 export type FirmOpt = { id: string; name: string; shortName: string | null };
@@ -105,8 +106,21 @@ export function Filters({
           />
         )}
 
-        <input type="date" className="field-input" value={from} onChange={(e) => apply({ from: e.target.value })} aria-label="Sanadan" title="Sanadan" />
-        <input type="date" className="field-input" value={to} onChange={(e) => apply({ to: e.target.value })} aria-label="Sanagacha" title="Sanagacha" />
+        {/* Each end bounds the other, so an impossible range cannot be picked. */}
+        <DatePicker
+          value={from}
+          onChange={(v) => apply({ from: v })}
+          max={to || undefined}
+          ariaLabel="Sanadan"
+          placeholder="Sanadan"
+        />
+        <DatePicker
+          value={to}
+          onChange={(v) => apply({ to: v })}
+          min={from || undefined}
+          ariaLabel="Sanagacha"
+          placeholder="Sanagacha"
+        />
       </div>
 
       {active && (

@@ -32,6 +32,7 @@ export function DatePicker({
   hint,
   placeholder = 'kk.oo.yyyy',
   disabled,
+  ariaLabel,
 }: {
   value: string;
   onChange: (iso: string) => void;
@@ -42,6 +43,8 @@ export function DatePicker({
   hint?: string;
   placeholder?: string;
   disabled?: boolean;
+  /** For standalone use (filters), where there is no <Shell> label to point at. */
+  ariaLabel?: string;
 }) {
   const auto = useId();
   const inputId = id ?? auto;
@@ -164,6 +167,7 @@ export function DatePicker({
           disabled={disabled}
           inputMode="numeric"
           autoComplete="off"
+          aria-label={ariaLabel}
           aria-invalid={error || undefined}
           aria-describedby={hint ? `${inputId}-hint` : undefined}
           className={cx(

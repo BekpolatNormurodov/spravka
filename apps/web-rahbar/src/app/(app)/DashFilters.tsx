@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Select, type Option, type FirmOpt } from '@spravka/shared/ui';
+import { Select, DatePicker, type Option, type FirmOpt } from '@spravka/shared/ui';
 
 const RANGES: Option[] = [
   { value: '6', label: 'Oxirgi 6 oy' },
@@ -44,8 +44,21 @@ export function DashFilters({ firms }: { firms: FirmOpt[] }) {
             ...firms.map<Option>((f) => ({ value: f.id, label: f.shortName ?? f.name })),
           ]}
         />
-        <input type="date" className="field-input" value={from} onChange={(e) => apply({ from: e.target.value })} aria-label="Sanadan" title="Sanadan" />
-        <input type="date" className="field-input" value={to} onChange={(e) => apply({ to: e.target.value })} aria-label="Sanagacha" title="Sanagacha" />
+        {/* Each end bounds the other, so an impossible range cannot be picked. */}
+        <DatePicker
+          value={from}
+          onChange={(v) => apply({ from: v })}
+          max={to || undefined}
+          ariaLabel="Sanadan"
+          placeholder="Sanadan"
+        />
+        <DatePicker
+          value={to}
+          onChange={(v) => apply({ to: v })}
+          min={from || undefined}
+          ariaLabel="Sanagacha"
+          placeholder="Sanagacha"
+        />
       </div>
       {active && (
         <button onClick={() => router.push(pathname)} type="button" className="mt-3 cursor-pointer text-xs font-medium text-brand-600 hover:underline dark:text-brand-400">
