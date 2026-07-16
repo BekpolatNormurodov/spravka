@@ -1,0 +1,20 @@
+# Local dev database only. App runs on the host (npm run dev).
+services:
+  mysql-dev:
+    image: mysql:8.4
+    container_name: spravka-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: spravka
+    ports:
+      - "3310:3306"
+    volumes:
+      - spravka_mysql_dev:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+volumes:
+  spravka_mysql_dev:
