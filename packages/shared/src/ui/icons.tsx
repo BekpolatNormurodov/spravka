@@ -3,7 +3,7 @@
 import React from 'react';
 import {
   Add, Archive, ArrowLeft2, ArrowRight2, Calendar, Category, Chart2, CloseCircle, DocumentText,
-  Edit2, Eye, HambergerMenu, LogoutCurve, Moon, People, Printer, ScanBarcode, Sun1,
+  Edit2, Eye, HambergerMenu, LogoutCurve, Moon, People, Printer, ScanBarcode, ShieldSlash, Sun1,
   TickCircle, Buildings2, AddSquare, User,
 } from 'iconsax-react';
 
@@ -39,6 +39,8 @@ export const Ico = {
   chevron: mk(ArrowRight2),
   chevronLeft: mk(ArrowLeft2),
   add: mk(Add),
+  /** ЭЦП is not wired up yet — see the sign dialog. */
+  shieldOff: mk(ShieldSlash),
 };
 
 /**

@@ -58,7 +58,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
         <div className="space-y-4">
           <div className="card p-5">
             <h3 className="mb-3 text-sm font-semibold">Amal</h3>
-            <Actions id={c.id} status={c.status} />
+            <Actions id={c.id} status={c.status} number={c.number} personFullName={c.personFullName} />
           </div>
 
           <QrCard dataUrl={qr} url={publicUrl} signed={signed} />

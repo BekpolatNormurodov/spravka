@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Modal, Ico, RowAction, ViewAction } from '@spravka/shared/ui';
+import { Modal, Ico, RowAction, ViewAction, Spinner } from '@spravka/shared/ui';
 
 /** Row actions for the rahbar lists: view + archive (archive needs a reason). */
 export function RowActions({ id, number }: { id: string; number: string }) {
@@ -15,20 +15,26 @@ export function RowActions({ id, number }: { id: string; number: string }) {
   async function archive() {
     setBusy(true);
     setErr('');
-    const res = await fetch(`/api/certificates/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', note: note.trim() }),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/certificates/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', note: note.trim() }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setErr(d.error || `Xatolik (${res.status}). Qaytadan urinib koʻring.`);
+        return;
+      }
       setOpen(false);
       setNote('');
       router.refresh();
-    } else {
-      const d = await res.json().catch(() => ({}));
-      setErr(d.error || 'Xatolik');
+    } catch {
+      // A dropped connection must not leave the button spinning forever with no explanation.
+      setErr('Serverga ulanib boʻlmadi. Internetni tekshirib, qaytadan urinib koʻring.');
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (
@@ -45,16 +51,22 @@ export function RowActions({ id, number }: { id: string; number: string }) {
         onClose={() => setOpen(false)}
         footer={
           <>
-            <button className="btn-ghost" onClick={() => setOpen(false)} type="button">Bekor</button>
+            <button className="btn-ghost" onClick={() => setOpen(false)} type="button" disabled={busy}>Bekor</button>
             <button className="btn-danger" disabled={!note.trim() || busy} onClick={archive} type="button">
+              {busy && <Spinner size={16} />}
               {busy ? 'Oʻchirilmoqda…' : 'Oʻchirish'}
             </button>
           </>
         }
       >
-        {err && <p className="mb-2 text-sm text-rose-600 dark:text-rose-300">{err}</p>}
-        <label className="field-label">Oʻchirish sababi *</label>
+        {err && (
+          <p role="alert" className="mb-3 rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-600 dark:text-rose-300">
+            {err}
+          </p>
+        )}
+        <label className="field-label" htmlFor={`archive-note-${id}`}>Oʻchirish sababi *</label>
         <textarea
+          id={`archive-note-${id}`}
           className="field-input min-h-[90px] resize-y"
           value={note}
           onChange={(e) => setNote(e.target.value)}
