@@ -35,12 +35,13 @@ async function main() {
   const users = [
     { login: 'yurist', fullName: 'Yurist Foydalanuvchi', role: Role.YURIST, position: 'Yurist' },
     { login: 'admin', fullName: 'Admin Foydalanuvchi', role: Role.ADMIN, position: 'Administrator' },
-    { login: 'rahbar', fullName: 'Rahbar Foydalanuvchi', role: Role.RAHBAR, position: 'Ijrochi direktor' },
+    // A RAHBAR is a firm's ijrochi direktor — must be attached to exactly one firm.
+    { login: 'rahbar', fullName: 'Rahbar Foydalanuvchi', role: Role.RAHBAR, position: 'Ijrochi direktor', firmId: 'firm_bright_future' },
   ];
   for (const u of users) {
     await prisma.user.upsert({
       where: { login: u.login },
-      update: { fullName: u.fullName, role: u.role, position: u.position },
+      update: { fullName: u.fullName, role: u.role, position: u.position, firmId: (u as { firmId?: string }).firmId ?? null },
       create: { ...u, passwordHash: pass, plainPassword: 'parol123' },
     });
   }
