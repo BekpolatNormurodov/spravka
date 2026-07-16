@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { CertStatus, STATUS_LABELS } from '../core';
+import { STATUS_DOT } from './tokens';
 
 export const UZ_MONTHS_LAT = [
   'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
@@ -9,12 +10,7 @@ export const UZ_MONTHS_LAT = [
 
 const WEEKDAYS = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
 
-export const STATUS_DOT: Record<string, string> = {
-  [CertStatus.DRAFT]: 'bg-slate-400',
-  [CertStatus.ADMIN_REVIEW]: 'bg-amber-500',
-  [CertStatus.DIRECTOR_REVIEW]: 'bg-violet-500',
-  [CertStatus.SIGNED]: 'bg-accent-500',
-};
+export { STATUS_DOT } from './tokens';
 
 export interface DayData {
   total: number;

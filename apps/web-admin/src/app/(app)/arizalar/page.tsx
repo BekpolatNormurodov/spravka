@@ -1,47 +1,19 @@
-import Link from 'next/link';
-import { Prisma } from '@spravka/shared/db';
 import { prisma } from '@/lib/prisma';
-import { CertStatus, dmy, formatSum } from '@spravka/shared/core';
-import { StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction } from '@spravka/shared/ui';
-import { Filters } from './Filters';
+import {
+  CertStatus, dmy, formatSum, parseCertFilters, buildCertWhere, pageSlice, pageHref, PER_PAGE,
+  type CertFilterParams,
+} from '@spravka/shared/core';
+import {
+  StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction, Filters, Pagination,
+} from '@spravka/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
-const PER_PAGE = 20;
+const STATUSES = [CertStatus.DRAFT, CertStatus.ADMIN_REVIEW, CertStatus.DIRECTOR_REVIEW, CertStatus.SIGNED] as const;
 
-type SP = { q?: string; status?: string; firm?: string; from?: string; to?: string; page?: string };
-
-export default async function Arizalar({ searchParams }: { searchParams: SP }) {
-  const q = searchParams.q?.trim();
-  const status = searchParams.status as CertStatus | undefined;
-  const firmId = searchParams.firm;
-  const from = searchParams.from;
-  const to = searchParams.to;
-  const page = Math.max(1, Number(searchParams.page ?? '1') || 1);
-
-  const where: Prisma.CertificateWhereInput = {
-    deletedAt: null,
-    ...(status && Object.values(CertStatus).includes(status) ? { status } : {}),
-    ...(firmId ? { firmId } : {}),
-    ...(from || to
-      ? {
-          issueDate: {
-            ...(from ? { gte: new Date(from) } : {}),
-            ...(to ? { lte: new Date(`${to}T23:59:59.999Z`) } : {}),
-          },
-        }
-      : {}),
-    ...(q
-      ? {
-          OR: [
-            { number: { contains: q } },
-            { personFullName: { contains: q } },
-            { personPassport: { contains: q } },
-            { contractNumber: { contains: q } },
-          ],
-        }
-      : {}),
-  };
+export default async function Arizalar({ searchParams }: { searchParams: CertFilterParams }) {
+  const p = parseCertFilters(searchParams, STATUSES);
+  const where = { deletedAt: null, ...buildCertWhere(p) };
 
   const [firms, total, certs] = await Promise.all([
     prisma.firm.findMany({ where: { isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, shortName: true } }),
@@ -50,29 +22,16 @@ export default async function Arizalar({ searchParams }: { searchParams: SP }) {
       where,
       include: { firm: { select: { shortName: true, name: true } }, createdBy: { select: { fullName: true } } },
       orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * PER_PAGE,
-      take: PER_PAGE,
+      ...pageSlice(p.page),
     }),
   ]);
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const qs = (p: number) => {
-    const sp = new URLSearchParams();
-    if (q) sp.set('q', q);
-    if (status) sp.set('status', status);
-    if (firmId) sp.set('firm', firmId);
-    if (from) sp.set('from', from);
-    if (to) sp.set('to', to);
-    if (p > 1) sp.set('page', String(p));
-    const s = sp.toString();
-    return s ? `/arizalar?${s}` : '/arizalar';
-  };
 
   return (
     <div>
       <PageHeader title="Arizalar" subtitle={`Topildi: ${total} ta`} />
-
-      <Filters firms={firms} />
+      <Filters firms={firms} statuses={STATUSES} />
 
       {certs.length === 0 ? (
         <EmptyState title="Ariza topilmadi" hint="Filtrlarni oʻzgartirib koʻring." />
@@ -104,7 +63,7 @@ export default async function Arizalar({ searchParams }: { searchParams: SP }) {
                       <td className="px-4 py-3 text-fg">{c.firm.shortName ?? c.firm.name}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
                         {c.contractNumber}
-                        <span className="ml-1.5 text-[11px] text-muted">· {dmy(c.contractDate)}</span>
+                        <span className="ml-1.5 text-[11px]">· {dmy(c.contractDate)}</span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">
                         {formatSum(c.loanAmount.toString())}
@@ -112,9 +71,7 @@ export default async function Arizalar({ searchParams }: { searchParams: SP }) {
                       <td className="whitespace-nowrap px-4 py-3 text-muted">{c.createdBy.fullName}</td>
                       <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted">{dmy(c.issueDate)}</td>
                       <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                      <td className="px-4 py-3 text-right">
-                        <ViewAction href={`/arizalar/${c.id}`} />
-                      </td>
+                      <td className="px-4 py-3 text-right"><ViewAction href={`/arizalar/${c.id}`} /></td>
                     </ClickableRow>
                   ))}
                 </tbody>
@@ -122,26 +79,7 @@ export default async function Arizalar({ searchParams }: { searchParams: SP }) {
             </div>
           </div>
 
-          {pages > 1 && (
-            <nav className="mt-4 flex items-center justify-between gap-3" aria-label="Sahifalash">
-              <p className="text-xs text-muted">
-                {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} / {total}
-              </p>
-              <div className="flex items-center gap-1">
-                {page > 1 ? (
-                  <Link href={qs(page - 1)} className="btn-ghost px-3 py-1.5 text-xs">← Oldingi</Link>
-                ) : (
-                  <span className="btn-ghost pointer-events-none px-3 py-1.5 text-xs opacity-40">← Oldingi</span>
-                )}
-                <span className="px-3 text-xs text-muted tabular-nums">{page} / {pages}</span>
-                {page < pages ? (
-                  <Link href={qs(page + 1)} className="btn-ghost px-3 py-1.5 text-xs">Keyingi →</Link>
-                ) : (
-                  <span className="btn-ghost pointer-events-none px-3 py-1.5 text-xs opacity-40">Keyingi →</span>
-                )}
-              </div>
-            </nav>
-          )}
+          <Pagination page={p.page} pages={pages} total={total} perPage={PER_PAGE} hrefFor={(n) => pageHref('/arizalar', p, n)} />
         </>
       )}
     </div>
