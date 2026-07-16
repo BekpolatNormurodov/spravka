@@ -40,7 +40,12 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      {/* Light scrim + real blur: enough separation without blacking the page out. */}
+      <div
+        className="absolute inset-0 bg-slate-900/20 backdrop-blur-md dark:bg-slate-950/45"
+        onClick={onClose}
+        aria-hidden
+      />
       <div className={`card relative w-full ${SIZES[size]} p-6 shadow-2xl animate-fade-in`}>
         <button
           onClick={onClose}

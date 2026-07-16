@@ -27,9 +27,11 @@ export default {
       fontFamily: { sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'] },
       boxShadow: { glow: '0 8px 30px -10px rgba(37, 99, 235, 0.45)' },
       keyframes: {
+        'splash-pop': { '0%': { opacity: '0', transform: 'scale(.9)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+        'splash-bar': { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
         'fade-in': { '0%': { opacity: '0', transform: 'translateY(6px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
       },
-      animation: { 'fade-in': 'fade-in .35s ease-out both' },
+      animation: { 'fade-in': 'fade-in .35s ease-out both', 'splash-pop': 'splash-pop .4s ease-out both', 'splash-bar': 'splash-bar 1.1s ease-in-out infinite' },
     },
   },
   plugins: [],

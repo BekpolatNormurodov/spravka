@@ -84,7 +84,7 @@ export function AppShell({
         aria-current={active ? 'page' : undefined}
         className={cx(
           'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-          rail && 'xl:justify-center xl:px-0',
+          rail && 'lg:justify-center lg:px-0',
           active ? 'bg-surface-2 text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg',
         )}
       >
@@ -92,14 +92,14 @@ export function AppShell({
         <span className={cx('shrink-0', active && 'text-brand-600 dark:text-brand-400')}>
           <Icon />
         </span>
-        <span className={cx('flex-1 truncate', rail && 'xl:hidden')}>{item.label}</span>
+        <span className={cx('flex-1 truncate', rail && 'lg:hidden')}>{item.label}</span>
         {!!item.badge && item.badge > 0 && (
-          <span className={cx('shrink-0 rounded-full bg-brand-600 px-1.5 text-[10px] font-semibold leading-5 text-white', rail && 'xl:hidden')}>
+          <span className={cx('shrink-0 rounded-full bg-brand-600 px-1.5 text-[10px] font-semibold leading-5 text-white', rail && 'lg:hidden')}>
             {item.badge > 99 ? '99+' : item.badge}
           </span>
         )}
         {rail && !!item.badge && item.badge > 0 && (
-          <span aria-hidden className="absolute right-2 top-2 hidden h-2 w-2 rounded-full bg-brand-500 xl:block" />
+          <span aria-hidden className="absolute right-2 top-2 hidden h-2 w-2 rounded-full bg-brand-500 lg:block" />
         )}
       </Link>
     );
@@ -108,23 +108,23 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       {open && (
-        <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm xl:hidden" onClick={() => setOpen(false)} aria-hidden />
+        <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-md dark:bg-slate-950/45 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
       )}
 
       <aside
         className={cx(
           'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-line bg-surface px-5 py-6 transition-all duration-300 ease-in-out',
-          open ? 'translate-x-0' : '-translate-x-full xl:translate-x-0',
-          rail ? 'w-[290px] xl:w-[88px] xl:px-3' : 'w-[290px]',
+          open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+          rail ? 'w-[290px] lg:w-[88px] lg:px-3' : 'w-[290px]',
         )}
       >
-        <div className={cx('mb-6 flex items-center gap-2.5', rail && 'xl:justify-center')}>
+        <div className={cx('mb-6 flex items-center gap-2.5', rail && 'lg:justify-center')}>
           <div className={cx('grid h-9 w-9 shrink-0 place-items-center rounded-xl font-bold text-white', accentClass)}>{initials}</div>
-          <div className={cx('min-w-0', rail && 'xl:hidden')}>
+          <div className={cx('min-w-0', rail && 'lg:hidden')}>
             <div className="truncate text-sm font-semibold leading-tight">{appName}</div>
             <div className="text-xs text-muted">Maʼlumotnoma</div>
           </div>
-          <button onClick={() => setOpen(false)} className="ml-auto rounded-lg p-1.5 text-muted hover:bg-surface-2 xl:hidden" aria-label="Yopish">
+          <button onClick={() => setOpen(false)} className="ml-auto rounded-lg p-1.5 text-muted hover:bg-surface-2 lg:hidden" aria-label="Yopish">
             <Ico.close />
           </button>
         </div>
@@ -132,39 +132,39 @@ export function AppShell({
         <nav className="flex-1 space-y-6 overflow-y-auto">
           {sections.map((s) => (
             <div key={s.label}>
-              <div className={cx('px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted', rail && 'xl:hidden')}>{s.label}</div>
+              <div className={cx('px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted', rail && 'lg:hidden')}>{s.label}</div>
               <div className="space-y-1">{s.items.map(renderItem)}</div>
             </div>
           ))}
         </nav>
 
         <div className="mt-4 border-t border-line pt-4">
-          <div className={cx('mb-3 flex items-center gap-2.5', rail && 'xl:justify-center')}>
+          <div className={cx('mb-3 flex items-center gap-2.5', rail && 'lg:justify-center')}>
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-semibold">
               {user.fullName.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
             </div>
-            <div className={cx('min-w-0', rail && 'xl:hidden')}>
+            <div className={cx('min-w-0', rail && 'lg:hidden')}>
               <div className="truncate text-sm font-medium">{user.fullName}</div>
               {user.roleLabel && <div className="truncate text-xs text-muted">{user.roleLabel}</div>}
             </div>
           </div>
           <form action={logoutAction} method="post">
-            <button className={cx('btn-ghost w-full', rail && 'xl:px-0')} title="Chiqish">
+            <button className={cx('btn-ghost w-full', rail && 'lg:px-0')} title="Chiqish">
               <Ico.logout size={18} />
-              <span className={cx(rail && 'xl:hidden')}>Chiqish</span>
+              <span className={cx(rail && 'lg:hidden')}>Chiqish</span>
             </button>
           </form>
         </div>
       </aside>
 
-      <div className={cx('transition-all duration-300', rail ? 'xl:pl-[88px]' : 'xl:pl-[290px]')}>
+      <div className={cx('transition-all duration-300', rail ? 'lg:pl-[88px]' : 'lg:pl-[290px]')}>
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-line bg-bg/80 px-4 backdrop-blur-xl md:px-6">
-          <button onClick={() => setOpen(true)} className="rounded-lg p-2 text-muted hover:bg-surface-2 xl:hidden" aria-label="Menyu">
+          <button onClick={() => setOpen(true)} className="rounded-lg p-2 text-muted hover:bg-surface-2 lg:hidden" aria-label="Menyu">
             <Ico.menu />
           </button>
           <button
             onClick={() => setCollapsed((v) => !v)}
-            className="hidden rounded-lg p-2 text-muted hover:bg-surface-2 xl:block"
+            className="hidden rounded-lg p-2 text-muted hover:bg-surface-2 lg:block"
             aria-label={collapsed ? 'Panelni ochish' : 'Panelni yigʻish'}
             title={collapsed ? 'Panelni ochish' : 'Panelni yigʻish'}
           >
