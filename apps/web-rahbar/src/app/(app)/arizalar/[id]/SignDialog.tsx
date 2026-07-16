@@ -10,6 +10,17 @@ import {
 /** What the rahbar is waiting on. Signing is several seconds and several steps — say which. */
 type Step = null | 'preparing' | 'unlocking' | 'signing' | 'saving';
 
+/**
+ * 'C:\' + 'DSKEYS' → 'C:\DSKEYS'. E-IMZO hands `disk` back with its separator already attached,
+ * so appending another one printed 'C:\\DSKEYS'; stripping first survives either shape.
+ */
+function keyLocation(k: EimzoKey): string {
+  // A key may sit in the drive root — E-IMZO allows path to be empty — and 'E:' is not the root,
+  // 'E:\' is.
+  if (!k.path) return k.disk;
+  return `${k.disk.replace(/\\+$/, '')}\\${k.path}`;
+}
+
 const STEP_LABEL: Record<NonNullable<Step>, string> = {
   preparing: 'Hujjat PDF qilinmoqda…',
   unlocking: 'E-IMZO oynasida parolni kiriting…',
@@ -119,7 +130,7 @@ export function SignDialog({
   const busy = step !== null;
   const keyOptions: Option[] = keys.map((k) => ({
     value: k.alias,
-    label: `${k.name} — ${k.disk}${k.path ? '\\' + k.path : ''}`,
+    label: `${k.name} — ${keyLocation(k)}`,
   }));
 
   return (
