@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { CertStatus, STATUS_LABELS, formatSum, isoMonth, shiftMonth } from '@spravka/shared/core';
 import {
-  PageHeader, StatCard, BarChart, DonutChart, HBarChart, UZ_MONTHS_LAT, type Series,
+  PageHeader, StatCard, BarChart, DonutChart, UZ_MONTHS_LAT, type Series,
 } from '@spravka/shared/ui';
 import { DashFilters } from './DashFilters';
+import { requireRahbarFirmId } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
-type SP = { months?: string; firm?: string; from?: string; to?: string };
+type SP = { months?: string; from?: string; to?: string };
 
 // Hex values — SVG needs real colours, and these match the status dots/badges.
 const TONE = {
@@ -20,7 +21,8 @@ const TONE = {
 
 export default async function Monitoring({ searchParams }: { searchParams: SP }) {
   const months = Math.min(24, Math.max(6, Number(searchParams.months ?? '12') || 12));
-  const firmId = searchParams.firm || undefined;
+  // Not from searchParams: a rahbar monitors their own firm and cannot widen the view.
+  const firmId = await requireRahbarFirmId();
   const from = searchParams.from;
   const to = searchParams.to;
 
@@ -36,18 +38,16 @@ export default async function Monitoring({ searchParams }: { searchParams: SP })
 
   const where = {
     deletedAt: null,
-    ...(firmId ? { firmId } : {}),
+    firmId,
     issueDate: dateFilter,
   };
 
-  const [rows, firms, grouped, byFirm] = await Promise.all([
+  const [rows, grouped] = await Promise.all([
     prisma.certificate.findMany({
       where,
       select: { issueDate: true, status: true, signedAt: true, loanAmount: true },
     }),
-    prisma.firm.findMany({ where: { isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, shortName: true } }),
     prisma.certificate.groupBy({ by: ['status'], where, _count: { _all: true } }),
-    prisma.certificate.groupBy({ by: ['firmId'], where, _count: { _all: true } }),
   ]);
 
   const countOf = (s: CertStatus) => grouped.find((g) => g.status === s)?._count._all ?? 0;
@@ -78,17 +78,12 @@ export default async function Monitoring({ searchParams }: { searchParams: SP })
     { label: 'Imzolangan', color: '#10b981', values: signedByMonth },
   ];
 
-  const firmRows = byFirm
-    .map((g) => ({
-      label: firms.find((f) => f.id === g.firmId)?.shortName ?? firms.find((f) => f.id === g.firmId)?.name ?? '—',
-      value: g._count._all,
-    }))
-    .sort((a, b) => b.value - a.value);
-
   return (
     <div>
       <PageHeader title="Monitoring" subtitle={`Tanlangan davrda ${total} ta maʼlumotnoma`} />
-      <DashFilters firms={firms} />
+      {/* No firm control: the page is one firm by definition. The «Firmalar boʻyicha» breakdown
+          went with it — a chart comparing one firm to itself. */}
+      <DashFilters />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard value={total} label="Jami arizalar" />
@@ -116,10 +111,6 @@ export default async function Monitoring({ searchParams }: { searchParams: SP })
             color: TONE[s],
           }))}
         />
-
-        <div className="xl:col-span-2">
-          <HBarChart title="Firmalar boʻyicha" subtitle="Maʼlumotnomalar soni" rows={firmRows} />
-        </div>
 
         <section className="card p-5">
           <h3 className="mb-4 text-sm font-semibold">Tezkor havolalar</h3>

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Role, CertStatus, WfAction } from './enums';
-import { findTransition, canEdit, canDelete, ROLE_INBOX } from './workflow';
+import { findTransition, canEdit, canDelete, canActOnFirm, ROLE_INBOX } from './workflow';
 
 describe('workflow transitions', () => {
   it('yurist submits a draft to admin review', () => {
@@ -43,6 +43,33 @@ describe('delete-lock rule', () => {
     expect(canDelete(Role.RAHBAR)).toBe(true);
     expect(canDelete(Role.ADMIN)).toBe(false);
     expect(canDelete(Role.YURIST)).toBe(false);
+  });
+});
+
+describe('firm binding', () => {
+  const OWN = 'firm_bright_future';
+  const OTHER = 'firm_urban_finance';
+
+  it('rahbar acts on their own firm', () => {
+    expect(canActOnFirm(Role.RAHBAR, OWN, OWN)).toBe(true);
+  });
+
+  it('rahbar cannot act on another firm', () => {
+    // The signature block carries the firm's name and its director's — signing here would put
+    // Urban's director on a document Bright Future's director approved.
+    expect(canActOnFirm(Role.RAHBAR, OWN, OTHER)).toBe(false);
+  });
+
+  it('a rahbar with no firm acts on nothing', () => {
+    // Fails closed: a broken account must not read as "allowed everywhere".
+    expect(canActOnFirm(Role.RAHBAR, null, OWN)).toBe(false);
+    expect(canActOnFirm(Role.RAHBAR, undefined, OWN)).toBe(false);
+    expect(canActOnFirm(Role.RAHBAR, '', OWN)).toBe(false);
+  });
+
+  it('yurist and admin serve every firm', () => {
+    expect(canActOnFirm(Role.YURIST, null, OTHER)).toBe(true);
+    expect(canActOnFirm(Role.ADMIN, null, OTHER)).toBe(true);
   });
 });
 

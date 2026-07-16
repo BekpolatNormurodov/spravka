@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { dmy, formatSum, maskPhone, PER_PAGE, pageSlice } from '@spravka/shared/core';
 import {
   PageHeader, EmptyState, StatusBadge, ClickableRow, ViewAction, Pagination, StatCard, ContractCell } from '@spravka/shared/ui';
+import { requireRahbarFirmId } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,10 +29,18 @@ export default async function MijozDetail({
 }) {
   const page = Math.max(1, Number(searchParams.page ?? '1') || 1);
 
-  const client = await prisma.client.findUnique({ where: { id: params.id } });
+  const firmId = await requireRahbarFirmId();
+
+  // A client this rahbar's firm never served is not a page they have — the row carries a PINFL,
+  // a passport and an address, and the id is in the URL.
+  const client = await prisma.client.findFirst({
+    where: { id: params.id, certificates: { some: { firmId, deletedAt: null } } },
+  });
   if (!client) notFound();
 
-  const where = { clientId: client.id, deletedAt: null };
+  // Their history with *this* firm. The same person may hold a maʼlumotnoma from a competitor;
+  // that is between them and the competitor.
+  const where = { clientId: client.id, deletedAt: null, firmId };
   const [total, certs, signed] = await Promise.all([
     prisma.certificate.count({ where }),
     prisma.certificate.findMany({

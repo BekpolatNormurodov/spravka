@@ -5,16 +5,22 @@ import {
 } from '@spravka/shared/core';
 import { PageHeader, EmptyState, ClickableRow, StatusBadge, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
 import { RowActions } from '@/components/RowActions';
+import { requireRahbarFirmId } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Imzolangan({ searchParams }: { searchParams: CertFilterParams }) {
   // Status is fixed (SIGNED) → no status filter offered.
   const p = parseCertFilters(searchParams, []);
-  const where = { status: CertStatus.SIGNED, deletedAt: null, ...buildCertWhere(p) };
+  // firmId last: this scope is not a filter the user may widen.
+  const where = {
+    status: CertStatus.SIGNED,
+    deletedAt: null,
+    ...buildCertWhere(p),
+    firmId: await requireRahbarFirmId(),
+  };
 
-  const [firms, total, certs] = await Promise.all([
-    prisma.firm.findMany({ where: { isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, shortName: true } }),
+  const [total, certs] = await Promise.all([
     prisma.certificate.count({ where }),
     prisma.certificate.findMany({
       where,
@@ -29,7 +35,8 @@ export default async function Imzolangan({ searchParams }: { searchParams: CertF
   return (
     <div>
       <PageHeader title="Imzolangan maʼlumotnomalar" subtitle={`Topildi: ${total} ta · publicʼda koʻrinadi`} />
-      <Filters firms={firms} />
+      {/* No firm filter: a rahbar has exactly one, so the control could only ever be a no-op. */}
+      <Filters />
 
       {certs.length === 0 ? (
         <EmptyState title="Imzolangan maʼlumotnoma topilmadi" hint="Imzolagach shu yerda toʻplanadi." />

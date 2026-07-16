@@ -4,6 +4,7 @@ import {
   sameDayInMonth, shiftMonth,
 } from '@spravka/shared/core';
 import { Calendar, PageHeader, EmptyState, StatusBadge, ClickableRow, ViewAction } from '@spravka/shared/ui';
+import { requireRahbarFirmId } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,15 +26,17 @@ export default async function Kalendar({ searchParams }: { searchParams: SP }) {
         : `${month}-01`;
 
   const { gte, lt } = monthRange(month);
+  const firmId = await requireRahbarFirmId();
 
   const [monthRows, dayCerts] = await Promise.all([
     prisma.certificate.findMany({
-      where: { deletedAt: null, issueDate: { gte, lt } },
+      where: { deletedAt: null, firmId, issueDate: { gte, lt } },
       select: { issueDate: true, status: true },
     }),
     prisma.certificate.findMany({
       where: {
         deletedAt: null,
+        firmId,
         issueDate: { gte: new Date(`${day}T00:00:00.000Z`), lte: new Date(`${day}T23:59:59.999Z`) },
       },
       include: { firm: { select: { shortName: true, name: true } }, createdBy: { select: { fullName: true } } },

@@ -5,12 +5,16 @@ import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core'
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
 import { StatusBadge, CertificateDocument, QrCard, firmForDocument } from '@spravka/shared/ui';
 import { Actions } from './Actions';
+import { requireRahbarFirmId } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CertDetail({ params }: { params: { id: string } }) {
-  const c = await prisma.certificate.findUnique({
-    where: { id: params.id },
+  // findFirst, not findUnique: the firm scope belongs in the lookup rather than a check after it,
+  // and firmId is not part of a unique key. Another firm's ariza simply does not exist here — the
+  // document carries a person's passport, so "found but forbidden" would still say too much.
+  const c = await prisma.certificate.findFirst({
+    where: { id: params.id, firmId: await requireRahbarFirmId() },
     include: {
       firm: true,
       contracts: { orderBy: { order: 'asc' } },

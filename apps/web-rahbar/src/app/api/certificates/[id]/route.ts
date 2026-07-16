@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@spravka/shared/db';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { WfAction, findTransition, canDelete } from '@spravka/shared/core';
+import { WfAction, findTransition, canDelete, canActOnFirm } from '@spravka/shared/core';
 import { buildCertificatePdf, savePdf, removePdf, CERT_PDF_INCLUDE } from '@spravka/shared/pdf';
+import { rahbarFirmId } from '@/lib/scope';
 
 const MAP: Record<string, WfAction> = {
   sign: WfAction.SIGN,
@@ -23,6 +24,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     include: CERT_PDF_INCLUDE,
   });
   if (!cert || cert.deletedAt) return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
+
+  // A rahbar acts only on their own firm — every action below (sign, return, delete) is theirs
+  // alone to take. 404, not 403: whether another firm's ariza exists is not their business.
+  if (!canActOnFirm(session.role, await rahbarFirmId(), cert.firmId)) {
+    return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
+  }
 
   // Soft-delete (RAHBAR-only) — not a status transition.
   if (action === 'delete') {

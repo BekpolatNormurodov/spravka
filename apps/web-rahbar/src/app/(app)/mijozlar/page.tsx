@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { dmy, PER_PAGE, pageSlice } from '@spravka/shared/core';
 import { PageHeader, EmptyState, ClickableRow, ViewAction, Pagination } from '@spravka/shared/ui';
 import { ClientSearch } from './ClientSearch';
+import { requireRahbarFirmId } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,16 +11,22 @@ type SP = { q?: string; page?: string };
 export default async function Mijozlar({ searchParams }: { searchParams: SP }) {
   const q = searchParams.q?.trim();
   const page = Math.max(1, Number(searchParams.page ?? '1') || 1);
+  const firmId = await requireRahbarFirmId();
 
+  // A Client is shared across firms — nothing on the row says whose it is. What makes a person
+  // this rahbar's business is having taken a maʼlumotnoma from their firm; without this, the
+  // search returns every client in the system, PINFL and passport included.
+  const mine = { certificates: { some: { firmId, deletedAt: null } } };
   const where = q
-    ? { OR: [{ pinfl: { contains: q } }, { fullName: { contains: q } }, { passport: { contains: q } }] }
-    : {};
+    ? { AND: [mine, { OR: [{ pinfl: { contains: q } }, { fullName: { contains: q } }, { passport: { contains: q } }] }] }
+    : mine;
 
   const [total, clients] = await Promise.all([
     prisma.client.count({ where }),
     prisma.client.findMany({
       where,
-      include: { _count: { select: { certificates: true } } },
+      // Counted within the firm too: the total across every firm is not theirs to see.
+      include: { _count: { select: { certificates: { where: { firmId, deletedAt: null } } } } },
       orderBy: { createdAt: 'desc' },
       ...pageSlice(page),
     }),

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { AppShell, type NavItem } from '@spravka/shared/ui';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
+import { requireRahbarFirmId } from '@/lib/scope';
 import { CertStatus } from '@spravka/shared/core';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect('/login');
 
   const queue = await prisma.certificate.count({
-    where: { status: CertStatus.DIRECTOR_REVIEW, deletedAt: null },
+    where: { status: CertStatus.DIRECTOR_REVIEW, deletedAt: null, firmId: await requireRahbarFirmId() },
   });
 
   const nav: NavItem[] = [

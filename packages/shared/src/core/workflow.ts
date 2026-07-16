@@ -36,6 +36,25 @@ export function canDelete(role: Role): boolean {
   return role === Role.RAHBAR;
 }
 
+/**
+ * A RAHBAR is one firm's ijrochi direktor and acts only on that firm's documents. Their signature
+ * carries the firm's name, so signing another firm's maʼlumotnoma is not an oversight to tidy up
+ * later — it is the document claiming a director who never saw it.
+ *
+ * YURIST and ADMIN serve every firm by design (the yurist picks the firm on each ariza), so they
+ * are unscoped and carry no `firmId`.
+ *
+ * Fails closed: a RAHBAR with no firm is a broken account, not a rahbar who may act on all of them.
+ */
+export function canActOnFirm(
+  role: Role,
+  userFirmId: string | null | undefined,
+  certFirmId: string,
+): boolean {
+  if (role !== Role.RAHBAR) return true;
+  return !!userFirmId && userFirmId === certFirmId;
+}
+
 /** The status each role acts on (their inbox queue). */
 export const ROLE_INBOX: Record<Role, CertStatus | null> = {
   [Role.YURIST]: CertStatus.DRAFT,
