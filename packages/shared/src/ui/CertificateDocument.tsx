@@ -6,9 +6,9 @@ export interface CertFirm {
   shortName?: string | null;
   directorName: string;
   directorPosition: string;
-  executorName: string;
+  executorName?: string | null;
   executorPhone?: string | null;
-  phone: string;
+  phone?: string | null;
   address?: string | null;
   stir?: string | null;
   bankAccount?: string | null;
@@ -151,11 +151,13 @@ export function CertificateDocument(p: CertificateDocumentProps) {
         )}
       </div>
 
-      {/* ── Executor (10pt) ──────────────────────────────────────────── */}
-      <div style={{ marginTop: '26pt', fontSize: '10pt', lineHeight: 1.35 }}>
-        <div>Ижрочи: {firm.executorName}</div>
-        <div>Тел: {firm.executorPhone ?? firm.phone}</div>
-      </div>
+      {/* ── Executor (10pt) — omitted entirely when the firm has named nobody ── */}
+      {(firm.executorName || firm.executorPhone || firm.phone) && (
+        <div style={{ marginTop: '26pt', fontSize: '10pt', lineHeight: 1.35 }}>
+          {firm.executorName && <div>Ижрочи: {firm.executorName}</div>}
+          {(firm.executorPhone ?? firm.phone) && <div>Тел: {firm.executorPhone ?? firm.phone}</div>}
+        </div>
+      )}
 
       {/* ── QR (our addition, not in the .docx) ──────────────────────── */}
       {p.qrDataUrl && (

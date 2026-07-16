@@ -64,7 +64,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const f = cert.firm;
     data.firmSnapshot = {
       name: f.name, shortName: f.shortName, stir: f.stir, oked: f.oked,
-      directorName: f.directorName, directorPosition: f.directorPosition,
+      directorName: f.directorName, directorFullName: f.directorFullName,
+      directorPosition: f.directorPosition, accountantName: f.accountantName,
       executorName: f.executorName, executorPhone: f.executorPhone,
       phone: f.phone, email: f.email, website: f.website,
       region: f.region, address: f.address,

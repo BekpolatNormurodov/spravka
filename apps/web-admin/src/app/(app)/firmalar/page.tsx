@@ -24,11 +24,12 @@ export default async function Firmalar() {
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1140px] text-sm">
+            <table className="w-full min-w-[1320px] text-sm">
               <thead className="bg-surface-2 text-muted">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">Tashkilot</th>
                   <th className="px-4 py-3 text-left font-medium">Ijrochi direktor</th>
+                  <th className="px-4 py-3 text-left font-medium">Bosh buxgalter</th>
                   <th className="px-4 py-3 text-left font-medium">Ijrochi</th>
                   <th className="px-4 py-3 text-left font-medium">STIR</th>
                   <th className="px-4 py-3 text-left font-medium">Bank / MFO</th>
@@ -48,9 +49,17 @@ export default async function Firmalar() {
                     <td className="whitespace-nowrap px-4 py-3">
                       <span className="font-medium">{f.directorName}</span>
                       <div className="text-xs text-muted">{f.directorPosition}</div>
+                      {f.directorFullName && (
+                        <div className="max-w-[240px] truncate text-xs text-muted" title={f.directorFullName}>{f.directorFullName}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted">
+                      {f.accountantName ? (
+                        <span className="block max-w-[220px] truncate" title={f.accountantName}>{f.accountantName}</span>
+                      ) : '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-muted">
-                      {f.executorName}
+                      {f.executorName ?? <span className="text-xs">Kiritilmagan</span>}
                       {f.executorPhone && <div className="text-xs">{f.executorPhone}</div>}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs tabular-nums text-muted">{f.stir ?? '—'}</td>
@@ -64,7 +73,7 @@ export default async function Firmalar() {
                         </>
                       ) : '—'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted">{f.phone}</td>
+                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted">{f.phone ?? '—'}</td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums">{f._count.certificates}</td>
                     <td className="px-4 py-3">
                       <span className={`badge ${f.isActive ? 'border-accent-500/30 bg-accent-500/10 text-accent-700 dark:text-accent-400' : 'border-slate-400/25 bg-slate-400/10 text-muted'}`}>

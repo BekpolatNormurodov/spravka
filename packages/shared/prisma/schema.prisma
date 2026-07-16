@@ -84,11 +84,18 @@ model Firm {
   shortName        String?
   stir             String?
   oked             String?
+  /// Short form printed in the signature block, e.g. 'А.А.Бойназаров'.
   directorName     String
+  /// Full name as registered, e.g. 'BOYNAZAROV AKRAM ANVAROVICH'.
+  directorFullName String?
   directorPosition String   @default("Ижрочи директори")
-  executorName     String
+  /// Bosh buxgalter. Never printed on the maʼlumotnoma — firm reference data only.
+  accountantName   String?
+  /// Whoever prepared the document (the 'Ижрочи' line). Optional: the line is omitted
+  /// when the firm has not named one.
+  executorName     String?
   executorPhone    String?
-  phone            String
+  phone            String?
   email            String?
   website          String?
   region           String?

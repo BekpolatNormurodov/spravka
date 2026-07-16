@@ -7,22 +7,24 @@ import { Modal, TextField, Ico, RowAction } from '@spravka/shared/ui';
 
 export type FirmRow = {
   id: string; name: string; shortName: string | null; stir: string | null;
-  directorName: string; directorPosition: string; executorName: string;
-  executorPhone: string | null; phone: string; bankName: string | null;
+  directorName: string; directorFullName: string | null; directorPosition: string;
+  accountantName: string | null; executorName: string | null;
+  executorPhone: string | null; phone: string | null; bankName: string | null;
   bankAccount: string | null; mfo: string | null; region: string | null; address: string | null;
 };
 
 const EMPTY = {
   name: '', shortName: '', stir: '',
-  directorName: '', directorPosition: 'Ижрочи директори',
-  executorName: '', executorPhone: '', phone: '',
+  directorName: '', directorFullName: '', directorPosition: 'Ижрочи директори',
+  accountantName: '', executorName: '', executorPhone: '', phone: '',
   bankName: '', bankAccount: '', mfo: '', region: '', address: '',
 };
 
 const fromRow = (r: FirmRow) => ({
   name: r.name, shortName: r.shortName ?? '', stir: r.stir ?? '',
-  directorName: r.directorName, directorPosition: r.directorPosition,
-  executorName: r.executorName, executorPhone: r.executorPhone ?? '', phone: r.phone,
+  directorName: r.directorName, directorFullName: r.directorFullName ?? '',
+  directorPosition: r.directorPosition, accountantName: r.accountantName ?? '',
+  executorName: r.executorName ?? '', executorPhone: r.executorPhone ?? '', phone: r.phone ?? '',
   bankName: r.bankName ?? '', bankAccount: r.bankAccount ? maskAccount(r.bankAccount) : '',
   mfo: r.mfo ?? '', region: r.region ?? '', address: r.address ?? '',
 });
@@ -41,7 +43,7 @@ export function FirmForm({ firm }: { firm?: FirmRow }) {
   // Exactly one director per firm. Accepts the official 'А.А.Бойназаров' form (initials +
   // surname, no spaces) as well as 'Ism Familiya' — dots count as separators.
   const directorOk = f.directorName.trim().split(/[.\s]+/).filter(Boolean).length >= 2;
-  const valid = f.name.trim() && directorOk && f.executorName.trim() && f.phone.trim();
+  const valid = f.name.trim() && directorOk;
 
   async function submit() {
     setBusy(true);
@@ -106,19 +108,29 @@ export function FirmForm({ firm }: { firm?: FirmRow }) {
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">Ijrochi direktor (majburiy, bitta)</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField
-                label="Ism familiya" required value={f.directorName} onChange={set('directorName')}
+                label="Imzo blokidagi ism" required value={f.directorName} onChange={set('directorName')}
                 placeholder="А.А.Бойназаров"
                 error={f.directorName && !directorOk ? 'Masalan: А.А.Бойназаров yoki Ism Familiya' : undefined}
-                hint={!f.directorName ? 'Imzo blokida shu ism chiqadi' : undefined}
+                hint={!f.directorName ? 'Hujjatda aynan shu koʻrinishda chiqadi' : undefined}
               />
-              <TextField label="Lavozimi" value={f.directorPosition} onChange={set('directorPosition')} />
+              <TextField label="Lavozimi" value={f.directorPosition} onChange={set('directorPosition')} placeholder="Ижрочи директори" />
+              <TextField
+                label="Toʻliq F.I.Sh." value={f.directorFullName} onChange={set('directorFullName')}
+                placeholder="BOYNAZAROV AKRAM ANVAROVICH" className="sm:col-span-2"
+                hint="Reyestrdagi toʻliq ism — hujjatda chiqmaydi, faqat maʼlumot uchun."
+              />
             </div>
           </div>
 
+          <TextField
+            label="Bosh buxgalter" value={f.accountantName} onChange={set('accountantName')}
+            placeholder="SHAKIROV ULUGʻBEK OYBEKOVICH" hint="Hujjatda chiqmaydi."
+          />
+
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextField label="Ijrochi" required value={f.executorName} onChange={set('executorName')} placeholder="Б.Тоиров" />
+            <TextField label="Ijrochi" value={f.executorName} onChange={set('executorName')} placeholder="Б.Тоиров" hint="Hujjat pastidagi «Ижрочи» qatori. Boʻsh boʻlsa — qator chiqmaydi." />
             <TextField label="Ijrochi telefoni" value={f.executorPhone} onChange={set('executorPhone')} mask={maskPhone} inputMode="tel" placeholder="+998 55 503 01 90" />
-            <TextField label="Telefon" required value={f.phone} onChange={set('phone')} mask={maskPhone} inputMode="tel" placeholder="+998 55 503 01 90" />
+            <TextField label="Telefon" value={f.phone} onChange={set('phone')} mask={maskPhone} inputMode="tel" placeholder="+998 55 503 01 90" />
             <TextField label="Region" value={f.region} onChange={set('region')} placeholder="Toshkent" />
           </div>
 
