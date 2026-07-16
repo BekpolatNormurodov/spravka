@@ -6,6 +6,7 @@
   "exports": {
     "./db": "./src/db/index.ts",
     "./core": "./src/core/index.ts",
+    "./password": "./src/core/password.ts",
     "./ui": "./src/ui/index.ts"
   },
   "scripts": {

@@ -1,11 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
-import bcrypt from 'bcryptjs';
 import { Role } from './enums';
 
 const secret = () =>
   new TextEncoder().encode(process.env.AUTH_SECRET || 'dev-secret-change-me-min-32-chars-long!!');
 
 export const COOKIE_NAME = 'spravka_session';
+
+const VALID_ROLES: readonly Role[] = [Role.YURIST, Role.ADMIN, Role.RAHBAR];
 
 export interface SessionPayload {
   sub: string;
@@ -27,21 +28,15 @@ export async function verifySession(token: string | undefined): Promise<SessionP
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
+    const role = payload.role as Role;
+    if (!VALID_ROLES.includes(role)) return null;
     return {
       sub: String(payload.sub),
       login: String(payload.login),
-      role: payload.role as Role,
+      role,
       fullName: String(payload.fullName),
     };
   } catch {
     return null;
   }
-}
-
-export async function hashPassword(pw: string): Promise<string> {
-  return bcrypt.hash(pw, 10);
-}
-
-export async function verifyPassword(pw: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(pw, hash);
 }
