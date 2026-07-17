@@ -4,8 +4,7 @@
 #   bash deploy/update.sh
 #
 # Rolls back to the image that was running before if anything fails, so a bad deploy ends where it
-# started. Does not touch qrcode-pro — different compose project, different network, different
-# database. bright.qrsystem.uz keeps pointing at it.
+# started. qrcode-pro is on the old server and is not affected by anything here.
 #
 # -E: without it an ERR trap is not inherited by functions, so wrapping any step below in one would
 # drop the rollback silently — correct-looking script, half-updated box, on the one run it mattered.

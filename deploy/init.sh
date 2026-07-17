@@ -5,11 +5,12 @@
 #
 # Idempotent — safe to re-run. Never overwrites .env, never resets a password that already exists.
 #
-# Does NOT touch qrcode-pro. That stack keeps its own compose, its own MySQL on 3308 and its own
-# nginx on 8090; bright.qrsystem.uz stays with it. Nothing here shares a port, volume or network.
+# qrcode-pro is not here: it stays on the old server with its own database and keeps
+# bright.qrsystem.uz. Two machines, two databases, nothing shared. See deploy/README.md.
 #
-# Does NOT do nginx or TLS — deploy/setup-ssl.sh and the two nginx configs, separate because they
-# wait on the network team opening :80, which is outside this box. See deploy/README.md.
+# Does NOT do nginx or TLS — deploy/setup-ssl.sh and the two nginx configs, separate because those
+# wait on DNS pointing here and :80 being open, neither of which is this box's decision. The apps
+# come up on 127.0.0.1 regardless, so you can test before the certificate exists.
 set -Eeuo pipefail
 
 ROOT="/opt/spravka"
@@ -24,11 +25,13 @@ say "Preflight"
 cd "$ROOT"
 docker compose version >/dev/null 2>&1 || die "docker compose yo'q: https://docs.docker.com/engine/install/"
 
-# qrcode-pro must survive this untouched. Say so out loud rather than hoping.
-if docker ps --format '{{.Names}}' | grep -q '^qrcode-'; then
-  echo "    qrcode-pro ishlab turibdi — tegilmaydi:"
-  docker ps --format '      {{.Names}}  {{.Ports}}' | grep '^      qrcode-'
-fi
+# Ports 5100-5103 must be free. Something already holding one is not a warning: compose would fail
+# to publish it and the app would be up-but-unreachable, which reads exactly like a broken build.
+for p in 5100 5101 5102 5103; do
+  if ss -tln 2>/dev/null | grep -q ":$p "; then
+    die "$p port band. Kim egallagani: ss -tlnp | grep :$p"
+  fi
+done
 
 say ".env"
 if [ -f .env ]; then
@@ -119,5 +122,6 @@ Shundan keyin:
   yurist.qrsystem.uz   -> yurist
   admin.qrsystem.uz    -> admin
   rahbar.qrsystem.uz   -> rahbar
-  bright.qrsystem.uz   -> qrcode-pro (:8090) — eskisi, faqat TLS qoʻshildi
+
+bright.qrsystem.uz shu serverda EMAS — u eski mashinada, qrcode-pro bilan.
 EOF

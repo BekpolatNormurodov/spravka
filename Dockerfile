@@ -1,8 +1,7 @@
 # One image, four apps. Which one a container runs is decided by $APP at start — the four differ
 # only in which .next they serve, and four near-identical Dockerfiles would drift apart.
 #
-# The old qrcode-pro stack is untouched by this: its own compose, its own MySQL on 3308, its own
-# nginx on 8090. Nothing here shares a port, a volume or a network with it.
+# qrcode-pro lives on a different server entirely and is unrelated to this image.
 FROM node:22-bookworm-slim
 
 # openssl: Prisma needs it to pick its engine and fails at query time, not at build, without it.

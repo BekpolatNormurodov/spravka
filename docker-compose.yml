@@ -2,10 +2,11 @@
 #
 #   docker compose up -d --build
 #
-# Deliberately separate from qrcode-pro in every way that could collide: its MySQL is on 3308 and
-# this one is not published at all; its nginx is on 8090, this has none; different volumes,
-# different network, different database. bright.qrsystem.uz stays with it — the host nginx sends
-# that name to 127.0.0.1:8090 and never reaches this stack.
+# This is its own server. qrcode-pro stays on the old machine with its own database and keeps
+# bright.qrsystem.uz — nothing here reaches it and nothing here is reachable from it.
+#
+# The monorepo's web-qr is deliberately absent: qrcode-pro already serves that role, and running a
+# second copy against this empty database would 404 every QR ever printed.
 #
 # .env (git-ignored) supplies the secrets. See .env.docker.example.
 

@@ -1,63 +1,56 @@
-# Spravka — deploy (nginx + certbot)
+# Spravka — deploy (Docker + nginx + certbot)
 
-Server: `213.230.64.140` · domenlar `qrsystem.uz` ostida.
+Yangi serverga o'rnatiladi. `qrcode-pro` eski serverda (`213.230.64.140`) qoladi
+— bazasi, fayllari, `bright.qrsystem.uz` domeni bilan birga. Ikki tizim endi
+ikki mashinada: umumiy port ham, baza ham, volume ham yo'q.
 
-## ⛔ Avval hal qilinishi shart: 80-port yopiq
+## ⛔ Avval: DNS yangi serverga qaratilsin
 
-Tekshirildi (2026-07-16, tashqi tarmoqdan):
+`setup-ssl.sh` beshta nom uchun sertifikat so'raydi. certbot har biri uchun
+`:80` ga so'rov yuboradi — **bitta nom javob bermasa, butun so'rov rad etiladi**,
+ya'ni beshtasi ham olinmaydi.
 
-```
-213.230.64.140:80    yopiq          <-- certbot HTTP-01 shu portni talab qiladi
-213.230.64.140:443   OCHIQ, lekin javob bergani nginx emas:
-                     subject= O = Fortinet Ltd., CN = FortiGate  (self-signed)
-213.230.64.140:8090  yopiq
-```
-
-Nazorat testi: aynan shu mashinadan `google.com` haqiqiy Google sertifikatini
-qaytaradi va uning 80-porti ochiq — demak bu bizning tarafimizdagi intercept
-emas. **443-portni FortiGate xavfsizlik devorining o'zi ushlab turibdi, 80-port
-esa umuman ochilmagan.**
-
-Buning oqibati:
-
-- **HTTP-01 ishlamaydi** — Let's Encrypt 80-portga ulana olmaydi.
-- **TLS-ALPN-01 ham ishlamaydi** — 443 nginx'ga yetib bormaydi.
-
-Ya'ni hech qanday nginx sozlamasi buni aylanib o'ta olmaydi. Tarmoq
-administratori FortiGate'da **VIP / port-forward** ochishi kerak:
-
-| Tashqi | → | Ichki |
-|---|---|---|
-| `213.230.64.140:80` | → | server:80 |
-| `213.230.64.140:443` | → | server:443 |
-
-443 hozir FortiGate'ning o'z portali bilan band — u boshqa portga ko'chirilishi
-yoki VIP undan ustun qo'yilishi kerak.
-
-Agar port ochish umuman mumkin bo'lmasa, yagona yo'l — **DNS-01** challenge
-(domen provayderining API kaliti kerak), u 80-portsiz ishlaydi.
-
-DNS tarafi soz — **yettala nom ham** to'g'ri IP'ga hal bo'ladi (8.8.8.8 dan
-tekshirildi, 2026-07-17):
+Shuning uchun sertifikatdan **oldin** bu beshtasi yangi serverning IP'siga hal
+bo'lishi shart:
 
 ```
-qrsystem.uz              -> 213.230.64.140
-www.qrsystem.uz          -> 213.230.64.140  (CNAME qrsystem.uz)
-yurist.qrsystem.uz       -> 213.230.64.140  (CNAME qrsystem.uz)
-admin.qrsystem.uz        -> 213.230.64.140  (CNAME qrsystem.uz)
-rahbar.qrsystem.uz       -> 213.230.64.140  (CNAME qrsystem.uz)
-bright.qrsystem.uz       -> 213.230.64.140
-www.bright.qrsystem.uz   -> 213.230.64.140
+qrsystem.uz              A     <yangi-server-IP>
+www.qrsystem.uz          CNAME qrsystem.uz
+yurist.qrsystem.uz       CNAME qrsystem.uz
+admin.qrsystem.uz        CNAME qrsystem.uz
+rahbar.qrsystem.uz       CNAME qrsystem.uz
 ```
 
-Bu ro'yxat `setup-ssl.sh` dagi `DOMAINS` bilan **aynan bir xil bo'lishi shart**.
-certbot har bir nom uchun alohida challenge oladi va bittasi javob bermasa —
-**butun so'rovni rad etadi**, ya'ni yettalasi ham olinmaydi, faqat o'sha emas.
+`bright.qrsystem.uz` — **tegmang.** U eski serverga ishora qilib turaveradi;
+qrcode o'sha yerda ishlaydi. Aynan shuning uchun u `DOMAINS` ro'yxatida ham,
+nginx configda ham yo'q: uni qo'shsak, u eski IP'ga hal bo'lardi, javob
+bermasdi va **qolgan to'rttasining sertifikatini ham yiqitardi**.
 
-⚠️ Bu ro'yxat ilgari `www.qrsystem.uz` siz turgan edi va shu sababli u nginx'dan
-ham, sertifikatdan ham chiqarib tashlangan edi. Yozuv DNS'da bor ekan — hujjat
-eskirgan edi. **Nom haqidagi hujjatga ishonmang, nomni o'zini so'rang:**
-`nslookup www.qrsystem.uz 8.8.8.8`.
+Tekshirish (skript ham buni o'zi qiladi, certbot chaqirilishidan oldin):
+
+```bash
+for d in qrsystem.uz www.qrsystem.uz yurist.qrsystem.uz admin.qrsystem.uz rahbar.qrsystem.uz; do
+  echo "$d -> $(dig +short "$d" | tail -1)"
+done
+```
+
+## ⛔ Va: 80/443 tashqaridan ochiq bo'lsin
+
+HTTP-01 challenge Let's Encrypt'ning `:80` ga **tashqaridan** ulanishini talab
+qiladi. Eski serverda bu yopiq edi (FortiGate `:443` ni o'zi ushlab turardi,
+`:80` umuman forward qilinmagandi) va sertifikat shu sababli olinmagandi.
+
+Yangi serverda buni oldindan tekshiring:
+
+```bash
+ss -tlnp | grep -E ':80|:443'    # nginx tinglayaptimi
+curl -I http://<yangi-IP>/       # TASHQI tarmoqdan
+ufw status
+```
+
+Yopiq bo'lsa `setup-ssl.sh` o'zi to'xtaydi va qaysi nom yiqilganini aytadi —
+certbot chaqirilmaydi. Bu ataylab: Let's Encrypt haftasiga 5 ta dublikatga
+ruxsat beradi va limitni yoqib yuborsangiz kunlab kutasiz.
 
 ## Public domen: `qrsystem.uz` → web-public (:5100)
 
@@ -85,28 +78,33 @@ bo'lsa — ularning QR'i tuzalmaydi.
 
 ## Tuzilma — 4 ta app, qrcode alohida
 
+**Yangi serverda** — 4 ta app, hammasi Docker'da:
+
 | Domen | → | Port | Nima |
 |---|---|---|---|
 | `qrsystem.uz`, `www.qrsystem.uz` | | `127.0.0.1:5100` | spravka **public** |
 | `yurist.qrsystem.uz` | | `127.0.0.1:5101` | spravka **yurist** |
 | `admin.qrsystem.uz` | | `127.0.0.1:5102` | spravka **admin** |
 | `rahbar.qrsystem.uz` | | `127.0.0.1:5103` | spravka **rahbar** |
-| `bright.qrsystem.uz`, `www.bright...` | | `127.0.0.1:8090` | **qrcode-pro — bizniki emas** |
 
-Ikkala tizim bir serverda, lekin **hech nimani baham ko'rmaydi**:
+**Eski serverda** — tegilmaydi:
 
-| | Compose | Baza | Port |
-|---|---|---|---|
-| qrcode-pro | o'zining | `qrcode_pro_db` | nginx 8090, mysql 3308 |
-| spravka | `docker-compose.yml` | `spravka` (volume) | 5100–5103, mysql ochilmagan |
+| Domen | → | Nima |
+|---|---|---|
+| `bright.qrsystem.uz` | `213.230.64.140` | qrcode-pro, o'z Docker'i, o'z `qrcode_pro_db` bazasi |
 
-`bright.qrsystem.uz` uchun biz **faqat TLS qo'shamiz**: host nginx sertifikatni
-yechib, qrcode-pro'ning o'z nginx'iga (`127.0.0.1:8090`) uzatadi. Kodiga ham,
-bazasiga ham, fayllariga ham tegilmaydi. Eski QR'lar ishlayveradi.
+Ikki mashina, ikki baza, umumiy hech narsa yo'q. `bright` DNS'da eski IP'da
+qoladi va bu configlarga umuman kirmaydi.
 
 > Monorepoda `web-qr` bor va bir vaqt `bright` o'shanga qaratilgan edi. U —
 > **bo'sh bazaga ko'chirish** bo'lardi: hozirgacha chop etilgan har bir QR 404
-> berardi. Deploy qilinmaydi. Nomni qrcode-pro saqlaydi, ma'lumoti bilan birga.
+> berardi. Deploy qilinmaydi, `docker-compose.yml` da yo'q. Nomni qrcode-pro
+> saqlaydi, ma'lumoti bilan birga.
+>
+> Agar keyinchalik qrcode ham shu serverga ko'chsa: DNS'ni burib, `bright` ni
+> `setup-ssl.sh` dagi `DOMAINS` ga qo'shing va sertifikatni qayta oling. Undan
+> oldin emas — nom eski IP'ga hal bo'lib turganda uni so'rash **qolgan
+> to'rttasining sertifikatini ham yiqitadi**.
 
 ## Skriptlar
 
@@ -115,10 +113,12 @@ Uchtasi, ataylab alohida — har biri boshqa narsani kutadi:
 | Skript | Qachon | Nima kutadi |
 |---|---|---|
 | `deploy/init.sh` | bir marta | Docker |
-| `deploy/setup-ssl.sh` | :80 ochilgach | **FortiGate** |
+| `deploy/setup-ssl.sh` | DNS burilib, :80 ochilgach | **DNS + tarmoq** |
 | `deploy/update.sh` | har yangilanishda | init.sh o'tgan |
 
-Birlashtirsak, hammasi FortiGate'ni kutib qolardi.
+Birlashtirsak, app'larni ko'tarish ham DNS'ni kutib qolardi. Ular alohida
+bo'lgani uchun `init.sh` ni hoziroq yurgizib, tizimni `127.0.0.1` da sinab
+ko'rsangiz bo'ladi — sertifikat keyin keladi.
 
 ```bash
 # O'rnatish (bir marta)
@@ -241,12 +241,13 @@ Ya'ni xavf «sayt buziladi» emas — **rahbar nomidan soxta imzolangan hujjat**
 
 ```bash
 docker compose ps                          # to'rtala app + mysql
-docker ps | grep qrcode-                   # eskisi ham tirikligini ko'ring
 ss -tlnp | grep -E '510[0-3]'              # faqat 127.0.0.1 da bo'lishi kerak
 certbot certificates
 curl -I https://yurist.qrsystem.uz/
-curl -I https://bright.qrsystem.uz/        # bu qrcode-pro, :8090 orqali
+curl -I https://qrsystem.uz/               # QR shu yerga tushadi
 ```
+
+`bright.qrsystem.uz` bu serverda emas — u eski mashinada, o'z Docker'ida.
 
 ## ⚠️ Backup: hujjatlar ombori — bazadan kam emas
 

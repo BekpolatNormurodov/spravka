@@ -14,20 +14,24 @@ WEBROOT="/var/www/certbot"
 # The lead name becomes the directory under /etc/letsencrypt/live/, which
 # spravka-ssl.conf points at. Keep qrsystem.uz first or update the conf to match.
 #
-# Every name here must resolve to this server BEFORE running: certbot proves control by fetching
-# a file over each one, and a single NXDOMAIN fails the whole request — all seven, not just that
-# name. Verified 2026-07-17: all seven answer 213.230.64.140.
+# Every name here must resolve to THIS server before running. certbot proves control by fetching a
+# file over each one, and a single name that does not answer fails the whole request — all five,
+# not just that one. The :80 preflight below checks exactly this, per name, before certbot is
+# called: Let's Encrypt allows 5 duplicate certificates a week and a burned quota locks you out
+# for days, so the cheap check comes first.
+#
+# bright.qrsystem.uz is deliberately ABSENT. It stays on the old server with qrcode-pro, so it
+# resolves elsewhere — and asking for it here would fail the certificate for the other five names
+# too. If qrcode ever moves onto this box, add it back then, not before.
 #
 # qrsystem.uz is web-public, the page a printed QR opens — hence first, and hence the cert
-# directory name.
+# directory name that spravka-ssl.conf points at.
 DOMAINS=(
   qrsystem.uz
   www.qrsystem.uz
   yurist.qrsystem.uz
   admin.qrsystem.uz
   rahbar.qrsystem.uz
-  bright.qrsystem.uz
-  www.bright.qrsystem.uz
 )
 
 echo "==> Preflight"
