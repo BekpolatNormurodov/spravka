@@ -4,11 +4,17 @@
 # qrcode-pro lives on a different server entirely and is unrelated to this image.
 FROM node:22-bookworm-slim
 
+# unzip is not optional here, and its absence is expensive to diagnose: puppeteer's postinstall
+# runs during `npm ci`, downloads ~200 MB of Chrome, and only then tries to extract it. node:*-slim
+# ships no unzip, so the build spends six minutes downloading and dies with "no zip archiver is
+# available" inside a stack trace, blamed on `npm ci`, six frames from anything recognisable.
+#
 # openssl: Prisma needs it to pick its engine and fails at query time, not at build, without it.
 # ca-certificates: TLS to the outside (E-IMZO is client-side, but npm and Chromium are not).
+#
+# Lists are kept until the puppeteer step below, which needs apt to pull Chromium's libraries.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates openssl \
- && rm -rf /var/lib/apt/lists/*
+ && apt-get install -y --no-install-recommends ca-certificates openssl unzip
 
 WORKDIR /app
 
@@ -25,11 +31,18 @@ COPY apps/web-yurist/package.json    apps/web-yurist/
 COPY apps/web-admin/package.json     apps/web-admin/
 COPY apps/web-rahbar/package.json    apps/web-rahbar/
 COPY apps/web-qr/package.json        apps/web-qr/
+# This is where Chrome is downloaded and unzipped — puppeteer's postinstall, not the step below.
 RUN npm ci
 
-# Chromium for the signing render. Puppeteer's own list, not a hand-written apt line: Ubuntu/Debian
+# The browser is already on disk by now; this adds the system libraries it links against, and is a
+# no-op for the download itself. Puppeteer's own list, not a hand-written apt line: Ubuntu/Debian
 # renamed half of these with a t64 suffix and apt installs NOTHING when one name is wrong.
-RUN npx puppeteer browsers install chrome --install-deps \
+#
+# apt-get update repeats because --install-deps shells out to apt, and the lists are dropped at the
+# end of this layer rather than the first — deleting them earlier left this step with nothing to
+# install from.
+RUN apt-get update \
+ && npx puppeteer browsers install chrome --install-deps \
  && rm -rf /var/lib/apt/lists/*
 
 COPY . .
