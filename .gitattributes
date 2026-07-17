@@ -1,0 +1,39 @@
+# Line endings, for the files where they are not cosmetic.
+#
+# deploy/ is read by Linux. A CR at the end of a shebang makes the kernel look for an interpreter
+# literally named "bash\r" and answer "bad interpreter: No such file or directory" — on a file that
+# looks perfect in every editor and greps fine. setup-ssl.sh is the one that hurts: it would fail
+# at the top, so the certificate is never requested at all.
+#
+# This is not a hypothetical tidy-up. Every file below is currently `i/lf w/crlf`: LF in the index,
+# CRLF in the working tree on Windows. That works today only because the people committing happen
+# to run core.autocrlf=true, which normalises on the way in. That is a setting on their machine,
+# not a property of this repo — one clone with autocrlf=false commits CRLF into the index and the
+# server breaks, with no local symptom to notice it by.
+#
+# Checked before adding this file: nothing in the index has CRLF or mixed endings, so these rules
+# describe what is already there and renormalise nothing.
+
+* text=auto
+
+*.sh       text eol=lf
+*.service  text eol=lf
+*.conf     text eol=lf
+*.mjs      text eol=lf
+*.mts      text eol=lf
+
+# Windows reads these; CRLF is what they want.
+*.cmd      text eol=crlf
+*.ps1      text eol=crlf
+
+# Fonts and images: never touch the bytes. fonts.data.ts is generated from these — a single
+# altered byte and the PDF renders in a fallback face.
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.ico   binary
+*.pdf   binary

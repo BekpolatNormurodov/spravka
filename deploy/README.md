@@ -37,16 +37,27 @@ yoki VIP undan ustun qo'yilishi kerak.
 Agar port ochish umuman mumkin bo'lmasa, yagona yo'l — **DNS-01** challenge
 (domen provayderining API kaliti kerak), u 80-portsiz ishlaydi.
 
-DNS tarafi soz — hammasi to'g'ri IP'ga hal bo'ladi:
+DNS tarafi soz — **yettala nom ham** to'g'ri IP'ga hal bo'ladi (8.8.8.8 dan
+tekshirildi, 2026-07-17):
 
 ```
-qrsystem.uz            -> 213.230.64.140
-bright.qrsystem.uz     -> 213.230.64.140
-www.bright...          -> 213.230.64.140
-yurist.qrsystem.uz     -> 213.230.64.140  (CNAME qrsystem.uz)
-admin.qrsystem.uz      -> 213.230.64.140  (CNAME qrsystem.uz)
-rahbar.qrsystem.uz     -> 213.230.64.140  (CNAME qrsystem.uz)
+qrsystem.uz              -> 213.230.64.140
+www.qrsystem.uz          -> 213.230.64.140  (CNAME qrsystem.uz)
+yurist.qrsystem.uz       -> 213.230.64.140  (CNAME qrsystem.uz)
+admin.qrsystem.uz        -> 213.230.64.140  (CNAME qrsystem.uz)
+rahbar.qrsystem.uz       -> 213.230.64.140  (CNAME qrsystem.uz)
+bright.qrsystem.uz       -> 213.230.64.140
+www.bright.qrsystem.uz   -> 213.230.64.140
 ```
+
+Bu ro'yxat `setup-ssl.sh` dagi `DOMAINS` bilan **aynan bir xil bo'lishi shart**.
+certbot har bir nom uchun alohida challenge oladi va bittasi javob bermasa —
+**butun so'rovni rad etadi**, ya'ni yettalasi ham olinmaydi, faqat o'sha emas.
+
+⚠️ Bu ro'yxat ilgari `www.qrsystem.uz` siz turgan edi va shu sababli u nginx'dan
+ham, sertifikatdan ham chiqarib tashlangan edi. Yozuv DNS'da bor ekan — hujjat
+eskirgan edi. **Nom haqidagi hujjatga ishonmang, nomni o'zini so'rang:**
+`nslookup www.qrsystem.uz 8.8.8.8`.
 
 ## Public domen: `qrsystem.uz` → web-public (:5100)
 
@@ -73,15 +84,54 @@ bo'lsa — ularning QR'i tuzalmaydi.
 
 ## Tuzilma
 
-| Domen | → | Port |
-|---|---|---|
-| `yurist.qrsystem.uz` | | `127.0.0.1:5101` |
-| `admin.qrsystem.uz` | | `127.0.0.1:5102` |
-| `rahbar.qrsystem.uz` | | `127.0.0.1:5103` |
-| *(tanlanmagan)* | | `127.0.0.1:5100` |
+| Domen | → | Port | App |
+|---|---|---|---|
+| `qrsystem.uz`, `www.qrsystem.uz` | | `127.0.0.1:5100` | web-public |
+| `yurist.qrsystem.uz` | | `127.0.0.1:5101` | web-yurist |
+| `admin.qrsystem.uz` | | `127.0.0.1:5102` | web-admin |
+| `rahbar.qrsystem.uz` | | `127.0.0.1:5103` | web-rahbar |
+| `bright.qrsystem.uz`, `www.bright...` | | `127.0.0.1:5000` | web-qr |
 
-`bright.qrsystem.uz` — mavjud qrcode-pro tizimi, alohida (Docker, :8090). Bu
-config unga tegmaydi.
+## ⚠️ `bright.qrsystem.uz` — bu ko'chirish, "tegmaydi" emas
+
+Bu yerda ilgari "bright.qrsystem.uz — mavjud qrcode-pro, bu config unga
+tegmaydi" deb yozilgan edi. **Bu noto'g'ri.** `spravka-ssl.conf` o'rnatilgan
+lahzada `bright.qrsystem.uz` **spravka'ning o'z `web-qr` iga** (`:5000`)
+o'tadi. Eski qrcode-pro (Docker, `:8090`) o'z-o'zicha ishlab turaveradi, lekin
+tashqaridan unga hech kim kirmaydi.
+
+Muhimi — **ular boshqa-boshqa bazada**:
+
+| | Baza | Port |
+|---|---|---|
+| qrcode-pro | `qrcode_pro_db` | `3308` (Docker MySQL) |
+| spravka web-qr | `spravka` | `3306` (native MySQL) |
+
+Ya'ni ko'chirmasdan yo'naltirsangiz, **ilgari chop etilgan har bir QR 404
+beradi** — yozuvlari eski bazada qolib ketadi. Chop etilgan QR'ni qaytarib
+bo'lmaydi.
+
+Yaxshi xabar: ikkala `QrCode` modeli **maydonma-maydon bir xil** (14 ustun,
+bir xil tip va default, bir xil `@@index([type])`), `QrType` enum ham bir xil.
+Demak to'g'ridan-to'g'ri dump/import ishlaydi:
+
+```bash
+# 1. Yozuvlar
+docker exec qrcode-mysql mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" \
+  --no-create-info --skip-triggers qrcode_pro_db QrCode > /tmp/qr.sql
+mysql -uroot -p spravka < /tmp/qr.sql
+shred -u /tmp/qr.sql          # parol bilan olingan dump — qoldirmang
+
+# 2. Fayllar — yozuvlar ularsiz ma'nosiz: fileUrl/qrImageUrl diskka ishora qiladi
+docker cp qrcode-nginx:/srv/qr/.      /opt/spravka/apps/web-qr/public/qr/
+docker cp qrcode-nginx:/srv/uploads/. /opt/spravka/apps/web-qr/public/uploads/
+chown -R spravka:spravka /opt/spravka/apps/web-qr/public
+
+# 3. Tekshiring — eski QR'lardan bittasini oching, keyin eskisini o'chiring
+```
+
+Eski Docker'ni **darhol o'chirmang**: yangi tarafda eski QR ochilganini
+ko'rmaguningizcha u — yagona nusxangiz.
 
 ## O'rnatish
 
@@ -171,6 +221,49 @@ dotenv emas, ularni boshqacha o'qiydi. `openssl rand -base64 48` xavfsiz.
 ko'tarilmaydi — demak certbot ham ishlay olmaydi, chunki u challenge'ni aynan
 nginx orqali beradi. Klassik "tuxummi-tovuqmi". Shuning uchun avval :80,
 keyin sertifikat, keyin :443.
+
+## E-IMZO: «Режим разработчика» — nima uchun kerak va nimaga tushadi
+
+**Holat.** E-IMZO ichida domenlar ro'yxati bor va u faqat `localhost` bilan
+`127.0.0.1` dan iborat. Boshqa har qanday manzilga u imzo bermaydi:
+
+```
+status: -1022   «API-key для домена rahbar.qrsystem.uz недействителен»
+```
+
+Kod buni ataylab ajratib ko'rsatadi (`packages/shared/src/ui/eimzo.ts`):
+`not-running` — rahbarning o'zi tuzatadi (dasturni yoqadi), `domain-denied` —
+bu **bizning** muammomiz, dasturni qayta yoqish yordam bermaydi.
+
+To'g'ri yechim — NIC'dan shu domen uchun API-KEY olish: **(71) 202-32-32**,
+`info@yt.uz`. Kalit berilgunicha yagona yo'l — har bir rahbarning kompyuterida
+E-IMZO sozlamalarida **«Режим разработчика»** ni yoqish. U domen tekshiruvini
+o'chiradi va imzolash ishlaydi. Prod'da ham ishlayveradi.
+
+### ⚠️ Lekin u tekshiruvni faqat biz uchun emas, HAMMA uchun o'chiradi
+
+Bu belgi qo'yilgan paytda rahbarning kompyuterida ochilgan **istalgan sayt** —
+reklama, phishing havola, tasodifiy sahifa — E-IMZO'ga murojaat qila oladi:
+
+1. `list_all_certificates` — mashinadagi va fleshkadagi barcha kalitlarni
+   sanab chiqadi: kim ekani, qanaqa ЭЦП borligi.
+2. `load_key` — E-IMZO'ning **o'z parol oynasini** ochadi.
+
+Gap shunda: **o'sha oyna kim so'raganini yozmaydi.** Rahbar aynan bizning
+saytimizda ko'radigan oynaning o'zini ko'radi. Parolni tersa — hujumchi ochilgan
+kalitni oladi va `create_pkcs7` bilan **o'zi xohlagan hujjatga** haqiqiy ЭЦП
+qo'yadi. Rahbar o'sha hujjatni umuman ko'rmaydi.
+
+Ya'ni xavf «sayt buziladi» emas — **rahbar nomidan soxta imzolangan hujjat**.
+
+### Rahbarlarga aytilishi kerak bo'lgan gap
+
+- Parolni **faqat** o'zingiz `rahbar.qrsystem.uz` da «Imzolash» ni bosgan
+  zahoti tering. Oyna boshqa paytda chiqsa — **Bekor qiling** va xabar bering.
+- **Fleshkani imzolamayotgan paytda sug'urib qo'ying.** Eng kuchli himoya shu:
+  kalit yo'q bo'lsa, ochadigan narsa ham yo'q.
+- API-KEY kelgach, «Режим разработчика» ni **o'chiring**. Vaqtinchalik chora,
+  doimiy holat emas.
 
 ## Tekshirish
 

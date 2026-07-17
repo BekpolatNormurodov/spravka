@@ -8,9 +8,14 @@
  * the finished signature crosses to us. The key and the password never reach the browser, let
  * alone the server — that is a property of the design, not a promise we keep.
  *
- * Verified against E-IMZO v6.4.7 from an app origin (http://localhost:5103): the socket answers
- * plugin calls with no apikey registration. A public domain may still need a key from NIC —
- * `CAPIWS.apikey(domainAndKey, …)` exists for that — so treat production as unconfirmed.
+ * Verified against E-IMZO v6.4.7. From localhost the socket answers with no apikey registration;
+ * from any other origin it answers -1022 — its built-in allowlist is localhost and 127.0.0.1 and
+ * nothing else, so rahbar.qrsystem.uz is refused until NIC issues a domain API-KEY.
+ *
+ * Until then each rahbar's E-IMZO runs with «Режим разработчика» on, which drops the origin check
+ * — for every site they visit, not just this one. deploy/README.md states what that exposes and
+ * what the rahbars have to be told; the short version is that E-IMZO's password window does not
+ * name who asked for it, so it is the human, not the code, holding that line.
  */
 
 const WS_URL = 'wss://127.0.0.1:64443/service/cryptapi';
