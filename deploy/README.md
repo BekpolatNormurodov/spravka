@@ -86,61 +86,87 @@ config unga tegmaydi.
 ## O'rnatish
 
 ```bash
-# 1. Kod
+# 1. Kod va Node
 git clone <repo> /opt/spravka && cd /opt/spravka
+node -v   # >= 22 kerak. nvm bilan o'rnatmang: systemd'da ProtectHome=true, $HOME ko'rinmaydi.
+          # apt/nodesource orqali o'rnating — binar /usr/bin da bo'lsin.
 
-# Chromium — imzolashda hujjatni PDF qiladi. Brauzerni Puppeteer o'zi yuklaydi,
-# lekin uning tizim kutubxonalari kerak. Bularsiz xato deploy'da emas, birinchi
-# "Imzolash" bosilganda chiqadi.
-apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-                   libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
-                   libxrandr2 libgbm1 libasound2 libpango-1.0-0 libcairo2
-
-# Puppeteer keshi $HOME'da emas, app daraxtida — systemd'da ProtectHome=true.
-export PUPPETEER_CACHE_DIR=/opt/spravka/.cache/puppeteer
+# Chromium — imzolashda hujjatni PDF qiladi. Kutubxonalarini apt bilan qo'lda
+# sanamaymiz: Ubuntu 24.04 ularning yarmini t64 qo'shimchasi bilan qayta nomlagan
+# (libasound2 -> libasound2t64 va h.k.), va apt bitta noto'g'ri nom uchun
+# HECH NARSA o'rnatmaydi. Puppeteer o'zining ro'yxatini biladi.
+export PUPPETEER_CACHE_DIR=/opt/spravka/.cache/puppeteer   # $HOME'da emas — ProtectHome
 npm ci
+npx puppeteer browsers install chrome --install-deps
+
+# 2. ROOT .env — db:push shundan DATABASE_URL ni oladi, ya'ni bazadan OLDIN.
+#    .env.example dan nusxa olsangiz, DATABASE_URL portini almashtiring:
+#    3310 — bu docker'dagi dev bazasi. Serverda native MySQL, ya'ni 3306.
+cp .env.example .env && nano .env
+
+# 3. Baza
 npm run db:generate && npm run db:push && npm run db:seed
 
-# 2. Har bir app uchun .env (PORT ni ham yozing — systemd shundan oladi)
-#    DATABASE_URL, AUTH_SECRET, NEXT_PUBLIC_PUBLIC_URL, PORT, CERT_STORAGE_DIR
-#    NEXT_PUBLIC_PUBLIC_URL="https://qrsystem.uz" — BUILD'DAN OLDIN to'g'ri bo'lsin,
-#    u kodga qotib qoladi (yuqoridagi bo'limga qarang).
+# 4. Har bir app uchun .env — quyidagi jadvalga qarang. NEXT_PUBLIC_* ni
+#    BUILD'DAN OLDIN to'g'ri qo'ying, u kodga qotib qoladi.
 
-# 2b. Imzolangan hujjatlar ombori (CERT_STORAGE_DIR)
+# 4b. Imzolangan hujjatlar ombori (CERT_STORAGE_DIR)
 mkdir -p /var/lib/spravka/storage
 chown -R spravka:spravka /var/lib/spravka
 
-# 2c. web-qr runtime'da shu ikkisiga yozadi (systemd'da ReadWritePaths ochilgan)
+# 4c. web-qr runtime'da shu ikkisiga yozadi (systemd'da ReadWritePaths ochilgan)
 mkdir -p /opt/spravka/apps/web-qr/public/uploads /opt/spravka/apps/web-qr/public/qr
 
-# 3. Build — beshalasi ham
+# 5. Build — beshalasi ham
 npm run build -w @spravka/web-qr
 npm run build -w @spravka/web-yurist
 npm run build -w @spravka/web-admin
 npm run build -w @spravka/web-rahbar
 npm run build -w @spravka/web-public
 
-# 4. Servislar
+# 6. Servislar
 useradd -r -s /usr/sbin/nologin spravka || true
 chown -R spravka:spravka /opt/spravka
 cp deploy/systemd/spravka@.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now spravka@public spravka@yurist spravka@admin spravka@rahbar spravka@qr
 
-# 5. nginx — AVVAL faqat :80 (sertifikat hali yo'q)
+# 7. nginx — AVVAL faqat :80 (sertifikat hali yo'q)
 cp deploy/nginx/snippets/spravka-proxy.conf /etc/nginx/snippets/
 cp deploy/nginx/spravka-http.conf /etc/nginx/conf.d/
 nginx -t && systemctl reload nginx
 
-# 6. SSL (faqat 80-port ochilgandan keyin!)
+# 8. SSL (faqat 80-port ochilgandan keyin!)
 bash deploy/setup-ssl.sh
 
-# 7. Sertifikat olingach — endi :443
+# 9. Sertifikat olingach — endi :443
 cp deploy/nginx/spravka-ssl.conf /etc/nginx/conf.d/
 nginx -t && systemctl reload nginx
 ```
 
-**5 va 7-qadam nega ajratilgan:** `spravka-ssl.conf` ichida
+## Har bir app uchun `.env`
+
+Kod **sakkizta** o'zgaruvchi o'qiydi. Quyidagi jadval — yagona to'liq ro'yxat.
+
+| O'zgaruvchi | Kimga | Prod qiymati | Qo'yilmasa |
+|---|---|---|---|
+| `DATABASE_URL` | hammasi | `mysql://user:pass@localhost:3306/spravka` | Prisma yiqiladi (**baland**) |
+| `AUTH_SECRET` | hammasi | `openssl rand -base64 48` | prod'da **ishga tushmaydi** — ataylab |
+| `PORT` | hammasi | qr 5000 · public 5100 · yurist 5101 · admin 5102 · rahbar 5103 | systemd `-p` ni bo'sh beradi → **crash loop → 502** |
+| `CERT_STORAGE_DIR` | rahbar, public, admin | `/var/lib/spravka/storage` | imzolashda yiqiladi (**baland**) |
+| `NEXT_PUBLIC_PUBLIC_URL` | rahbar, public, yurist, admin | `https://qrsystem.uz` | prod'da **rad etiladi** — ataylab |
+| `NEXT_PUBLIC_APP_URL` | **qr** | `https://bright.qrsystem.uz` | prod'da **rad etiladi** — ataylab |
+| `ADMIN_USERNAME` | **qr** | (tanlaysiz) | login **jimgina** har doim rad etadi |
+| `ADMIN_PASSWORD` | **qr** | (tanlaysiz) | login **jimgina** har doim rad etadi |
+
+Oxirgi uchtasi faqat **web-qr** ga tegishli va ilgari bu ro'yxatda umuman yo'q edi.
+`ADMIN_USERNAME`/`ADMIN_PASSWORD` **jimgina** yiqiladi: `bright.qrsystem.uz` har
+qanday to'g'ri parolga ham "parol xato" deydi va logda hech narsa qolmaydi.
+
+`AUTH_SECRET` da `#` yoki `$` bo'lmasin — systemd'ning `EnvironmentFile` parseri
+dotenv emas, ularni boshqacha o'qiydi. `openssl rand -base64 48` xavfsiz.
+
+**7 va 9-qadam nega ajratilgan:** `spravka-ssl.conf` ichida
 `/etc/letsencrypt/live/...` fayllari ko'rsatilgan. Ular yo'q bo'lsa nginx umuman
 ko'tarilmaydi — demak certbot ham ishlay olmaydi, chunki u challenge'ni aynan
 nginx orqali beradi. Klassik "tuxummi-tovuqmi". Shuning uchun avval :80,
