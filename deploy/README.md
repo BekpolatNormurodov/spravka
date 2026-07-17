@@ -133,7 +133,38 @@ chown -R spravka:spravka /opt/spravka/apps/web-qr/public
 Eski Docker'ni **darhol o'chirmang**: yangi tarafda eski QR ochilganini
 ko'rmaguningizcha u — yagona nusxangiz.
 
-## O'rnatish
+## Skriptlar
+
+Uchtasi, ataylab alohida — har biri boshqa narsani kutadi:
+
+| Skript | Qachon | Nima kutadi |
+|---|---|---|
+| `deploy/init.sh` | bir marta, o'rnatishda | MySQL va Node tayyor |
+| `deploy/setup-ssl.sh` | :80 ochilgach | FortiGate port forward |
+| `deploy/update.sh` | har yangilanishda | init.sh o'tgan |
+
+```bash
+# O'rnatish (bir marta)
+git clone https://github.com/BekpolatNormurodov/spravka.git /opt/spravka
+cd /opt/spravka
+DATABASE_URL="mysql://spravka:PAROL@localhost:3306/spravka" bash deploy/init.sh
+
+# Yangilash (har safar)
+cd /opt/spravka && bash deploy/update.sh
+```
+
+`init.sh` har bir app uchun `.env` ni **o'zi yozadi** — `PORT`, `AUTH_SECRET`,
+`NEXT_PUBLIC_*`, `CERT_STORAGE_DIR`. Qo'lda `nano` qilish shart emas va shart
+emasligi maqsad: `PORT` unutilsa systemd `-p` ni bo'sh beradi va app 502 ortida
+aylanaveradi. Mavjud `.env` ustidan **yozmaydi** — qayta yurgizish xavfsiz.
+
+`update.sh` **saytni bir necha daqiqaga to'xtatadi, ataylab**: `npm ci`
+`node_modules` ni o'chirib qayta yozadi, `next build` esa ishlab turgan `.next`
+ustidan yozadi. Tirik app ostida bu toza yiqilmaydi — keyinroq, tasodifiy
+so'rovda yiqiladi. Va **har qanday xatoda eski commit'ga qaytaradi**: qayta
+build qilib, qayta ko'taradi. Sinaldi: yuqori darajadagi yiqilishda tuzoq otadi.
+
+## O'rnatish — qo'lda (init.sh nima qilishini bilish uchun)
 
 ```bash
 # 1. Kod va Node
