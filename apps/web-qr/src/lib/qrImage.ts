@@ -14,9 +14,25 @@ export interface QrStyle {
  * dashboard shows and the link baked into the PNG must never disagree. The
  * dashboard used to keep its own copy that fell back to :3000 — qrcode-pro's old
  * port — so with NEXT_PUBLIC_APP_URL unset the two silently pointed elsewhere.
+ *
+ * The localhost default is now refused in production. Unifying the two copies fixed them
+ * disagreeing with each other; it left them free to agree on the wrong answer. This string is
+ * encoded into a PNG that gets printed and handed out, and Next inlines NEXT_PUBLIC_* at build
+ * time — so an unset var means a batch of QR codes pointing at localhost, found only when someone
+ * scans one, and by then the paper is gone. Refusing to render is recoverable; printed is not.
  */
 export function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5000";
+  const base = process.env.NEXT_PUBLIC_APP_URL;
+  if (!base) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "NEXT_PUBLIC_APP_URL is not set — refusing to print a QR that points at localhost. " +
+          "Next inlines it at build time, so set it before `next build`, not before `next start`.",
+      );
+    }
+    return "http://localhost:5000";
+  }
+  return base.replace(/\/$/, "");
 }
 
 /**

@@ -2,9 +2,28 @@
 // edge-runtime bundle (middleware). Edge-safe logic stays on `@spravka/shared/core`.
 import QRCode from 'qrcode';
 
-/** Public verification URL for a certificate id. */
+/**
+ * Public verification URL for a certificate id.
+ *
+ * The localhost default is refused in production, because of what this string becomes: it is
+ * encoded into a QR, printed onto a maʼlumotnoma and frozen into the stored PDF. A missing env
+ * var used to yield `http://localhost:5100/m/...` silently — every document from that build
+ * carrying a QR that resolves to nothing, discovered whenever someone first scans one, and
+ * unfixable then. An issued document cannot be re-printed.
+ *
+ * Refusing to render is recoverable. A wrong URL on paper is not.
+ */
 export function certPublicUrl(id: string, baseUrl?: string): string {
-  const base = baseUrl ?? process.env.NEXT_PUBLIC_PUBLIC_URL ?? 'http://localhost:5100';
+  const base = baseUrl ?? process.env.NEXT_PUBLIC_PUBLIC_URL;
+  if (!base) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'NEXT_PUBLIC_PUBLIC_URL is not set — refusing to print a QR that points at localhost. ' +
+          'Next inlines it at build time, so set it before `next build`, not before `next start`.',
+      );
+    }
+    return `http://localhost:5100/m/${id}`;
+  }
   return `${base.replace(/\/$/, '')}/m/${id}`;
 }
 
