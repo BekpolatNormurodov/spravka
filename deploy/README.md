@@ -155,7 +155,13 @@ npx puppeteer browsers install chrome --install-deps
 cp .env.example .env && nano .env
 
 # 3. Baza
-npm run db:generate && npm run db:push && npm run db:seed
+#    SEED_PASSWORD majburiy: seed'dagi demo parol repoda YOZILGAN va repo ochiq.
+#    Usiz `rahbar` — imzolaydigan akkaunt — repo o'qigan har kimga ochiq bo'lardi.
+#    Qo'yilmasa seed ishlamaydi, bu ataylab.
+npm run db:generate && npm run db:push
+SEED_PASSWORD="$(openssl rand -base64 18)" npm run db:seed
+#    ^ chiqqan parolni saqlab qo'ying: `yurist`, `admin`, `rahbar` shu parol bilan kiradi.
+#      Birinchi kirgandan keyin har biri o'zinikini qo'ysin.
 
 # 4. Har bir app uchun .env — quyidagi jadvalga qarang. NEXT_PUBLIC_* ni
 #    BUILD'DAN OLDIN to'g'ri qo'ying, u kodga qotib qoladi.
@@ -196,10 +202,12 @@ nginx -t && systemctl reload nginx
 
 ## Har bir app uchun `.env`
 
-Kod **sakkizta** o'zgaruvchi o'qiydi. Quyidagi jadval — yagona to'liq ro'yxat.
+Kod **to'qqizta** o'zgaruvchi o'qiydi. Quyidagi jadval — yagona to'liq ro'yxat.
+(`SEED_PASSWORD` app'niki emas — u faqat `db:seed` paytida, bir marta kerak.)
 
 | O'zgaruvchi | Kimga | Prod qiymati | Qo'yilmasa |
 |---|---|---|---|
+| `SEED_PASSWORD` | `db:seed` | `openssl rand -base64 18` | prod'da **seed ishlamaydi** — ataylab |
 | `DATABASE_URL` | hammasi | `mysql://user:pass@localhost:3306/spravka` | Prisma yiqiladi (**baland**) |
 | `AUTH_SECRET` | hammasi | `openssl rand -base64 48` | prod'da **ishga tushmaydi** — ataylab |
 | `PORT` | hammasi | qr 5000 · public 5100 · yurist 5101 · admin 5102 · rahbar 5103 | systemd `-p` ni bo'sh beradi → **crash loop → 502** |

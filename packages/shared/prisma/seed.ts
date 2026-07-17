@@ -1,6 +1,6 @@
 import { prisma } from '../src/db/index';
 import { Role } from '../src/core/index';
-import { hashPassword } from '../src/core/password';
+import { hashPassword, seedPassword } from '../src/core/password';
 
 /**
  * Real firms.
@@ -177,6 +177,11 @@ const FIRMS = [
 ];
 
 async function main() {
+  // Before any write. This throws in production when SEED_PASSWORD is unset, and the block below
+  // upserts nine firms and DELETES the stale ones — so checking it where the password is actually
+  // used would leave a half-seeded database behind on the way out.
+  const pw = seedPassword();
+
   for (const f of FIRMS) {
     await prisma.firm.upsert({ where: { id: f.id }, update: f, create: f });
   }
@@ -196,7 +201,7 @@ async function main() {
     }
   }
 
-  const pass = await hashPassword('parol123');
+  const pass = await hashPassword(pw);
   const users = [
     { login: 'yurist', fullName: 'Yurist Foydalanuvchi', role: Role.YURIST, position: 'Yurist' },
     { login: 'admin', fullName: 'Admin Foydalanuvchi', role: Role.ADMIN, position: 'Administrator' },
@@ -207,7 +212,7 @@ async function main() {
     await prisma.user.upsert({
       where: { login: u.login },
       update: { fullName: u.fullName, role: u.role, position: u.position, firmId: (u as { firmId?: string }).firmId ?? null },
-      create: { ...u, passwordHash: pass, plainPassword: 'parol123' },
+      create: { ...u, passwordHash: pass, plainPassword: pw },
     });
   }
 
