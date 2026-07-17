@@ -8,9 +8,9 @@
 # qrcode-pro is not here: it stays on the old server with its own database and keeps
 # bright.qrsystem.uz. Two machines, two databases, nothing shared. See deploy/README.md.
 #
-# Does NOT do nginx or TLS — deploy/setup-ssl.sh and the two nginx configs, separate because those
-# wait on DNS pointing here and :80 being open, neither of which is this box's decision. The apps
-# come up on 127.0.0.1 regardless, so you can test before the certificate exists.
+# Does NOT issue the certificate — that is deploy/init-letsencrypt.sh, kept separate because it
+# waits on DNS pointing here and :80 being reachable, neither of which is this box's decision. The
+# apps come up on 127.0.0.1 regardless, so the system can be tested before TLS exists.
 set -Eeuo pipefail
 
 # Where the repo actually is, worked out from this file — not a hardcoded /opt/spravka. The path is
@@ -30,11 +30,15 @@ cd "$ROOT"
 echo "    repo: $ROOT"
 docker compose version >/dev/null 2>&1 || die "docker compose yo'q: https://docs.docker.com/engine/install/"
 
-# Ports 5100-5103 must be free. Something already holding one is not a warning: compose would fail
-# to publish it and the app would be up-but-unreachable, which reads exactly like a broken build.
-for p in 5100 5101 5102 5103; do
+# These must be free. Something already holding one is not a warning: compose fails to publish it
+# and the app comes up unreachable, which reads exactly like a broken build and is not one.
+# 80/443 matter most — a host nginx or apache installed by habit will hold them and the failure
+# arrives later, during init-letsencrypt.sh, looking like a certificate problem.
+for p in 80 443 5100 5101 5102 5103; do
   if ss -tln 2>/dev/null | grep -q ":$p "; then
-    die "$p port band. Kim egallagani: ss -tlnp | grep :$p"
+    echo "    $p portini kim egallagan:"
+    ss -tlnp 2>/dev/null | grep ":$p " | sed 's/^/      /'
+    die "$p port band. Host nginx bo'lsa: systemctl disable --now nginx"
   fi
 done
 
@@ -84,7 +88,10 @@ users="$(docker compose run --rm --no-deps -T public node -e \
 docker compose run --rm --no-deps -T public npm run db:seed
 
 say "Ishga tushirilmoqda"
-docker compose up -d
+# Not nginx: it needs a certificate to exist before it will start, and init-letsencrypt.sh writes
+# a dummy one for exactly that. Bringing it up here would fail on a missing file and make the
+# whole run look broken when the apps are fine.
+docker compose up -d mysql public yurist admin rahbar
 sleep 5
 
 say "Holat"
@@ -113,14 +120,15 @@ fi
 
 cat <<'EOF'
 
-Keyingi qadam — nginx va sertifikat (alohida, chunki :80 ochilishini kutadi):
+App'lar tayyor. nginx hali koʻtarilmagan — unga sertifikat kerak.
 
-  cp deploy/nginx/snippets/spravka-proxy.conf /etc/nginx/snippets/
-  cp deploy/nginx/spravka-http.conf /etc/nginx/conf.d/
-  nginx -t && systemctl reload nginx
-  bash deploy/setup-ssl.sh
-  cp deploy/nginx/spravka-ssl.conf /etc/nginx/conf.d/
-  nginx -t && systemctl reload nginx
+Keyingi qadam, DNS shu serverga qaragandan keyin:
+
+  sudo bash deploy/init-letsencrypt.sh
+
+U dummy sertifikat yozadi (nginx koʻtarilishi uchun), :80 ni tekshiradi,
+haqiqiy sertifikat oladi va nginx'ni reload qiladi. Yangilanish keyin
+avtomatik — certbot konteyneri har 12 soatda, nginx har 6 soatda reload.
 
 Shundan keyin:
   qrsystem.uz          -> public  (chop etilgan QR ochadigan sahifa)

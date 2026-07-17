@@ -23,6 +23,10 @@ node_modules
 storage
 *.bundle
 
+# certbot's live certificate and private key. Mounted into nginx at runtime; baking them into an
+# image layer would put a private key inside something that gets pushed and shared.
+deploy/nginx/certs
+
 $OUT
 .claude
 *.log

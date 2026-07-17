@@ -6,6 +6,11 @@ build/
 .env.local
 *.log
 
+# TLS material. certbot writes the live certificate AND its private key here (the compose mounts
+# this directory as /etc/letsencrypt), so it is a private key sitting in the working tree of a
+# public repository. Never commit it. init-letsencrypt.sh recreates everything in it.
+deploy/nginx/certs/
+
 # TS incremental build cache
 *.tsbuildinfo
 scripts-tmp-*.ts

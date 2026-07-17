@@ -6,7 +6,7 @@ ikki mashinada: umumiy port ham, baza ham, volume ham yo'q.
 
 ## ⛔ Avval: DNS yangi serverga qaratilsin
 
-`setup-ssl.sh` beshta nom uchun sertifikat so'raydi. certbot har biri uchun
+`init-letsencrypt.sh` beshta nom uchun sertifikat so'raydi. certbot har biri uchun
 `:80` ga so'rov yuboradi — **bitta nom javob bermasa, butun so'rov rad etiladi**,
 ya'ni beshtasi ham olinmaydi.
 
@@ -48,7 +48,7 @@ curl -I http://<yangi-IP>/       # TASHQI tarmoqdan
 ufw status
 ```
 
-Yopiq bo'lsa `setup-ssl.sh` o'zi to'xtaydi va qaysi nom yiqilganini aytadi —
+Yopiq bo'lsa `init-letsencrypt.sh` o'zi to'xtaydi va qaysi nom yiqilganini aytadi —
 certbot chaqirilmaydi. Bu ataylab: Let's Encrypt haftasiga 5 ta dublikatga
 ruxsat beradi va limitni yoqib yuborsangiz kunlab kutasiz.
 
@@ -102,7 +102,7 @@ qoladi va bu configlarga umuman kirmaydi.
 > saqlaydi, ma'lumoti bilan birga.
 >
 > Agar keyinchalik qrcode ham shu serverga ko'chsa: DNS'ni burib, `bright` ni
-> `setup-ssl.sh` dagi `DOMAINS` ga qo'shing va sertifikatni qayta oling. Undan
+> `init-letsencrypt.sh` dagi `DOMAINS` ga qo'shing va sertifikatni qayta oling. Undan
 > oldin emas — nom eski IP'ga hal bo'lib turganda uni so'rash **qolgan
 > to'rttasining sertifikatini ham yiqitadi**.
 
@@ -113,27 +113,61 @@ Uchtasi, ataylab alohida — har biri boshqa narsani kutadi:
 | Skript | Qachon | Nima kutadi |
 |---|---|---|
 | `deploy/init.sh` | bir marta | Docker |
-| `deploy/setup-ssl.sh` | DNS burilib, :80 ochilgach | **DNS + tarmoq** |
+| `deploy/init-letsencrypt.sh` | DNS burilib, :80 ochilgach | **DNS + tarmoq** |
 | `deploy/update.sh` | har yangilanishda | init.sh o'tgan |
 
 Birlashtirsak, app'larni ko'tarish ham DNS'ni kutib qolardi. Ular alohida
 bo'lgani uchun `init.sh` ni hoziroq yurgizib, tizimni `127.0.0.1` da sinab
 ko'rsangiz bo'ladi — sertifikat keyin keladi.
 
+## nginx va certbot — compose ichida
+
+`credit-core` dagi naqsh: nginx konteynerda, 80/443 ni o'zi ushlaydi va TLS'ni
+o'zi yechadi. **Host'da nginx kerak emas** — aksincha, o'rnatilgan bo'lsa
+80/443 ni band qiladi va `init.sh` shuni aytib to'xtaydi.
+
+`init-letsencrypt.sh` "tuxummi-tovuqmi" ni dummy sertifikat bilan yechadi:
+
+1. Bir kunlik self-signed sertifikat yoziladi — **nginx shusiz umuman
+   ko'tarilmaydi** (`ssl_certificate` yo'q faylni ko'rsatsa, `[emerg]`)
+2. nginx ko'tariladi va `:80` da ACME challenge'ni bera boshlaydi
+3. Preflight: har bir nomga tashqaridan so'rov — bittasi javob bermasa to'xtaydi
+4. Dummy o'chiriladi, haqiqiy sertifikat olinadi
+5. `nginx -s reload`
+
+**Yangilanish avtomatik va bu yerda bitta muhim tafsilot bor:**
+
+```yaml
+certbot:  har 12 soatda  certbot renew
+nginx:    har 6 soatda   nginx -s reload
+```
+
+Ikkinchisisiz birinchisi **foydasiz**: certbot yangi sertifikatni diskka
+yozadi, nginx esa ishga tushganda o'qigan eskisini xotirada ushlab turaveradi.
+Natijada 60 kunda renew "muvaffaqiyatli" bo'lib turadi va **90-kuni hamma sayt
+"sertifikat eskirgan" deydi** — diskda haqiqiysi yotgan holda.
+
+> `credit-core` da aynan shu qator yo'q. U yerda ham tekshirib ko'ring.
+
 ```bash
-# O'rnatish (bir marta)
-git clone https://github.com/BekpolatNormurodov/spravka.git /opt/spravka
-cd /opt/spravka
-bash deploy/init.sh
+# O'rnatish (bir marta) — qayerga clone qilsangiz ham
+git clone https://github.com/BekpolatNormurodov/spravka.git
+cd spravka
+sudo bash deploy/init.sh
+# DNS burilgach:
+sudo bash deploy/init-letsencrypt.sh
 
 # Yangilash (har safar)
-cd /opt/spravka && bash deploy/update.sh
+sudo bash deploy/update.sh
 ```
+
+Skriptlar repo'ni o'zi topadi (`BASH_SOURCE`), ya'ni `/opt/spravka` shart emas —
+`~/spravka` ham bo'laveradi.
 
 `init.sh` — `.env` ni o'zi yozadi va parollarni generatsiya qiladi
 (`MYSQL_ROOT_PASSWORD`, `AUTH_SECRET`, `SEED_PASSWORD`). Mavjud `.env` ustidan
-**yozmaydi**, qayta yurgizish xavfsiz. Ishga tushishida qrcode-pro
-konteynerlarini sanab ko'rsatadi — "tegilmadi" deb aytish uchun.
+**yozmaydi**, qayta yurgizish xavfsiz. 80/443/5100-5103 band bo'lsa to'xtaydi —
+host'da nginx o'rnatilgan bo'lsa aynan shu chiqadi.
 
 `update.sh` — `git pull` → `docker compose build` → `db push` → `up -d`, keyin
 har bir portga **so'rov yuborib** tekshiradi. Konteyner "up" bo'lishi sog'liq
@@ -157,10 +191,10 @@ docker compose up -d --build         # qayta build (NEXT_PUBLIC_* o'zgarsa SHART
 ⚠️ `NEXT_PUBLIC_PUBLIC_URL` ni `.env` da o'zgartirib **restart qilish hech
 narsa bermaydi** — u `next build` da kodga inline bo'ladi, ya'ni `--build` kerak.
 
-## Eski, systemd varianti
-
-`deploy/systemd/spravka@.service` — Docker'gacha bo'lgan yo'l. Serverda Docker
-ishlatilyapti, bu fayl faqat ma'lumot uchun qoldirilgan.
+```bash
+docker compose logs -f nginx         # sertifikat/proxy muammolari
+docker compose logs certbot          # yangilanish nima deganini ko'rish
+```
 
 ## `.env` — bitta fayl, `docker-compose.yml` yonida
 
@@ -188,11 +222,8 @@ o'zgarmaydi** — `docker compose up -d --build` kerak. Noto'g'ri qiymat bilan
 chiqarilgan hujjatlarning QR'i esa **abadiy noto'g'ri**: PDF muzlatilgan va
 qayta chop etib bo'lmaydi.
 
-**nginx nega ikki bosqichda:** `spravka-ssl.conf` ichida
-`/etc/letsencrypt/live/...` fayllari ko'rsatilgan. Ular yo'q bo'lsa nginx umuman
-ko'tarilmaydi — demak certbot ham ishlay olmaydi, chunki u challenge'ni aynan
-nginx orqali beradi. Klassik "tuxummi-tovuqmi": avval `:80`, keyin sertifikat,
-keyin `:443`.
+`CERTBOT_EMAIL` — ixtiyoriy, `init-letsencrypt.sh` da default bor. Sertifikat
+eskirishidan oldin Let's Encrypt shu manzilga ogohlantirish yuboradi.
 
 ## E-IMZO: «Режим разработчика» — nima uchun kerak va nimaga tushadi
 
@@ -240,11 +271,19 @@ Ya'ni xavf «sayt buziladi» emas — **rahbar nomidan soxta imzolangan hujjat**
 ## Tekshirish
 
 ```bash
-docker compose ps                          # to'rtala app + mysql
-ss -tlnp | grep -E '510[0-3]'              # faqat 127.0.0.1 da bo'lishi kerak
-certbot certificates
+docker compose ps                                    # 4 app + mysql + nginx + certbot
+ss -tlnp | grep -E '510[0-3]'                        # faqat 127.0.0.1 da bo'lishi kerak
+docker compose run --rm --entrypoint "certbot certificates" certbot
 curl -I https://yurist.qrsystem.uz/
-curl -I https://qrsystem.uz/               # QR shu yerga tushadi
+curl -I https://qrsystem.uz/                         # QR shu yerga tushadi
+```
+
+Sertifikat qachon eskirishini va nginx **aynan qaysi nusxani berayotganini**
+solishtiring — ular ajralib qolishi mumkin bo'lgan yagona joy shu:
+
+```bash
+echo | openssl s_client -connect qrsystem.uz:443 -servername qrsystem.uz 2>/dev/null \
+  | openssl x509 -noout -dates -subject
 ```
 
 `bright.qrsystem.uz` bu serverda emas — u eski mashinada, o'z Docker'ida.
@@ -280,7 +319,7 @@ Volume nomi `<papka>_cert_storage` — `/opt/spravka` da bo'lsangiz
   `host_ip` siz yozilgan port firewall yoqilgan holda ham LAN'ga ochiq bo'lardi.
 - MySQL umuman port ochmaydi — unga faqat compose tarmog'idan kiriladi.
 - Sertifikat bitta — barcha nom SAN sifatida `/etc/letsencrypt/live/qrsystem.uz/`
-  ichida. Yangi domen qo'shsangiz `setup-ssl.sh` ni qayta ishga tushiring.
+  ichida. Yangi domen qo'shsangiz `init-letsencrypt.sh` ni qayta ishga tushiring.
 - `certbot.timer` avtomatik yangilaydi; yangilanish ham 80-portni talab qiladi,
   shuning uchun `:80` bloki doim turishi kerak.
 
