@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# First-time setup, Docker. Run once as root from /opt/spravka:
+# First-time setup, Docker. Run once as root, from anywhere in the repo:
 #
-#   bash deploy/init.sh
+#   sudo bash deploy/init.sh
 #
 # Idempotent — safe to re-run. Never overwrites .env, never resets a password that already exists.
 #
@@ -13,7 +13,11 @@
 # come up on 127.0.0.1 regardless, so you can test before the certificate exists.
 set -Eeuo pipefail
 
-ROOT="/opt/spravka"
+# Where the repo actually is, worked out from this file — not a hardcoded /opt/spravka. The path is
+# not the script's to dictate, and an earlier version that did refused to run on a clone in $HOME
+# while telling the operator to clone the repo they were standing in. Works from the repo root
+# (`bash deploy/init.sh`) or from inside deploy/ (`bash init.sh`).
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APPS="public:5100 yurist:5101 admin:5102 rahbar:5103"
 
 say() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
@@ -21,8 +25,9 @@ die() { printf '\n\033[31mXATO: %s\033[0m\n' "$1" >&2; exit 1; }
 
 say "Preflight"
 [ "$(id -u)" -eq 0 ] || die "root kerak: sudo bash deploy/init.sh"
-[ -f "$ROOT/docker-compose.yml" ] || die "$ROOT da kod yo'q. Avval: git clone <repo> $ROOT"
+[ -f "$ROOT/docker-compose.yml" ] || die "$ROOT — spravka repo emas (docker-compose.yml yo'q)"
 cd "$ROOT"
+echo "    repo: $ROOT"
 docker compose version >/dev/null 2>&1 || die "docker compose yo'q: https://docs.docker.com/engine/install/"
 
 # Ports 5100-5103 must be free. Something already holding one is not a warning: compose would fail

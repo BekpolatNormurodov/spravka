@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Update to the latest master. Run as root from /opt/spravka:
+# Update to the latest master. Run as root, from anywhere in the repo:
 #
-#   bash deploy/update.sh
+#   sudo bash deploy/update.sh
 #
 # Rolls back to the image that was running before if anything fails, so a bad deploy ends where it
 # started. qrcode-pro is on the old server and is not affected by anything here.
@@ -10,15 +10,18 @@
 # drop the rollback silently — correct-looking script, half-updated box, on the one run it mattered.
 set -Eeuo pipefail
 
-ROOT="/opt/spravka"
+# Worked out from this file, not hardcoded: the repo lives wherever it was cloned, and a path
+# baked in here only produces a script that refuses to run in the directory it is sitting in.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APPS="public:5100 yurist:5101 admin:5102 rahbar:5103"
 
 say()  { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
 warn() { printf '\033[33m    %s\033[0m\n' "$1"; }
 die()  { printf '\n\033[31mXATO: %s\033[0m\n' "$1" >&2; exit 1; }
 
-[ -f "$ROOT/docker-compose.yml" ] || die "$ROOT topilmadi"
+[ -f "$ROOT/docker-compose.yml" ] || die "$ROOT — spravka repo emas (docker-compose.yml yo'q)"
 cd "$ROOT"
+echo "    repo: $ROOT"
 docker compose version >/dev/null 2>&1 || die "docker compose yo'q"
 [ -f .env ] || die ".env yo'q — avval: cp .env.docker.example .env && nano .env"
 
