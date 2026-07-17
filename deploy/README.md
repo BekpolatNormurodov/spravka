@@ -74,7 +74,8 @@ DNS'da allaqachon IP'ga hal bo'ladi.
   qoladi, chunki PDF muzlatilgan va qayta chop etib bo'lmaydi.
 
 ```bash
-NEXT_PUBLIC_PUBLIC_URL="https://qrsystem.uz"   # har bir app'ning .env'ida
+NEXT_PUBLIC_PUBLIC_URL=https://qrsystem.uz    # ildizdagi bitta .env — compose uni
+                                              # build ARGUMENTI sifatida uzatadi
 ```
 
 ⚠️ **Avval `:5000` (web-qr) turgan edi — o'sha appda `/m/` marshruti umuman
@@ -82,56 +83,30 @@ yo'q.** O'sha qiymat bilan chiqarilgan har bir QR 404 ga olib boradi. Prod'ga
 chiqishdan oldin `.env` ni tekshiring, va agar shu holatda hujjat chiqarilgan
 bo'lsa — ularning QR'i tuzalmaydi.
 
-## Tuzilma
+## Tuzilma — 4 ta app, qrcode alohida
 
-| Domen | → | Port | App |
+| Domen | → | Port | Nima |
 |---|---|---|---|
-| `qrsystem.uz`, `www.qrsystem.uz` | | `127.0.0.1:5100` | web-public |
-| `yurist.qrsystem.uz` | | `127.0.0.1:5101` | web-yurist |
-| `admin.qrsystem.uz` | | `127.0.0.1:5102` | web-admin |
-| `rahbar.qrsystem.uz` | | `127.0.0.1:5103` | web-rahbar |
-| `bright.qrsystem.uz`, `www.bright...` | | `127.0.0.1:5000` | web-qr |
+| `qrsystem.uz`, `www.qrsystem.uz` | | `127.0.0.1:5100` | spravka **public** |
+| `yurist.qrsystem.uz` | | `127.0.0.1:5101` | spravka **yurist** |
+| `admin.qrsystem.uz` | | `127.0.0.1:5102` | spravka **admin** |
+| `rahbar.qrsystem.uz` | | `127.0.0.1:5103` | spravka **rahbar** |
+| `bright.qrsystem.uz`, `www.bright...` | | `127.0.0.1:8090` | **qrcode-pro — bizniki emas** |
 
-## ⚠️ `bright.qrsystem.uz` — bu ko'chirish, "tegmaydi" emas
+Ikkala tizim bir serverda, lekin **hech nimani baham ko'rmaydi**:
 
-Bu yerda ilgari "bright.qrsystem.uz — mavjud qrcode-pro, bu config unga
-tegmaydi" deb yozilgan edi. **Bu noto'g'ri.** `spravka-ssl.conf` o'rnatilgan
-lahzada `bright.qrsystem.uz` **spravka'ning o'z `web-qr` iga** (`:5000`)
-o'tadi. Eski qrcode-pro (Docker, `:8090`) o'z-o'zicha ishlab turaveradi, lekin
-tashqaridan unga hech kim kirmaydi.
+| | Compose | Baza | Port |
+|---|---|---|---|
+| qrcode-pro | o'zining | `qrcode_pro_db` | nginx 8090, mysql 3308 |
+| spravka | `docker-compose.yml` | `spravka` (volume) | 5100–5103, mysql ochilmagan |
 
-Muhimi — **ular boshqa-boshqa bazada**:
+`bright.qrsystem.uz` uchun biz **faqat TLS qo'shamiz**: host nginx sertifikatni
+yechib, qrcode-pro'ning o'z nginx'iga (`127.0.0.1:8090`) uzatadi. Kodiga ham,
+bazasiga ham, fayllariga ham tegilmaydi. Eski QR'lar ishlayveradi.
 
-| | Baza | Port |
-|---|---|---|
-| qrcode-pro | `qrcode_pro_db` | `3308` (Docker MySQL) |
-| spravka web-qr | `spravka` | `3306` (native MySQL) |
-
-Ya'ni ko'chirmasdan yo'naltirsangiz, **ilgari chop etilgan har bir QR 404
-beradi** — yozuvlari eski bazada qolib ketadi. Chop etilgan QR'ni qaytarib
-bo'lmaydi.
-
-Yaxshi xabar: ikkala `QrCode` modeli **maydonma-maydon bir xil** (14 ustun,
-bir xil tip va default, bir xil `@@index([type])`), `QrType` enum ham bir xil.
-Demak to'g'ridan-to'g'ri dump/import ishlaydi:
-
-```bash
-# 1. Yozuvlar
-docker exec qrcode-mysql mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" \
-  --no-create-info --skip-triggers qrcode_pro_db QrCode > /tmp/qr.sql
-mysql -uroot -p spravka < /tmp/qr.sql
-shred -u /tmp/qr.sql          # parol bilan olingan dump — qoldirmang
-
-# 2. Fayllar — yozuvlar ularsiz ma'nosiz: fileUrl/qrImageUrl diskka ishora qiladi
-docker cp qrcode-nginx:/srv/qr/.      /opt/spravka/apps/web-qr/public/qr/
-docker cp qrcode-nginx:/srv/uploads/. /opt/spravka/apps/web-qr/public/uploads/
-chown -R spravka:spravka /opt/spravka/apps/web-qr/public
-
-# 3. Tekshiring — eski QR'lardan bittasini oching, keyin eskisini o'chiring
-```
-
-Eski Docker'ni **darhol o'chirmang**: yangi tarafda eski QR ochilganini
-ko'rmaguningizcha u — yagona nusxangiz.
+> Monorepoda `web-qr` bor va bir vaqt `bright` o'shanga qaratilgan edi. U —
+> **bo'sh bazaga ko'chirish** bo'lardi: hozirgacha chop etilgan har bir QR 404
+> berardi. Deploy qilinmaydi. Nomni qrcode-pro saqlaydi, ma'lumoti bilan birga.
 
 ## Skriptlar
 
@@ -139,127 +114,85 @@ Uchtasi, ataylab alohida — har biri boshqa narsani kutadi:
 
 | Skript | Qachon | Nima kutadi |
 |---|---|---|
-| `deploy/init.sh` | bir marta, o'rnatishda | MySQL va Node tayyor |
-| `deploy/setup-ssl.sh` | :80 ochilgach | FortiGate port forward |
+| `deploy/init.sh` | bir marta | Docker |
+| `deploy/setup-ssl.sh` | :80 ochilgach | **FortiGate** |
 | `deploy/update.sh` | har yangilanishda | init.sh o'tgan |
+
+Birlashtirsak, hammasi FortiGate'ni kutib qolardi.
 
 ```bash
 # O'rnatish (bir marta)
 git clone https://github.com/BekpolatNormurodov/spravka.git /opt/spravka
 cd /opt/spravka
-DATABASE_URL="mysql://spravka:PAROL@localhost:3306/spravka" bash deploy/init.sh
+bash deploy/init.sh
 
 # Yangilash (har safar)
 cd /opt/spravka && bash deploy/update.sh
 ```
 
-`init.sh` har bir app uchun `.env` ni **o'zi yozadi** — `PORT`, `AUTH_SECRET`,
-`NEXT_PUBLIC_*`, `CERT_STORAGE_DIR`. Qo'lda `nano` qilish shart emas va shart
-emasligi maqsad: `PORT` unutilsa systemd `-p` ni bo'sh beradi va app 502 ortida
-aylanaveradi. Mavjud `.env` ustidan **yozmaydi** — qayta yurgizish xavfsiz.
+`init.sh` — `.env` ni o'zi yozadi va parollarni generatsiya qiladi
+(`MYSQL_ROOT_PASSWORD`, `AUTH_SECRET`, `SEED_PASSWORD`). Mavjud `.env` ustidan
+**yozmaydi**, qayta yurgizish xavfsiz. Ishga tushishida qrcode-pro
+konteynerlarini sanab ko'rsatadi — "tegilmadi" deb aytish uchun.
 
-`update.sh` **saytni bir necha daqiqaga to'xtatadi, ataylab**: `npm ci`
-`node_modules` ni o'chirib qayta yozadi, `next build` esa ishlab turgan `.next`
-ustidan yozadi. Tirik app ostida bu toza yiqilmaydi — keyinroq, tasodifiy
-so'rovda yiqiladi. Va **har qanday xatoda eski commit'ga qaytaradi**: qayta
-build qilib, qayta ko'taradi. Sinaldi: yuqori darajadagi yiqilishda tuzoq otadi.
+`update.sh` — `git pull` → `docker compose build` → `db push` → `up -d`, keyin
+har bir portga **so'rov yuborib** tekshiradi. Konteyner "up" bo'lishi sog'liq
+emas: Next portni darhol qabul qiladi, keyin birinchi so'rovda yiqilishi mumkin.
+**Har qanday xatoda** eski image'ga qaytaradi (`spravka:previous`) — shuning
+uchun build'dan oldin eski image teglab qo'yiladi, aks holda `latest` ustidan
+yozilib, qaytadigan joy qolmasdi.
 
-## O'rnatish — qo'lda (init.sh nima qilishini bilish uchun)
+Serverda commit qilinmagan o'zgarish bo'lsa — **ishlamaydi**, uni yo'q qilib
+yubormaydi.
+
+## `docker compose` — kundalik
 
 ```bash
-# 1. Kod va Node
-git clone <repo> /opt/spravka && cd /opt/spravka
-node -v   # >= 22 kerak. nvm bilan o'rnatmang: systemd'da ProtectHome=true, $HOME ko'rinmaydi.
-          # apt/nodesource orqali o'rnating — binar /usr/bin da bo'lsin.
-
-# Chromium — imzolashda hujjatni PDF qiladi. Kutubxonalarini apt bilan qo'lda
-# sanamaymiz: Ubuntu 24.04 ularning yarmini t64 qo'shimchasi bilan qayta nomlagan
-# (libasound2 -> libasound2t64 va h.k.), va apt bitta noto'g'ri nom uchun
-# HECH NARSA o'rnatmaydi. Puppeteer o'zining ro'yxatini biladi.
-export PUPPETEER_CACHE_DIR=/opt/spravka/.cache/puppeteer   # $HOME'da emas — ProtectHome
-npm ci
-npx puppeteer browsers install chrome --install-deps
-
-# 2. ROOT .env — db:push shundan DATABASE_URL ni oladi, ya'ni bazadan OLDIN.
-#    .env.example dan nusxa olsangiz, DATABASE_URL portini almashtiring:
-#    3310 — bu docker'dagi dev bazasi. Serverda native MySQL, ya'ni 3306.
-cp .env.example .env && nano .env
-
-# 3. Baza
-#    SEED_PASSWORD majburiy: seed'dagi demo parol repoda YOZILGAN va repo ochiq.
-#    Usiz `rahbar` — imzolaydigan akkaunt — repo o'qigan har kimga ochiq bo'lardi.
-#    Qo'yilmasa seed ishlamaydi, bu ataylab.
-npm run db:generate && npm run db:push
-SEED_PASSWORD="$(openssl rand -base64 18)" npm run db:seed
-#    ^ chiqqan parolni saqlab qo'ying: `yurist`, `admin`, `rahbar` shu parol bilan kiradi.
-#      Birinchi kirgandan keyin har biri o'zinikini qo'ysin.
-
-# 4. Har bir app uchun .env — quyidagi jadvalga qarang. NEXT_PUBLIC_* ni
-#    BUILD'DAN OLDIN to'g'ri qo'ying, u kodga qotib qoladi.
-
-# 4b. Imzolangan hujjatlar ombori (CERT_STORAGE_DIR)
-mkdir -p /var/lib/spravka/storage
-chown -R spravka:spravka /var/lib/spravka
-
-# 4c. web-qr runtime'da shu ikkisiga yozadi (systemd'da ReadWritePaths ochilgan)
-mkdir -p /opt/spravka/apps/web-qr/public/uploads /opt/spravka/apps/web-qr/public/qr
-
-# 5. Build — beshalasi ham
-npm run build -w @spravka/web-qr
-npm run build -w @spravka/web-yurist
-npm run build -w @spravka/web-admin
-npm run build -w @spravka/web-rahbar
-npm run build -w @spravka/web-public
-
-# 6. Servislar
-useradd -r -s /usr/sbin/nologin spravka || true
-chown -R spravka:spravka /opt/spravka
-cp deploy/systemd/spravka@.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now spravka@public spravka@yurist spravka@admin spravka@rahbar spravka@qr
-
-# 7. nginx — AVVAL faqat :80 (sertifikat hali yo'q)
-cp deploy/nginx/snippets/spravka-proxy.conf /etc/nginx/snippets/
-cp deploy/nginx/spravka-http.conf /etc/nginx/conf.d/
-nginx -t && systemctl reload nginx
-
-# 8. SSL (faqat 80-port ochilgandan keyin!)
-bash deploy/setup-ssl.sh
-
-# 9. Sertifikat olingach — endi :443
-cp deploy/nginx/spravka-ssl.conf /etc/nginx/conf.d/
-nginx -t && systemctl reload nginx
+docker compose ps                    # holat
+docker compose logs -f rahbar        # loglar
+docker compose restart rahbar        # bitta app
+docker compose up -d --build         # qayta build (NEXT_PUBLIC_* o'zgarsa SHART)
 ```
 
-## Har bir app uchun `.env`
+⚠️ `NEXT_PUBLIC_PUBLIC_URL` ni `.env` da o'zgartirib **restart qilish hech
+narsa bermaydi** — u `next build` da kodga inline bo'ladi, ya'ni `--build` kerak.
 
-Kod **to'qqizta** o'zgaruvchi o'qiydi. Quyidagi jadval — yagona to'liq ro'yxat.
-(`SEED_PASSWORD` app'niki emas — u faqat `db:seed` paytida, bir marta kerak.)
+## Eski, systemd varianti
 
-| O'zgaruvchi | Kimga | Prod qiymati | Qo'yilmasa |
-|---|---|---|---|
-| `SEED_PASSWORD` | `db:seed` | `openssl rand -base64 18` | prod'da **seed ishlamaydi** — ataylab |
-| `DATABASE_URL` | hammasi | `mysql://user:pass@localhost:3306/spravka` | Prisma yiqiladi (**baland**) |
-| `AUTH_SECRET` | hammasi | `openssl rand -base64 48` | prod'da **ishga tushmaydi** — ataylab |
-| `PORT` | hammasi | qr 5000 · public 5100 · yurist 5101 · admin 5102 · rahbar 5103 | systemd `-p` ni bo'sh beradi → **crash loop → 502** |
-| `CERT_STORAGE_DIR` | rahbar, public, admin | `/var/lib/spravka/storage` | imzolashda yiqiladi (**baland**) |
-| `NEXT_PUBLIC_PUBLIC_URL` | rahbar, public, yurist, admin | `https://qrsystem.uz` | prod'da **rad etiladi** — ataylab |
-| `NEXT_PUBLIC_APP_URL` | **qr** | `https://bright.qrsystem.uz` | prod'da **rad etiladi** — ataylab |
-| `ADMIN_USERNAME` | **qr** | (tanlaysiz) | login **jimgina** har doim rad etadi |
-| `ADMIN_PASSWORD` | **qr** | (tanlaysiz) | login **jimgina** har doim rad etadi |
+`deploy/systemd/spravka@.service` — Docker'gacha bo'lgan yo'l. Serverda Docker
+ishlatilyapti, bu fayl faqat ma'lumot uchun qoldirilgan.
 
-Oxirgi uchtasi faqat **web-qr** ga tegishli va ilgari bu ro'yxatda umuman yo'q edi.
-`ADMIN_USERNAME`/`ADMIN_PASSWORD` **jimgina** yiqiladi: `bright.qrsystem.uz` har
-qanday to'g'ri parolga ham "parol xato" deydi va logda hech narsa qolmaydi.
+## `.env` — bitta fayl, `docker-compose.yml` yonida
 
-`AUTH_SECRET` da `#` yoki `$` bo'lmasin — systemd'ning `EnvironmentFile` parseri
-dotenv emas, ularni boshqacha o'qiydi. `openssl rand -base64 48` xavfsiz.
+`.env.docker.example` dan nusxa; `init.sh` uni o'zi yaratib, parollarni
+generatsiya qiladi. Qo'lda to'ldirsangiz — mana to'rttasi:
 
-**7 va 9-qadam nega ajratilgan:** `spravka-ssl.conf` ichida
+| O'zgaruvchi | Qayerda | Qo'yilmasa |
+|---|---|---|
+| `MYSQL_ROOT_PASSWORD` | mysql + `DATABASE_URL` | compose ko'tarilmaydi |
+| `AUTH_SECRET` | to'rtala app | prod'da **ishga tushmaydi** — ataylab |
+| `NEXT_PUBLIC_PUBLIC_URL` | **build argumenti** | prod'da **rad etiladi** — ataylab |
+| `SEED_PASSWORD` | faqat `db:seed` | prod'da **seed ishlamaydi** — ataylab |
+
+`DATABASE_URL`, `PORT`, `CERT_STORAGE_DIR` jadvalda yo'q — ular
+`docker-compose.yml` ichida. Qo'lda qo'yiladigan joyi yo'q, ya'ni unutib
+bo'lmaydi. Ilgari `PORT` unutilsa systemd `-p` ni bo'sh berib, app 502 ortida
+aylanaverardi; Docker'da bu xato butunlay yo'q bo'ldi.
+
+**`AUTH_SECRET` to'rtalasida bir xil bo'lishi shart** — biri qo'ygan sessiya
+cookie'si boshqasida tekshiriladi. `env_file` hammasiga bir xilini beradi.
+
+**`NEXT_PUBLIC_PUBLIC_URL` — build argumenti, runtime emas.** `next build` uni
+kodga inline qiladi. `.env` da o'zgartirib `restart` qilsangiz **hech narsa
+o'zgarmaydi** — `docker compose up -d --build` kerak. Noto'g'ri qiymat bilan
+chiqarilgan hujjatlarning QR'i esa **abadiy noto'g'ri**: PDF muzlatilgan va
+qayta chop etib bo'lmaydi.
+
+**nginx nega ikki bosqichda:** `spravka-ssl.conf` ichida
 `/etc/letsencrypt/live/...` fayllari ko'rsatilgan. Ular yo'q bo'lsa nginx umuman
 ko'tarilmaydi — demak certbot ham ishlay olmaydi, chunki u challenge'ni aynan
-nginx orqali beradi. Klassik "tuxummi-tovuqmi". Shuning uchun avval :80,
-keyin sertifikat, keyin :443.
+nginx orqali beradi. Klassik "tuxummi-tovuqmi": avval `:80`, keyin sertifikat,
+keyin `:443`.
 
 ## E-IMZO: «Режим разработчика» — nima uchun kerak va nimaga tushadi
 
@@ -307,32 +240,44 @@ Ya'ni xavf «sayt buziladi» emas — **rahbar nomidan soxta imzolangan hujjat**
 ## Tekshirish
 
 ```bash
-systemctl status 'spravka@*'
-ss -tlnp | grep 510          # faqat 127.0.0.1 da bo'lishi kerak, 0.0.0.0 da emas
+docker compose ps                          # to'rtala app + mysql
+docker ps | grep qrcode-                   # eskisi ham tirikligini ko'ring
+ss -tlnp | grep -E '510[0-3]'              # faqat 127.0.0.1 da bo'lishi kerak
 certbot certificates
 curl -I https://yurist.qrsystem.uz/
+curl -I https://bright.qrsystem.uz/        # bu qrcode-pro, :8090 orqali
 ```
 
-## ⚠️ Backup: `/var/lib/spravka/storage` — bazadan kam emas
+## ⚠️ Backup: hujjatlar ombori — bazadan kam emas
 
-Bu papkadagi PDF'lar — **berilgan huquqiy hujjatlar**, kesh emas. Rahbar imzolagan
-lahzada fayl muzlatiladi va boshqa hech qachon o'zgarmaydi; QR orqali kelgan odam
-aynan shuni yuklab oladi.
+`cert_storage` volume ichidagi PDF'lar — **berilgan huquqiy hujjatlar**, kesh
+emas. Rahbar imzolagan lahzada fayl muzlatiladi va boshqa hech qachon
+o'zgarmaydi; QR orqali kelgan odam aynan shuni yuklab oladi.
 
 Fayl yo'qolsa "qayta chizamiz" ish bermaydi. Tizim uni `firmSnapshot`'dan qayta
-chiza oladi, lekin bu **boshqa fayl** bo'ladi — boshqa baytlar, boshqa `pdfSha256`.
-Ya'ni odam qo'lidagi qog'oz bilan bazadagi yozuv o'rtasidagi bog'lanish uziladi.
+chiza oladi, lekin bu **boshqa fayl** bo'ladi — boshqa baytlar, boshqa
+`pdfSha256`. Ya'ni odam qo'lidagi qog'oz bilan bazadagi yozuv o'rtasidagi
+bog'lanish uziladi.
 
-DB backup nimaga tushsa, `/var/lib/spravka/storage` ham **o'sha joyga, o'sha
-jadvalda** tushishi kerak. Ikkovi bir-birisiz to'liq emas.
+Ikkovi **bir vaqtda, bir joyga** tushishi kerak — bir-birisiz to'liq emas:
+
+```bash
+docker compose exec -T mysql mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" spravka > db.sql
+docker run --rm -v spravka_cert_storage:/s -v "$PWD":/b alpine tar czf /b/storage.tgz -C /s .
+```
+
+Volume nomi `<papka>_cert_storage` — `/opt/spravka` da bo'lsangiz
+`spravka_cert_storage`. Aniq nomi: `docker volume ls`.
 
 ## Eslatmalar
 
 - **HSTS ataylab yoqilmagan.** Sertifikat ishlashi tasdiqlanmaguncha qo'shmang:
   brauzer uni `max-age` davomida eslab qoladi va orqaga qaytarib bo'lmaydi.
-- App'lar `127.0.0.1` ga bog'lanadi. `package.json` dagi `-H 0.0.0.0` faqat
-  lokal dev uchun; prod'da systemd uni `-H 127.0.0.1` bilan almashtiradi, aks
-  holda app'lar tashqi IP'da to'g'ridan-to'g'ri, TLS'siz ochiq qolardi.
+- Konteynerlar ichida app'lar `0.0.0.0` ga bog'lanadi — bu konteynerning **o'z**
+  tarmog'i. Tashqariga chiqmasligini compose'dagi `127.0.0.1:5100:5100` ta'minlaydi.
+  Bu muhim: Docker o'z iptables qoidalarini yozadi va `ufw` ni aylanib o'tadi, ya'ni
+  `host_ip` siz yozilgan port firewall yoqilgan holda ham LAN'ga ochiq bo'lardi.
+- MySQL umuman port ochmaydi — unga faqat compose tarmog'idan kiriladi.
 - Sertifikat bitta — barcha nom SAN sifatida `/etc/letsencrypt/live/qrsystem.uz/`
   ichida. Yangi domen qo'shsangiz `setup-ssl.sh` ni qayta ishga tushiring.
 - `certbot.timer` avtomatik yangilaydi; yangilanish ham 80-portni talab qiladi,

@@ -1,0 +1,109 @@
+# Spravka — production. Four apps + their own MySQL.
+#
+#   docker compose up -d --build
+#
+# Deliberately separate from qrcode-pro in every way that could collide: its MySQL is on 3308 and
+# this one is not published at all; its nginx is on 8090, this has none; different volumes,
+# different network, different database. bright.qrsystem.uz stays with it — the host nginx sends
+# that name to 127.0.0.1:8090 and never reaches this stack.
+#
+# .env (git-ignored) supplies the secrets. See .env.docker.example.
+
+x-app: &app
+  image: spravka:latest
+  build:
+    context: .
+    args:
+      # Inlined by `next build`, so it belongs here and not in `environment:` — see the Dockerfile.
+      NEXT_PUBLIC_PUBLIC_URL: ${NEXT_PUBLIC_PUBLIC_URL:-https://qrsystem.uz}
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    # `mysql` is the service name below; inside the network it is 3306, not the host's 3306.
+    DATABASE_URL: "mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-spravka}"
+  depends_on:
+    mysql:
+      condition: service_healthy
+  networks: [spravka]
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: spravka-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-spravka}
+    # No `ports:`. Nothing outside this network needs the database, and Docker's published ports
+    # write their own iptables rules that bypass ufw — a published 3306 is open to the LAN even
+    # with the firewall "on". The dev compose publishes 3310; that file is for laptops.
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [spravka]
+
+  # The page a printed QR opens. Its URL is burned into paper — hence the apex domain, and hence
+  # it reads the same frozen PDFs the rahbar wrote.
+  public:
+    <<: *app
+    container_name: spravka-public
+    environment:
+      DATABASE_URL: "mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-spravka}"
+      APP: public
+      PORT: 5100
+      CERT_STORAGE_DIR: /var/lib/spravka/storage
+    ports: ["127.0.0.1:5100:5100"]
+    volumes:
+      - cert_storage:/var/lib/spravka/storage
+
+  yurist:
+    <<: *app
+    container_name: spravka-yurist
+    environment:
+      DATABASE_URL: "mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-spravka}"
+      APP: yurist
+      PORT: 5101
+    ports: ["127.0.0.1:5101:5101"]
+
+  admin:
+    <<: *app
+    container_name: spravka-admin
+    environment:
+      DATABASE_URL: "mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-spravka}"
+      APP: admin
+      PORT: 5102
+      CERT_STORAGE_DIR: /var/lib/spravka/storage
+    ports: ["127.0.0.1:5102:5102"]
+    volumes:
+      - cert_storage:/var/lib/spravka/storage
+
+  # Signing happens here: Chromium freezes the PDF, and E-IMZO runs on the rahbar's own machine.
+  rahbar:
+    <<: *app
+    container_name: spravka-rahbar
+    environment:
+      DATABASE_URL: "mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-spravka}"
+      APP: rahbar
+      PORT: 5103
+      CERT_STORAGE_DIR: /var/lib/spravka/storage
+    ports: ["127.0.0.1:5103:5103"]
+    volumes:
+      - cert_storage:/var/lib/spravka/storage
+    # Chromium's default /dev/shm is 64 MB in Docker and it crashes mid-render on a big page.
+    # render.ts already passes --disable-dev-shm-usage, which is the belt; this is the braces.
+    shm_size: 512m
+
+volumes:
+  mysql_data:
+  # ⚠ ISSUED LEGAL DOCUMENTS, not a cache. A file here cannot be re-made — re-rendering produces
+  # different bytes and a different pdfSha256, which breaks the link between the paper someone
+  # holds and the row in the database. Back this up wherever the database is backed up.
+  #   docker run --rm -v spravka_cert_storage:/s -v $PWD:/b alpine tar czf /b/storage.tgz -C /s .
+  cert_storage:
+
+networks:
+  spravka:

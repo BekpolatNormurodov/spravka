@@ -1,0 +1,28 @@
+# .env FIRST, and not as tidiness. `COPY . .` would otherwise bake AUTH_SECRET and the MySQL root
+# password into an image layer, where they survive `docker compose down`, get pushed with the image
+# and stay readable in the layer even if a later step deletes the file. Compose passes secrets at
+# runtime through env_file; they have no business in the build.
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
+# Rebuilt inside the image. Copying the host's would drop Windows/Linux-mismatched binaries and a
+# stale Prisma engine into it, and npm ci would not notice.
+node_modules
+**/node_modules
+.next
+**/.next
+.cache
+
+.git
+.gitignore
+.gitattributes
+
+# Issued documents live in a volume, never in the image.
+storage
+*.bundle
+
+$OUT
+.claude
+*.log
