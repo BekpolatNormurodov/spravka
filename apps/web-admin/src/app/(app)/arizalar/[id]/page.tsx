@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { CertStatus, dmy, formatSum, ACTION_LABELS, canEdit, Role } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
-import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice, ContractCell } from '@spravka/shared/ui';
+import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice, ContractCell, EventTimeline } from '@spravka/shared/ui';
 import { Actions } from './Actions';
 import { EditAriza } from './EditAriza';
 import { getSession } from '@/lib/session';
@@ -20,7 +20,10 @@ export default async function CertDetail({ params }: { params: { id: string } })
       firm: true,
       contracts: { orderBy: { order: 'asc' } },
       createdBy: { select: { fullName: true } },
-      events: { include: { actor: { select: { fullName: true } } }, orderBy: { createdAt: 'desc' } },
+      events: {
+        include: { actor: { select: { fullName: true } }, attachments: true },
+        orderBy: { createdAt: 'desc' },
+      },
     },
   });
   if (!c || c.deletedAt) notFound();
@@ -106,18 +109,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
 
           <div className="card p-5 text-sm">
             <h3 className="mb-3 font-semibold">Tarix</h3>
-            {c.events.length === 0 ? (
-              <p className="text-muted">Hali harakat yoʻq.</p>
-            ) : (
-              <ul className="space-y-2">
-                {c.events.map((e) => (
-                  <li key={e.id} className="flex justify-between gap-3 text-muted">
-                    <span>{ACTION_LABELS[e.action]} · {e.actor.fullName}</span>
-                    <span>{dmy(e.createdAt)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <EventTimeline events={c.events} hrefFor={(id) => `/api/attachments/${id}`} />
           </div>
         </div>
       </div>

@@ -10,7 +10,8 @@
     "./qr": "./src/core/qr.ts",
     "./pdf": "./src/pdf/index.ts",
     "./ui": "./src/ui/index.ts",
-    "./ui/globals.css": "./src/ui/globals.css"
+    "./ui/globals.css": "./src/ui/globals.css",
+    "./attachments": "./src/attachments/index.ts"
   },
   "scripts": {
     "test": "vitest run",

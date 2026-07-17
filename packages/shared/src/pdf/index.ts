@@ -3,5 +3,5 @@
 export { buildCertificatePdf, ensureCertificatePdf, CERT_PDF_INCLUDE, type CertificateWithFirm } from './ensure';
 export { certificateHtml } from './html';
 export { renderPdf, closeRenderer } from './render';
-export { certPdfPath, readPdf, removePdf, resolvePdf, savePdf, sha256, storageRoot } from './storage';
+export { certPdfPath, readPdf, removePdf, resolvePdf, resolveInStorage, savePdf, sha256, storageRoot } from './storage';
 export { fontFaceCss, SUBSTITUTED_FAMILIES } from './fonts';

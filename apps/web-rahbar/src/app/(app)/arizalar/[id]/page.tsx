@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
-import { StatusBadge, CertificateDocument, QrCard, firmForDocument } from '@spravka/shared/ui';
+import { StatusBadge, CertificateDocument, QrCard, firmForDocument, EventTimeline } from '@spravka/shared/ui';
 import { Actions } from './Actions';
 import { requireRahbarFirmId } from '@/lib/scope';
 
@@ -19,7 +19,10 @@ export default async function CertDetail({ params }: { params: { id: string } })
       firm: true,
       contracts: { orderBy: { order: 'asc' } },
       createdBy: { select: { fullName: true } },
-      events: { include: { actor: { select: { fullName: true } } }, orderBy: { createdAt: 'desc' } },
+      events: {
+        include: { actor: { select: { fullName: true } }, attachments: true },
+        orderBy: { createdAt: 'desc' },
+      },
     },
   });
   if (!c || c.deletedAt) notFound();
@@ -28,6 +31,10 @@ export default async function CertDetail({ params }: { params: { id: string } })
   const publicUrl = certPublicUrl(c.id);
   const qr = await certQrDataUrl(c.id);
 
+  // What the admin wrote when they passed it up. The rahbar signs on the strength of this, so
+  // it sits above the document rather than at the bottom of the history.
+  const handover = c.events.find((e) => e.action === 'APPROVE' && (e.note || e.attachments.length > 0));
+
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
@@ -35,6 +42,15 @@ export default async function CertDetail({ params }: { params: { id: string } })
         <span className="font-mono text-sm text-muted">{c.number}</span>
         <StatusBadge status={c.status} />
       </div>
+
+      {handover && (
+        <div className="mb-6 rounded-2xl border border-brand-500/30 bg-brand-500/10 p-4">
+          <p className="mb-2 text-sm font-semibold text-brand-700 dark:text-brand-300">
+            Admindan xabar
+          </p>
+          <EventTimeline events={[handover]} hrefFor={(id) => `/api/attachments/${id}`} />
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[auto_320px]">
         <div className="cert-frame rounded-2xl shadow-xl">
@@ -75,14 +91,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
 
           <div className="card p-5 text-sm">
             <h3 className="mb-3 font-semibold">Tarix</h3>
-            <ul className="space-y-2">
-              {c.events.map((e) => (
-                <li key={e.id} className="flex justify-between gap-3 text-muted">
-                  <span>{ACTION_LABELS[e.action]} · {e.actor.fullName}</span>
-                  <span>{dmy(e.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
+            <EventTimeline events={c.events} hrefFor={(id) => `/api/attachments/${id}`} />
           </div>
         </div>
       </div>

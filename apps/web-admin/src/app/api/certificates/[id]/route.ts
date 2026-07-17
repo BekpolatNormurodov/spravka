@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { WfAction, findTransition, canEdit, isValidPinfl, parseContracts } from '@spravka/shared/core';
+import { readActionRequest, discard } from '@spravka/shared/attachments';
 
 /**
  * Edit an ariza's content. Enforces the edit-lock rule from core: ADMIN may edit only while
@@ -81,37 +82,53 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { action, note } = await req.json().catch(() => ({}));
-  const wf = ACTION_MAP[action];
-  if (!wf) return NextResponse.json({ error: 'Notoʻgʻri amal' }, { status: 400 });
-
-  // Returning to the yurist must explain why — they act on this text.
-  if (wf === WfAction.RETURN && !note?.trim()) {
-    return NextResponse.json({ error: 'Qaytarish sababi majburiy' }, { status: 400 });
-  }
-
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
     select: { status: true, deletedAt: true },
   });
   if (!cert || cert.deletedAt) return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
 
-  const t = findTransition(cert.status, session.role, wf);
-  if (!t) return NextResponse.json({ error: 'Bu holatda amalni bajarib boʻlmaydi' }, { status: 400 });
+  const existingCount = await prisma.eventAttachment.count({
+    where: { event: { certificateId: params.id } },
+  });
 
-  await prisma.$transaction([
-    prisma.certificate.update({ where: { id: params.id }, data: { status: t.to } }),
-    prisma.workflowEvent.create({
-      data: {
-        certificateId: params.id,
-        actorId: session.sub,
-        action: wf,
-        fromStatus: t.from,
-        toStatus: t.to,
-        note: note?.trim() || null,
-      },
-    }),
-  ]);
+  const intake = await readActionRequest(req, { existingCount });
+  if ('error' in intake) return NextResponse.json({ error: intake.error }, { status: 400 });
+
+  const fail = async (error: string, status: number) => {
+    await discard(intake.files);
+    return NextResponse.json({ error }, { status });
+  };
+
+  const wf = ACTION_MAP[intake.action];
+  if (!wf) return fail('Notoʻgʻri amal', 400);
+
+  // Returning to the yurist must explain why — they act on this text.
+  if (wf === WfAction.RETURN && !intake.note) return fail('Qaytarish sababi majburiy', 400);
+
+  const t = findTransition(cert.status, session.role, wf);
+  if (!t) return fail('Bu holatda amalni bajarib boʻlmaydi', 400);
+
+  try {
+    await prisma.$transaction([
+      prisma.certificate.update({ where: { id: params.id }, data: { status: t.to } }),
+      prisma.workflowEvent.create({
+        data: {
+          certificateId: params.id,
+          actorId: session.sub,
+          action: wf,
+          fromStatus: t.from,
+          toStatus: t.to,
+          note: intake.note,
+          attachments: { create: intake.files },
+        },
+      }),
+    ]);
+  } catch (err) {
+    // Files with no event are orphaned bytes — drop them so a retry starts clean.
+    await discard(intake.files);
+    throw err;
+  }
 
   return NextResponse.json({ ok: true, status: t.to });
 }

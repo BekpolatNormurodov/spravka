@@ -23,14 +23,21 @@ export function certPdfPath(id: string): string {
   return `${SUBDIR}/${id}.pdf`;
 }
 
-/** Resolve a stored relative path to an absolute one, refusing anything outside the root. */
-export function resolvePdf(relPath: string): string {
+/**
+ * Resolve a stored relative path to an absolute one, refusing anything outside the root.
+ * Not pdf-specific — workflow attachments share this root, and this guard is the only thing
+ * standing between a stored path and the rest of the disk, so it exists once.
+ */
+export function resolveInStorage(relPath: string): string {
   const root = storageRoot();
   const abs = path.resolve(root, relPath);
   const bounded = path.resolve(root) + path.sep;
   if (!abs.startsWith(bounded)) throw new Error(`path escapes the storage root: ${relPath}`);
   return abs;
 }
+
+/** @deprecated Name says pdf; the guard is general. Use resolveInStorage. */
+export const resolvePdf = resolveInStorage;
 
 export function sha256(buf: Buffer): string {
   return createHash('sha256').update(buf).digest('hex');

@@ -277,10 +277,31 @@ model WorkflowEvent {
   action        WfAction
   fromStatus    CertStatus
   toStatus      CertStatus
+  /// What the actor wrote when they moved the ariza — the admin's message to the rahbar, the
+  /// reason for a return. Shown to all three roles; never public.
   note          String?     @db.Text
+  attachments   EventAttachment[]
   createdAt     DateTime    @default(now())
 
   @@index([certificateId])
+}
+
+/// A file the actor attached to a workflow step — a screenshot, a scan, a spreadsheet the
+/// rahbar wants before approving. Supporting evidence for the decision, NOT part of the
+/// issued maʼlumotnoma: it is never served from the public page.
+model EventAttachment {
+  id         String        @id @default(cuid())
+  event      WorkflowEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId    String
+  fileName   String
+  /// Path relative to CERT_STORAGE_DIR.
+  path       String
+  mime       String
+  size       Int
+  sha256     String
+  createdAt  DateTime      @default(now())
+
+  @@index([eventId])
 }
 
 model Counter {
