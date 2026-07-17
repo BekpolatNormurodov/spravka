@@ -13,14 +13,21 @@ WEBROOT="/var/www/certbot"
 
 # The lead name becomes the directory under /etc/letsencrypt/live/, which
 # spravka-ssl.conf points at. Keep qrsystem.uz first or update the conf to match.
+#
+# Every name here must resolve to this server BEFORE running: certbot proves control by fetching
+# a file over each one, and a single NXDOMAIN fails the whole request — all seven, not just that
+# name. Verified 2026-07-17: all seven answer 213.230.64.140.
+#
+# qrsystem.uz is web-public, the page a printed QR opens — hence first, and hence the cert
+# directory name.
 DOMAINS=(
   qrsystem.uz
+  www.qrsystem.uz
   yurist.qrsystem.uz
   admin.qrsystem.uz
   rahbar.qrsystem.uz
   bright.qrsystem.uz
   www.bright.qrsystem.uz
-  # Add the public (web-public) hostname here once it is chosen — see README.
 )
 
 echo "==> Preflight"
@@ -66,12 +73,19 @@ for d in "${DOMAINS[@]}"; do args+=(-d "$d"); done
 echo "==> Sertifikat soʻrash: ${DOMAINS[*]}"
 # --keep-until-expiring prevents a needless re-issue on re-runs. Let's Encrypt
 # rate-limits duplicate certs to 5/week and a burned quota locks you out for days.
+#
+# --deploy-hook is not optional here. With --webroot, certbot renews the files and stops; nginx
+# holds the old certificate open until something reloads it. Nothing would. The renewal succeeds
+# every 60 days, the timer reports success, and on day 90 every site starts warning that the
+# certificate expired — with a valid one sitting on disk. The hook is stored in the renewal
+# config, so `certbot renew` picks it up forever after, not just today.
 certbot certonly \
   --webroot -w "$WEBROOT" \
   "${args[@]}" \
   --email "$EMAIL" \
   --agree-tos --no-eff-email \
   --keep-until-expiring \
+  --deploy-hook "systemctl reload nginx" \
   --non-interactive
 
 echo
