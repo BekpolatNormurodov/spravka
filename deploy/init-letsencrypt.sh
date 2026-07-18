@@ -14,9 +14,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 # qrsystem.uz first: it names the directory under certs/live/ that default.conf points at.
-# bright.qrsystem.uz is deliberately absent — it lives on the old server with qrcode-pro, so it
-# resolves elsewhere, and asking for it would fail the certificate for these five as well.
-DOMAINS=(qrsystem.uz www.qrsystem.uz yurist.qrsystem.uz admin.qrsystem.uz rahbar.qrsystem.uz)
+# bright.qrsystem.uz IS included now: qrcode-pro is co-hosted on this same server, bright resolves
+# here too, and spravka-nginx fronts it (proxying to qrcode-app). One certificate covers all six —
+# so bright's :80 must answer the challenge, which the :80 block in default.conf now serves.
+DOMAINS=(qrsystem.uz www.qrsystem.uz yurist.qrsystem.uz admin.qrsystem.uz rahbar.qrsystem.uz bright.qrsystem.uz)
 EMAIL="${CERTBOT_EMAIL:-khurshidi2827@gmail.com}"
 LIVE="/etc/letsencrypt/live/qrsystem.uz"
 

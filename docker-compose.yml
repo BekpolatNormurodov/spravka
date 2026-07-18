@@ -2,10 +2,15 @@
 #
 #   docker compose up -d --build
 #
-# This is its own server. qrcode-pro stays on the old machine with its own database and keeps
-# bright.qrsystem.uz — nothing here reaches it and nothing here is reachable from it.
+# CO-HOSTED with qrcode-pro on this one server: all six names resolve here, so only one nginx can
+# own :443. spravka-nginx is that single edge — it serves the four spravka apps AND fronts
+# bright.qrsystem.uz, proxying to qrcode-app and serving qrcode's qr/uploads off disk exactly the
+# way qrcode-nginx did. So this compose reaches INTO the qrcode-pro stack: its network
+# (qrcode-pro_qrnet) and two of its volumes are declared `external` below, which means qrcode-pro
+# must already be up. The only thing that changes in qrcode is that qrcode-nginx is retired — its
+# app, database and volumes are untouched.
 #
-# The monorepo's web-qr is deliberately absent: qrcode-pro already serves that role, and running a
+# The monorepo's web-qr is deliberately absent: qrcode-app already serves that role, and running a
 # second copy against this empty database would 404 every QR ever printed.
 #
 # .env (git-ignored) supplies the secrets. See .env.docker.example.
@@ -113,6 +118,11 @@ services:
       - ./deploy/nginx/snippets:/etc/nginx/snippets:ro
       - ./deploy/nginx/certs:/etc/nginx/certs:ro
       - certbot_www:/var/www/certbot
+      # qrcode's runtime-written files, served straight off disk for bright.qrsystem.uz. Next
+      # standalone does not serve runtime public files, so — exactly as qrcode-nginx did — nginx
+      # does. Read-only: this edge reads qrcode's QR images, it never writes them.
+      - qrcode_qr:/srv/qr:ro
+      - qrcode_uploads:/srv/uploads:ro
     # The reload loop is not decoration. certbot below renews the files and stops there; nginx
     # reads its certificate once at start and keeps serving that copy from memory. Without this,
     # renewal succeeds every 60 days, the logs say so, and on day 90 every site warns that the
@@ -120,7 +130,8 @@ services:
     # working. (credit-core's compose is missing exactly this line.)
     command: /bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'
     depends_on: [public, yurist, admin, rahbar]
-    networks: [spravka]
+    # qrnet too, so it can reach qrcode-app:5000 for bright.qrsystem.uz.
+    networks: [spravka, qrnet]
 
   # Issued once by deploy/init-letsencrypt.sh, renewed here every 12h. certbot exits quietly when
   # there is nothing due, so the loop is cheap.
@@ -142,6 +153,20 @@ volumes:
   #   docker run --rm -v spravka_cert_storage:/s -v $PWD:/b alpine tar czf /b/storage.tgz -C /s .
   cert_storage:
   certbot_www:
+  # From the qrcode-pro stack, borrowed read-only so bright.qrsystem.uz serves the same QR images
+  # and uploads it always did. Created by qrcode-pro's compose — this one only mounts them.
+  qrcode_qr:
+    external: true
+    name: qrcode-pro_qr_data
+  qrcode_uploads:
+    external: true
+    name: qrcode-pro_uploads_data
 
 networks:
   spravka:
+  # qrcode-pro's own network, so spravka-nginx can resolve and reach qrcode-app:5000. `external`
+  # means this compose does not create it — qrcode-pro must already be up (`docker compose up` in
+  # the qrcode-pro directory) or spravka-nginx will refuse to start.
+  qrnet:
+    external: true
+    name: qrcode-pro_qrnet
