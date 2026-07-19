@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isValidPinfl } from '@spravka/shared/core';
+import { isValidPinfl, uzLongDate } from '@spravka/shared/core';
 import {
   CertSheetEditor, useCertDraft, draftContracts,
   type CertDraft, type CertFirm, type ClientLookup, type SaveAction,
@@ -20,6 +20,9 @@ const blank = (): CertDraft => ({
   contractType: '«Микроқарз» универсал шартномаси',
   loanAmount: '',
   asOfDate: today(),
+  // The phrase is what prints, so it starts as today already written out — the yurist edits prose
+  // rather than filling a date field that then turns into prose somewhere else.
+  asOfText: uzLongDate(new Date(`${today()}T00:00:00.000Z`)),
   issueDate: today(),
 });
 

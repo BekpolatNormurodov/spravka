@@ -40,6 +40,10 @@ export async function buildCertificatePdf(cert: CertificateWithFirm): Promise<Bu
       contractType: cert.contractType,
       loanAmount: cert.loanAmount.toString(),
       asOfDate: cert.asOfDate,
+      // The phrase as it was written, not a re-render of the date. Leaving this out would freeze a
+      // PDF that words its «... ҳолатида» differently from the document on screen — the one kind
+      // of divergence this whole pipeline exists to prevent.
+      asOfText: cert.asOfText,
       firm: firmForDocument(cert.firm, cert.firmSnapshot),
       signed: true,
       qrDataUrl,

@@ -136,6 +136,17 @@ model Certificate {
   /// Total across every contract listed above — the «умумий ... сўм» figure.
   loanAmount       Decimal    @db.Decimal(18, 2)
   asOfDate         DateTime
+  /// The «... ҳолатида» phrase exactly as the yurist wrote it, e.g. '2026 йил 19 июль'.
+  ///
+  /// The document prints this when set and derives it from `asOfDate` when not, so nothing already
+  /// issued changes. It exists because the phrase is Uzbek prose rather than a rendered date, and
+  /// the person writing the document should be able to say it their way.
+  ///
+  /// `asOfDate` stays the machine-readable value and is kept in step: the phrase is re-parsed on
+  /// every edit and the date follows whenever it can be read. When it cannot, the date keeps its
+  /// last good value and the two disagree — so read `asOfText` for what the paper says, and
+  /// `asOfDate` only for sorting, never as evidence of what was printed.
+  asOfText         String?
 
   bodyText         String?    @db.Text
   /// Path (relative to CERT_STORAGE_DIR) of the document frozen at SIGN time. This file is the

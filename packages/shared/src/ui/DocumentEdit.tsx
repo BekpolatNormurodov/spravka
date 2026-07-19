@@ -18,8 +18,8 @@
 
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
-  dmy, dmyToIso, formatSum, isoToDmy, maskAmount, maskDmy, maskPassport, unmaskAmount, uzLongDate,
-  type DocContract,
+  dmy, dmyToIso, formatSum, isoToDmy, maskAmount, maskDmy, maskPassport, unmaskAmount,
+  uzLongDateToIso, type DocContract,
 } from '../core';
 import type { CertificateEdit } from './CertificateDocument';
 import { Ico } from './icons';
@@ -36,7 +36,10 @@ export interface CertDraft {
   contracts: { number: string; date: string }[];
   contractType: string;
   loanAmount: string;
+  /** Machine-readable, kept in step with `asOfText` whenever that phrase can be read. */
   asOfDate: string;
+  /** The «... ҳолатида» phrase as typed — this is what prints. */
+  asOfText: string;
   issueDate: string;
 }
 
@@ -558,8 +561,8 @@ export function EditableContracts({
 
 /* ── The slot set ───────────────────────────────────────────────────────────────────────────── */
 
-export type TextField = 'personFullName' | 'passportIssuedBy' | 'contractType';
-export type ValueField = 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'asOfDate' | 'issueDate';
+export type TextField = 'personFullName' | 'passportIssuedBy' | 'contractType' | 'asOfText';
+export type ValueField = 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'issueDate';
 
 export const SLOT_LABELS: Record<TextField | ValueField, string> = {
   personFullName: 'Mijozning F.I.SH.',
@@ -568,7 +571,7 @@ export const SLOT_LABELS: Record<TextField | ValueField, string> = {
   personPassport: 'Passport raqami',
   passportIssuedAt: 'Passport berilgan sana',
   loanAmount: 'Kredit summasi',
-  asOfDate: 'Holat sanasi',
+  asOfText: 'Holat sanasi',
   issueDate: 'Maʼlumotnoma sanasi',
 };
 
@@ -587,7 +590,7 @@ export const SLOT_PLACEHOLDERS: Record<TextField | ValueField, string> = {
   personPassport: 'AA1234567',
   passportIssuedAt: '01.01.2026',
   loanAmount: '4 000 000',
-  asOfDate: '01.01.2026',
+  asOfText: '2026 йил 1 январь',
   issueDate: '01.01.2026',
 };
 
@@ -595,7 +598,6 @@ const VALUE_KIND: Record<ValueField, ValueKind> = {
   personPassport: 'passport',
   passportIssuedAt: 'date',
   loanAmount: 'amount',
-  asOfDate: 'date',
   issueDate: 'date',
 };
 
@@ -609,7 +611,6 @@ export function displayOf(field: ValueField, d: CertDraft): string {
   switch (field) {
     case 'personPassport': return d.personPassport;
     case 'loanAmount': return formatSum(d.loanAmount);
-    case 'asOfDate': return d.asOfDate ? uzLongDate(asDate(d.asOfDate)) : '';
     case 'issueDate': return d.issueDate ? dmy(asDate(d.issueDate)) : '';
     case 'passportIssuedAt': return d.passportIssuedAt ? dmy(asDate(d.passportIssuedAt)) : '';
   }
@@ -641,7 +642,14 @@ export function certificateEditSlots(
           placeholder={SLOT_PLACEHOLDERS[field]}
           value={draft[field]}
           invalid={o.invalid(field)}
-          onChange={(v) => o.patch({ [field]: v } as Partial<CertDraft>)}
+          onChange={(v) => o.patch(
+            field === 'asOfText'
+              // The phrase is what prints; the date follows it whenever it can be read. A phrase
+              // mid-typing reads as nothing, so the date holds its last good value rather than
+              // being cleared and re-guessed on every keystroke.
+              ? { asOfText: v, ...(uzLongDateToIso(v) ? { asOfDate: uzLongDateToIso(v) } : {}) }
+              : { [field]: v } as Partial<CertDraft>,
+          )}
           onUndo={o.undo}
           onRedo={o.redo}
         />
@@ -707,7 +715,9 @@ export function draftProblems(d: CertDraft, opts: { pinfl: boolean }): DraftProb
   if (!unmaskAmount(d.loanAmount)) {
     out.push({ field: 'loanAmount', message: 'Kredit summasi kiritilmagan' });
   }
-  if (!d.asOfDate) out.push({ field: 'asOfDate', message: 'Holat sanasi kiritilmagan' });
+  // The phrase is what prints, so it is the phrase that must be there. `asOfDate` follows it and
+  // is never the thing the person typed.
+  if (!d.asOfText.trim()) out.push({ field: 'asOfText', message: 'Holat sanasi kiritilmagan' });
   if (!d.issueDate) out.push({ field: 'issueDate', message: 'Maʼlumotnoma sanasi kiritilmagan' });
   return out;
 }

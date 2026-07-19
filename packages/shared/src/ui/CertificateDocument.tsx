@@ -95,9 +95,9 @@ function Stamp({ signed }: { signed: boolean }) {
  */
 export interface CertificateEdit {
   /** A long value that wraps inside a paragraph. */
-  text: (field: 'personFullName' | 'passportIssuedBy' | 'contractType') => React.ReactNode;
+  text: (field: 'personFullName' | 'passportIssuedBy' | 'contractType' | 'asOfText') => React.ReactNode;
   /** A short masked value: passport, a date, a sum. */
-  value: (field: 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'asOfDate' | 'issueDate') => React.ReactNode;
+  value: (field: 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'issueDate') => React.ReactNode;
   /** The whole contract list, add and remove included. */
   contracts: () => React.ReactNode;
 }
@@ -114,6 +114,11 @@ export interface CertificateDocumentProps {
   contractType: string;
   loanAmount: string;
   asOfDate: Date;
+  /**
+   * The «... ҳолатида» phrase as it was written. Falls back to `asOfDate` rendered long-form, so
+   * every document issued before this field existed reads exactly as it always did.
+   */
+  asOfText?: string | null;
   firm: CertFirm;
   /** Renders the green «ТАСДИҚЛАНДИ» stamp. */
   signed?: boolean;
@@ -246,7 +251,7 @@ export function CertificateDocument(p: CertificateDocumentProps) {
         {edit ? edit.value('loanAmount') : formatSum(p.loanAmount)} сўм миқдорида кредитлар ажратилган.
       </p>
       <p style={{ fontSize: '14pt', textAlign: 'justify', textIndent: '1.25cm', margin: 0, lineHeight: 1.45 }}>
-        <b>{name}</b>нинг {edit ? edit.value('asOfDate') : uzLongDate(p.asOfDate)} ҳолатида{' '}
+        <b>{name}</b>нинг {edit ? edit.text('asOfText') : (p.asOfText || uzLongDate(p.asOfDate))} ҳолатида{' '}
         {contractList} {edit ? edit.text('contractType') : p.contractType}га асосан қарздорлиги тўлиқ
         қопланган ва ташкилот олдида қарздорлиги мавжуд эмаслигини маълум қиламиз.
       </p>

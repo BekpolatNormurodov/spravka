@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { canEdit, Role } from '@spravka/shared/core';
+import { canEdit, Role, uzLongDate } from '@spravka/shared/core';
 import { firmForDocument } from '@spravka/shared/ui';
 import { getSession } from '@/lib/session';
 import { EditArizaSheet } from './EditArizaSheet';
@@ -41,6 +41,8 @@ export default async function EditArizaPage({ params }: { params: { id: string }
         contractType: c.contractType,
         loanAmount: c.loanAmount.toString(),
         asOfDate: iso(c.asOfDate),
+        // Arizas written before the phrase existed read from the date they were made with.
+        asOfText: c.asOfText ?? uzLongDate(c.asOfDate),
         issueDate: iso(c.issueDate),
       }}
     />

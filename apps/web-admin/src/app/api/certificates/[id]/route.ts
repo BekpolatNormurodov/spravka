@@ -78,6 +78,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         contractType: b.contractType || undefined,
         loanAmount: String(b.loanAmount).replace(/[\s,]/g, ''),
         asOfDate: new Date(b.asOfDate),
+        // What prints. The date beside it is derived, and is not what the document says.
+        asOfText: b.asOfText || null,
         issueDate: new Date(b.issueDate),
       },
     });

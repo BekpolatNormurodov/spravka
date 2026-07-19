@@ -25,6 +25,27 @@ export function uzLongDate(date: Date): string {
   return `${date.getUTCFullYear()} йил ${date.getUTCDate()} ${UZ_MONTHS[date.getUTCMonth()]}`;
 }
 
+/**
+ * "2026 йил 26 июнь" -> "2026-06-26", and "" for anything that cannot be read as a whole date.
+ *
+ * The inverse of uzLongDate, so the phrase the yurist types stays the thing that prints while
+ * `asOfDate` follows along behind it. Deliberately forgiving about spacing and case and nothing
+ * else: a phrase that does not name a real day must come back empty rather than be guessed at,
+ * because the caller keeps the previous date when it does.
+ */
+export function uzLongDateToIso(text: string): string {
+  const m = /^\s*(\d{4})\s*йил\s*(\d{1,2})\s*([а-яёўқғҳ]+)\s*$/i.exec(text.trim());
+  if (!m) return '';
+  const year = Number(m[1]);
+  const day = Number(m[2]);
+  const month = UZ_MONTHS.findIndex((name) => name === m[3]!.toLowerCase());
+  if (month < 0 || day < 1 || year < 1900 || year > 2999) return '';
+  const d = new Date(Date.UTC(year, month, day));
+  // Date rolls 31 June into July; a maʼlumotnoma must not quietly name a different day.
+  if (d.getUTCDate() !== day || d.getUTCMonth() !== month) return '';
+  return d.toISOString().slice(0, 10);
+}
+
 /** Group a numeric amount string with spaces: "4000000" -> "4 000 000". */
 export function formatSum(amount: string): string {
   const n = String(amount).replace(/[^\d]/g, '');

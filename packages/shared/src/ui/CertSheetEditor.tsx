@@ -207,6 +207,7 @@ export function CertSheetEditor({
           contractType={draft.contractType}
           loanAmount={draft.loanAmount}
           asOfDate={asDate(draft.asOfDate)}
+          asOfText={draft.asOfText}
           firm={firm}
           edit={preview ? undefined : edit}
         />

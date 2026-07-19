@@ -146,7 +146,7 @@ describe('date entry', () => {
 const emptyDraft = (): CertDraft => ({
   personPinfl: '', personFullName: '', personPassport: '', passportIssuedBy: '',
   passportIssuedAt: '', contracts: [{ number: '', date: '' }],
-  contractType: 'шартнома', loanAmount: '', asOfDate: '', issueDate: '',
+  contractType: 'шартнома', loanAmount: '', asOfDate: '', asOfText: '', issueDate: '',
 });
 
 /** The draft store driven the way the editor drives it: one patch per value touched. */

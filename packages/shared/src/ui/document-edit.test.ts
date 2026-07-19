@@ -24,6 +24,7 @@ const draft = (over: Partial<CertDraft> = {}): CertDraft => ({
   contractType: '«Микроқарз» универсал шартномаси',
   loanAmount: '15000000',
   asOfDate: '2026-06-25',
+  asOfText: '2026 йил 25 июнь',
   issueDate: '2026-06-26',
   ...over,
 });
@@ -53,6 +54,7 @@ function docProps(d: CertDraft): CertificateDocumentProps {
     contractType: d.contractType,
     loanAmount: d.loanAmount,
     asOfDate: asDate(d.asOfDate),
+    asOfText: d.asOfText,
     firm: FIRM,
   };
 }
