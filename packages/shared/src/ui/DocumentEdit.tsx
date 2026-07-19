@@ -272,6 +272,7 @@ function placeCaret(el: HTMLElement) {
 export function EditableText({
   value,
   onChange,
+  placeholder,
   invalid,
   label,
   onUndo,
@@ -279,6 +280,7 @@ export function EditableText({
 }: {
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
   invalid?: boolean;
   label: string;
   onUndo: () => void;
@@ -304,6 +306,7 @@ export function EditableText({
       aria-multiline="false"
       aria-label={label}
       title={label}
+      data-placeholder={placeholder}
       className={slotClass(invalid)}
       onFocus={(e) => {
         // Tab and click both end up here. An empty slot has no text node to anchor a caret to, so
@@ -367,6 +370,7 @@ export function EditableValue({
   display,
   onChange,
   kind,
+  placeholder,
   invalid,
   label,
 }: {
@@ -376,6 +380,7 @@ export function EditableValue({
   display: string;
   onChange: (v: string) => void;
   kind: ValueKind;
+  placeholder?: string;
   invalid?: boolean;
   label: string;
 }) {
@@ -388,11 +393,9 @@ export function EditableValue({
         aria-label={label}
         title={label}
         className={`${slotClass(invalid)} cert-slot-btn`}
+        data-placeholder={placeholder}
         onClick={() => setOpen(true)}
       >
-        {/* Empty means empty — a blank in the line, the way a paper blank leaves one. A specimen
-            value like «00.00.0000» standing in every unfilled slot reads as the document saying
-            something, and it says it loudly enough to drown out what is actually written. */}
         {display}
       </button>
     );
@@ -404,6 +407,7 @@ export function EditableValue({
       value={value}
       onChange={onChange}
       kind={kind}
+      placeholder={placeholder}
       label={label}
       onDone={() => setOpen(false)}
     />
@@ -422,11 +426,12 @@ function toText(kind: ValueKind, value: string): string {
  * to have on screen and not a date, so the input keeps it while the stored value stays empty.
  */
 function ValueInput({
-  value, onChange, kind, label, onDone,
+  value, onChange, kind, placeholder, label, onDone,
 }: {
   value: string;
   onChange: (v: string) => void;
   kind: ValueKind;
+  placeholder?: string;
   label: string;
   onDone: () => void;
 }) {
@@ -459,12 +464,16 @@ function ValueInput({
     than most of the letters it was standing in for, so opening a slot shoved the whole justified
     paragraph sideways.
   */
+  // `data-value` carries whichever of the two is on screen, so an empty slot is as wide as its
+  // example rather than collapsing and then jumping open on the first keystroke.
   return (
-    <span className="cert-fit" data-value={text}>
+    <span className="cert-fit" data-value={text || placeholder || ''}>
       <input
         autoFocus
+        size={1}
         aria-label={label}
         title={label}
+        placeholder={placeholder}
         className="cert-slot-editing"
         value={text}
         inputMode={kind === 'amount' || kind === 'date' ? 'numeric' : undefined}
@@ -512,6 +521,7 @@ export function EditableContracts({
               label={`${i + 1}-shartnoma sanasi`}
               value={row.date}
               display={isoToDmy(row.date)}
+              placeholder="01.01.2026"
               invalid={bad.date}
               onChange={(v) => patch(i, 'date', v)}
             />
@@ -522,6 +532,7 @@ export function EditableContracts({
                 label={`${i + 1}-shartnoma raqami`}
                 value={row.number}
                 display={row.number}
+                placeholder="8130"
                 invalid={bad.number}
                 onChange={(v) => patch(i, 'number', v.replace(/\D/g, ''))}
               />
@@ -559,6 +570,25 @@ export const SLOT_LABELS: Record<TextField | ValueField, string> = {
   loanAmount: 'Kredit summasi',
   asOfDate: 'Holat sanasi',
   issueDate: 'Maʼlumotnoma sanasi',
+};
+
+/**
+ * Grey examples of what belongs in each slot, shown only while it is empty.
+ *
+ * Real-looking samples rather than «00.00.0000» — a row of zeroes reads as the document asserting
+ * something, and it shouts over what is actually written. These say what shape the value takes and
+ * then get out of the way. They cannot reach paper: the PDF renders the same component with no
+ * `edit` prop, and a placeholder only exists inside an editor.
+ */
+export const SLOT_PLACEHOLDERS: Record<TextField | ValueField, string> = {
+  personFullName: 'Ф.И.Ш.',
+  passportIssuedBy: 'Олмазор ИИБ',
+  contractType: '«Микроқарз» универсал шартномаси',
+  personPassport: 'AA1234567',
+  passportIssuedAt: '01.01.2026',
+  loanAmount: '4 000 000',
+  asOfDate: '01.01.2026',
+  issueDate: '01.01.2026',
 };
 
 const VALUE_KIND: Record<ValueField, ValueKind> = {
@@ -608,6 +638,7 @@ export function certificateEditSlots(
       <span data-slot={field}>
         <EditableText
           label={SLOT_LABELS[field]}
+          placeholder={SLOT_PLACEHOLDERS[field]}
           value={draft[field]}
           invalid={o.invalid(field)}
           onChange={(v) => o.patch({ [field]: v } as Partial<CertDraft>)}
@@ -621,6 +652,7 @@ export function certificateEditSlots(
       <span data-slot={field}>
         <EditableValue
           label={SLOT_LABELS[field]}
+          placeholder={SLOT_PLACEHOLDERS[field]}
           kind={VALUE_KIND[field]}
           value={draft[field]}
           display={displayOf(field, draft)}

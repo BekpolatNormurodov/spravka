@@ -111,17 +111,24 @@ body {
 .cert-slot:focus,
 .cert-slot:focus-within { background: rgba(59, 130, 246, .1); box-shadow: 0 0 0 2px rgba(59, 130, 246, .35); }
 
-/* An empty slot is a blank in the line, the way a paper blank leaves one — no specimen value
-   standing in for what is not there yet. It still needs a box: an empty inline element is what
-   browsers refuse to put a caret in, and it would be nothing to click at. `:empty` stops matching
-   the instant a letter lands, which returns the slot to inline so a long name wraps and
-   re-justifies the way printed text does. */
+/* An empty slot shows a grey example of what belongs in it. It also needs a box of its own: an
+   empty inline element is what browsers refuse to put a caret in, and it would be nothing to click
+   at. `:empty` stops matching the instant a letter lands, which returns the slot to inline so a
+   long name wraps and re-justifies the way printed text does.
+
+   None of this can print. The PDF and the public page render the same component with no `edit`
+   prop, and a placeholder only exists inside an editor. */
 .cert-slot:empty,
 .cert-slot-btn:empty {
   display: inline-block;
-  min-width: 5ch;
+  min-width: 4ch;
   min-height: 1em;
   vertical-align: baseline;
+}
+.cert-slot[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #9aa4b8;
+  font-weight: 400;
 }
 
 .cert-slot-bad { box-shadow: inset 0 -1px 0 rgba(225, 29, 72, .55); background: rgba(225, 29, 72, .06); }
@@ -161,6 +168,13 @@ body {
   margin: 0;
   resize: none;
   appearance: none;
+}
+/* Without this the column sizes to the input, not to the text. A bare <input> carries a default
+   width of about twenty characters, and as a grid item its `min-width: auto` resolves to that —
+   so every slot opened three times wider than the value it held. */
+.cert-fit > input {
+  min-width: 0;
+  width: 100%;
 }
 .cert-fit::after {
   content: attr(data-value) ' ';

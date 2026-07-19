@@ -93,18 +93,36 @@ describe('editing and printing agree', () => {
     expect(editing).toContain('26.05.2026 йилдаги 28324-сонли');
   });
 
-  it('leaves an unfilled slot blank rather than standing a specimen value in it', () => {
-    // «00.00.0000» and «AE0000000» in every empty slot made the document read as though it said
-    // those things. A blank in the line is what a paper blank leaves, and it is also the truth.
-    const d = draft({ personPassport: '', loanAmount: '', personFullName: '' });
-    const editing = words(renderToStaticMarkup(
-      React.createElement(CertificateDocument, { ...docProps(d), edit: slots(d) }),
+  it('never lets a placeholder reach the printed page', () => {
+    /*
+      The examples in empty slots are the one thing on this screen that would be a forgery if it
+      printed — «AA1234567» on an issued maʼlumotnoma is a passport number the holder does not
+      have. They are safe by construction (a placeholder is an attribute, and the PDF renders with
+      no `edit` prop at all), and this is what keeps that true.
+    */
+    // Every slot a placeholder could fill is emptied, so anything matching below leaked.
+    const d = draft({
+      personPassport: '', loanAmount: '', personFullName: '', asOfDate: '',
+      passportIssuedBy: '', passportIssuedAt: '', contracts: [],
+    });
+    const printed = words(renderToStaticMarkup(
+      React.createElement(CertificateDocument, docProps(d)),
     ));
-    expect(editing).not.toMatch(/0{4}/);
-    expect(editing).not.toContain('AE0000000');
-    expect(editing).not.toContain('Ф.И.Ш.');
-    // The template around the missing values is still all there.
-    expect(editing).toContain('сўм миқдорида кредитлар ажратилган');
+    for (const sample of ['AA1234567', '4 000 000', 'Ф.И.Ш.', '01.01.2026', 'Олмазор ИИБ', '8130']) {
+      expect(printed).not.toContain(sample);
+    }
+    // The template itself is untouched by any of them being missing.
+    expect(printed).toContain('сўм миқдорида кредитлар ажратилган');
+  });
+
+  it('shows those examples while the document is being written', () => {
+    const d = draft({ personPassport: '', personFullName: '' });
+    const markup = renderToStaticMarkup(
+      React.createElement(CertificateDocument, { ...docProps(d), edit: slots(d) }),
+    );
+    // Carried as attributes, not text — which is why the print branch cannot pick them up.
+    expect(markup).toContain('data-placeholder="Ф.И.Ш."');
+    expect(markup).toContain('data-placeholder="AA1234567"');
   });
 
   it('offers the issuer slots even when they are empty, which the printed page omits', () => {
