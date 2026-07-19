@@ -17,11 +17,31 @@ export interface NavItem {
   section?: string;
 }
 
+/**
+ * A second sidebar state, entered by route rather than by clicking.
+ *
+ * The one case this exists for: writing a new maʼlumotnoma, where picking the firm picks the blank
+ * the whole page is made of. That is navigation, not a form field — so it belongs in the sidebar,
+ * and deriving it from the URL means the browser's back button and a reload both behave.
+ *
+ * Described declaratively so this component stays ignorant of what an ariza is.
+ */
+export interface NavPanel {
+  /** Path prefix that puts the sidebar in this state. */
+  match: string;
+  title: string;
+  /** Where the back control returns to. */
+  back: { href: string; label: string };
+  items: NavItem[];
+  emptyLabel?: string;
+}
+
 export interface AppShellProps {
   appName: string;
   nav: NavItem[];
   user: { fullName: string; roleLabel?: string };
   logoutAction?: string;
+  panel?: NavPanel;
   children: React.ReactNode;
 }
 
@@ -43,6 +63,7 @@ export function AppShell({
   nav,
   user,
   logoutAction = '/api/auth/logout',
+  panel,
   children,
 }: AppShellProps) {
   const pathname = usePathname();
@@ -68,7 +89,10 @@ export function AppShell({
     else sections.push({ label, items: [item] });
   }
 
-  const rail = collapsed;
+  // A panel takes the sidebar over for as long as the route is inside it. Collapsing is disabled
+  // while it does: a rail of unlabelled firm names is unreadable, and there is no icon for a firm.
+  const inPanel = !!panel && pathname.startsWith(panel.match);
+  const rail = collapsed && !inPanel;
 
   const renderItem = (item: NavItem) => {
     const active = isActive(item.href);
@@ -127,12 +151,31 @@ export function AppShell({
         </div>
 
         <nav className="flex-1 space-y-6 overflow-y-auto">
-          {sections.map((s) => (
-            <div key={s.label}>
-              <div className={cx('px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted', rail && 'lg:hidden')}>{s.label}</div>
-              <div className="space-y-1">{s.items.map(renderItem)}</div>
+          {inPanel && panel ? (
+            <div className="animate-fade-in">
+              <Link
+                href={panel.back.href}
+                className="mb-4 flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
+                <Ico.chevronLeft size={18} />
+                {panel.back.label}
+              </Link>
+              <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted">
+                {panel.title}
+              </div>
+              <div className="space-y-1">{panel.items.map(renderItem)}</div>
+              {!panel.items.length && panel.emptyLabel && (
+                <p className="px-3 py-2 text-xs text-muted">{panel.emptyLabel}</p>
+              )}
             </div>
-          ))}
+          ) : (
+            sections.map((s) => (
+              <div key={s.label}>
+                <div className={cx('px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted', rail && 'lg:hidden')}>{s.label}</div>
+                <div className="space-y-1">{s.items.map(renderItem)}</div>
+              </div>
+            ))
+          )}
         </nav>
 
         <div className="mt-4 border-t border-line pt-4">

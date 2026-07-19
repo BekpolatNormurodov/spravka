@@ -1,5 +1,5 @@
 export { AppShell } from './AppShell';
-export type { NavItem, AppShellProps } from './AppShell';
+export type { NavItem, NavPanel, AppShellProps } from './AppShell';
 export { ThemeToggle } from './ThemeToggle';
 export { Logo, LogoLockup } from './Logo';
 export { Splash } from './Splash';
@@ -30,4 +30,11 @@ export type { TimelineEvent, TimelineAttachment } from './EventTimeline';
 export type { DayData } from './Calendar';
 export { ThemeScript, StatusBadge, StatCard, PageHeader, EmptyState, Table, ReturnNotice, ContractCell } from './components';
 export { CertificateDocument, firmForDocument } from './CertificateDocument';
-export type { CertificateDocumentProps, CertFirm } from './CertificateDocument';
+export type { CertificateDocumentProps, CertFirm, CertificateEdit } from './CertificateDocument';
+export { CertSheetEditor } from './CertSheetEditor';
+export type { SaveAction, ClientLookup } from './CertSheetEditor';
+export {
+  useCertDraft, EditableText, EditableValue, EditableContracts,
+  draftProblems, draftContracts, previewContracts,
+} from './DocumentEdit';
+export type { CertDraft, CertDraftStore, DraftProblem } from './DocumentEdit';

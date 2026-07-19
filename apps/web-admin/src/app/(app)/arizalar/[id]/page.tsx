@@ -5,12 +5,9 @@ import { CertStatus, dmy, formatSum, ACTION_LABELS, canEdit, Role } from '@sprav
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
 import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice, ContractCell, EventTimeline } from '@spravka/shared/ui';
 import { Actions } from './Actions';
-import { EditAriza } from './EditAriza';
 import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
-
-const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '');
 
 export default async function CertDetail({ params }: { params: { id: string } }) {
   const session = await getSession();
@@ -75,20 +72,9 @@ export default async function CertDetail({ params }: { params: { id: string } })
               <div className="space-y-2">
                 {c.status === CertStatus.ADMIN_REVIEW && <Actions id={c.id} />}
                 {editable && (
-                  <EditAriza
-                    cert={{
-                      id: c.id,
-                      personFullName: c.personFullName,
-                      personPassport: c.personPassport,
-                      passportIssuedBy: c.passportIssuedBy,
-                      passportIssuedAt: iso(c.passportIssuedAt),
-                      contracts: c.contracts.map((k) => ({ number: k.number, date: iso(k.date) })),
-                      contractType: c.contractType,
-                      loanAmount: c.loanAmount.toString(),
-                      asOfDate: iso(c.asOfDate),
-                      issueDate: iso(c.issueDate),
-                    }}
-                  />
+                  <Link href={`/arizalar/${c.id}/tahrir`} className="btn-ghost w-full justify-center">
+                    Hujjatni tahrirlash
+                  </Link>
                 )}
               </div>
             </div>

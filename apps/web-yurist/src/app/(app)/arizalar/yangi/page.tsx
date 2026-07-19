@@ -1,28 +1,24 @@
 import { prisma } from '@/lib/prisma';
-import { PageHeader } from '@spravka/shared/ui';
-import { CreateAriza } from './CreateAriza';
+import { EmptyState } from '@spravka/shared/ui';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewArizaPage() {
-  const firms = await prisma.firm.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' },
-    // Rekvizitlar too: the side panel shows what the chosen firm's blank will print.
-    select: {
-      id: true, name: true, shortName: true, letterheadName: true,
-      stir: true, bankAccount: true, mfo: true, bankName: true,
-      directorName: true, directorPosition: true,
-    },
-  });
+/**
+ * The state between «Yangi ariza» and a document: the sidebar is showing the firms and nothing has
+ * been picked yet. The list itself lives in the sidebar (see the (app) layout) — repeating it here
+ * would give the same choice two places to be made.
+ */
+export default async function PickFirmPage() {
+  const count = await prisma.firm.count({ where: { isActive: true } });
 
   return (
-    <div>
-      <PageHeader
-        title="Yangi ariza"
-        subtitle="Qarzdorlik yoʻqligi toʻgʻrisidagi maʼlumotnoma uchun maʼlumotlarni kiriting"
-      />
-      <CreateAriza firms={firms} />
-    </div>
+    <EmptyState
+      title="Firmani tanlang"
+      hint={
+        count
+          ? 'Chapdagi roʻyxatdan mikromoliya tashkilotini tanlang — maʼlumotnoma oʻsha firmaning blankasida ochiladi.'
+          : 'Faol firma yoʻq. Maʼlumotnoma yozish uchun administrator kamida bitta firma qoʻshishi kerak.'
+      }
+    />
   );
 }

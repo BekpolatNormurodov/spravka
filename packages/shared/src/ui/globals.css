@@ -82,10 +82,80 @@ body {
   margin: 0 auto;
 }
 
+/* ── In-place editing ────────────────────────────────────────────────────
+   The sheet is the form. Everything below is screen-only: the printed page and the frozen PDF
+   render the same component with no `edit` prop, so none of it can reach paper.          */
+
+/* The paper while it is being written on — a sheet on a desk, not a page in a document. */
+.cert-paper { padding: 6px 0 10px; }
+.cert-paper .cert-sheet {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 12px 32px -8px rgba(15, 23, 42, .14);
+  border-radius: 3px;
+}
+.dark .cert-paper .cert-sheet { box-shadow: 0 12px 40px -8px rgba(0, 0, 0, .6); }
+
+/* Softer than the printed black, on request. Screen-only: the print-preview toggle drops
+   .cert-editing, which is how this difference stays visible rather than hidden.          */
+.cert-editing .cert-sheet { color: #3f4756; }
+.cert-editing .cert-sheet b { color: #232a36; }
+
+/* A slot reads as document text until it is asked to read as a field. Marking every editable
+   value at rest would turn the page back into a form — the thing this replaces.           */
+.cert-slot {
+  border-radius: 2px;
+  outline: none;
+  transition: background-color .12s, box-shadow .12s;
+  box-shadow: inset 0 -1px 0 rgba(59, 130, 246, .22);
+}
+.cert-slot:hover { background: rgba(59, 130, 246, .07); box-shadow: inset 0 -1px 0 rgba(59, 130, 246, .5); }
+.cert-slot:focus,
+.cert-slot:focus-within { background: rgba(59, 130, 246, .1); box-shadow: 0 0 0 2px rgba(59, 130, 246, .35); }
+
+/* An empty slot still has to occupy its place in the line. */
+.cert-slot[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #9aa4b8;
+}
+
+.cert-slot-bad { box-shadow: inset 0 -1px 0 rgba(225, 29, 72, .55); background: rgba(225, 29, 72, .06); }
+.cert-slot-bad:hover,
+.cert-slot-bad:focus { box-shadow: 0 0 0 2px rgba(225, 29, 72, .35); }
+
+/* Click-to-edit values: a button indistinguishable from the text around it. */
+.cert-slot-btn {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0;
+  cursor: text; text-align: inherit;
+}
+.cert-slot-empty { color: #9aa4b8; }
+
+/* Sized to its own content by the component, so the line barely moves when it opens. */
+.cert-slot-editing {
+  font: inherit; color: inherit;
+  background: rgba(59, 130, 246, .1);
+  border: 0; border-radius: 2px; padding: 0 1px; outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, .35);
+}
+.cert-slot-date { display: inline-block; width: 11rem; vertical-align: baseline; }
+
+/* Add or drop a contract without leaving the sentence. */
+.cert-row-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.15em; height: 1.15em; margin: 0 .15em; vertical-align: middle;
+  border-radius: 999px; border: 1px solid rgba(59, 130, 246, .35);
+  color: #2563eb; background: rgba(59, 130, 246, .08); cursor: pointer;
+}
+.cert-row-btn:hover { background: rgba(59, 130, 246, .18); }
+.cert-row-del { border-color: rgba(225, 29, 72, .35); color: #e11d48; background: rgba(225, 29, 72, .08); }
+.cert-row-del:hover { background: rgba(225, 29, 72, .18); }
+
 @media print {
   @page { size: A4; margin: 0; }
   .no-print { display: none !important; }
   body { background: #fff !important; }
   .cert-frame { overflow: visible !important; }
   .cert-sheet { box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
+  /* Whatever the screen was doing, paper gets the document. */
+  .cert-editing .cert-sheet,
+  .cert-editing .cert-sheet b { color: #000 !important; }
+  .cert-slot, .cert-slot-editing, .cert-slot-bad { box-shadow: none !important; background: none !important; }
 }

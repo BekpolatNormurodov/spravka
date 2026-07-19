@@ -2,9 +2,9 @@
 
 import React from 'react';
 import {
-  Add, Archive, ArrowLeft2, ArrowRight2, Calendar, Category, Chart2, CloseCircle, DocumentText,
-  Edit2, Eye, HambergerMenu, LogoutCurve, Moon, People, Printer, ScanBarcode, ShieldSlash, Sun1,
-  TickCircle, Buildings2, AddSquare, User,
+  Add, Archive, ArrowLeft2, ArrowRight2, ArrowRotateLeft, ArrowRotateRight, Calendar, Category,
+  Chart2, CloseCircle, DocumentText, Edit2, Eye, HambergerMenu, InfoCircle, LogoutCurve, Moon,
+  People, Printer, ScanBarcode, ShieldSlash, Sun1, TickCircle, Buildings2, AddSquare, User,
 } from 'iconsax-react';
 
 export type IconProps = { className?: string; size?: number };
@@ -39,6 +39,9 @@ export const Ico = {
   chevron: mk(ArrowRight2),
   chevronLeft: mk(ArrowLeft2),
   add: mk(Add),
+  undo: mk(ArrowRotateLeft),
+  redo: mk(ArrowRotateRight),
+  info: mk(InfoCircle),
   /** ЭЦП is not wired up yet — see the sign dialog. */
   shieldOff: mk(ShieldSlash),
 };

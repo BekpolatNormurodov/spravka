@@ -83,6 +83,25 @@ function Stamp({ signed }: { signed: boolean }) {
   );
 }
 
+/**
+ * Turns the document's variable slots into editors, in place.
+ *
+ * Render props rather than imports, deliberately: `@spravka/shared/pdf` renders this same
+ * component under Node and hands the markup to Chromium. If the editors were imported here, a
+ * browser-only bundle would follow the document into the PDF path.
+ *
+ * The template sentences are not in this interface and never will be — a maʼlumotnoma is a 1:1
+ * replica of the source .docx, and there is no reviewer between the yurist and the printed paper.
+ */
+export interface CertificateEdit {
+  /** A long value that wraps inside a paragraph. */
+  text: (field: 'personFullName' | 'passportIssuedBy' | 'contractType') => React.ReactNode;
+  /** A short masked value: passport, a date, a sum. */
+  value: (field: 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'asOfDate' | 'issueDate') => React.ReactNode;
+  /** The whole contract list, add and remove included. */
+  contracts: () => React.ReactNode;
+}
+
 export interface CertificateDocumentProps {
   number: string;
   issueDate: Date;
@@ -100,6 +119,11 @@ export interface CertificateDocumentProps {
   signed?: boolean;
   /** Optional QR data-URL (our addition — printed in the bottom corner). */
   qrDataUrl?: string;
+  /**
+   * Present only while an ariza is being written. Absent — which is the case for the PDF, the
+   * public page and every signed document — this component renders exactly as it always has.
+   */
+  edit?: CertificateEdit;
 }
 
 /**
@@ -112,8 +136,12 @@ export interface CertificateDocumentProps {
  *   bold runs: firm name, person full name, "<contract>-сонли"
  */
 export function CertificateDocument(p: CertificateDocumentProps) {
-  const { firm } = p;
+  const { firm, edit } = p;
   const blankName = firm.letterheadName || firm.name;
+
+  /** A slot: an editor while writing, the printed value otherwise. */
+  const name = edit ? edit.text('personFullName') : p.personFullName;
+  const contractList = edit ? edit.contracts() : <ContractList contracts={p.contracts} />;
 
   const addressLine = [
     firm.address,
@@ -129,10 +157,25 @@ export function CertificateDocument(p: CertificateDocumentProps) {
   const executorPhone = firm.executorPhone ?? firm.phone;
   const hasExecutor = !!(firm.executorName || executorPhone);
 
-  const passportInfo =
-    p.passportIssuedAt && p.passportIssuedBy
-      ? `(шахс гувохномаси: ${p.personPassport}, ${dmy(p.passportIssuedAt)} йилда ${p.passportIssuedBy} томонидан берилган)`
-      : `(шахс гувохномаси: ${p.personPassport})`;
+  /*
+    The clause drops the issuing details when the firm did not record them. While writing it is
+    always shown in full, or the two optional slots would have nowhere to be typed — the one place
+    the editing view and the printed page differ on purpose. The «Chop etish koʻrinishi» toggle
+    turns editing off and shows exactly what will print.
+  */
+  const withIssuer = edit ? true : !!(p.passportIssuedAt && p.passportIssuedBy);
+  const passportInfo = (
+    <>
+      (шахс гувохномаси: {edit ? edit.value('personPassport') : p.personPassport}
+      {withIssuer && (
+        <>
+          , {edit ? edit.value('passportIssuedAt') : dmy(p.passportIssuedAt!)} йилда{' '}
+          {edit ? edit.text('passportIssuedBy') : p.passportIssuedBy} томонидан берилган
+        </>
+      )}
+      )
+    </>
+  );
 
   return (
     <div className="cert-sheet" style={{ fontFamily: '"Times New Roman", Times, serif', color: '#000' }}>
@@ -157,13 +200,13 @@ export function CertificateDocument(p: CertificateDocumentProps) {
           <tr>
             <td style={{ width: '55.75%', verticalAlign: 'top', padding: 0, border: 0 }}>
               <div style={{ fontSize: '12pt', fontWeight: 700, lineHeight: 1.35 }}>
-                <div>Сана: {dmy(p.issueDate)}</div>
+                <div>Сана: {edit ? edit.value('issueDate') : dmy(p.issueDate)}</div>
                 <div>№{p.number}</div>
               </div>
             </td>
             <td style={{ width: '44.25%', verticalAlign: 'top', padding: 0, border: 0 }}>
               <div style={{ fontSize: '14pt', fontWeight: 700, lineHeight: 1.3 }}>
-                {p.personFullName}ГА
+                {name}ГА
               </div>
             </td>
           </tr>
@@ -179,15 +222,18 @@ export function CertificateDocument(p: CertificateDocumentProps) {
         ── Body (justified, first-line indent 1.25cm, 14pt) ─────────────
         The blanks put the contract type in the plural here and the singular below, however
         many contracts they list — so the two paragraphs differ on purpose.
+
+        Which is why only the singular one below is editable: both print one stored value, and two
+        editors over it would each undo the other. The plural here follows whatever is typed there.
       */}
       <p style={{ fontSize: '14pt', textAlign: 'justify', textIndent: '1.25cm', margin: 0, lineHeight: 1.45 }}>
-        <b>{firm.name}</b> билан <b>{p.personFullName}</b> {passportInfo} ўртасида имзоланган{' '}
-        <ContractList contracts={p.contracts} /> {contractTypePlural(p.contractType)}га асосан умумий{' '}
-        {formatSum(p.loanAmount)} сўм миқдорида кредитлар ажратилган.
+        <b>{firm.name}</b> билан <b>{name}</b> {passportInfo} ўртасида имзоланган{' '}
+        {contractList} {contractTypePlural(p.contractType)}га асосан умумий{' '}
+        {edit ? edit.value('loanAmount') : formatSum(p.loanAmount)} сўм миқдорида кредитлар ажратилган.
       </p>
       <p style={{ fontSize: '14pt', textAlign: 'justify', textIndent: '1.25cm', margin: 0, lineHeight: 1.45 }}>
-        <b>{p.personFullName}</b>нинг {uzLongDate(p.asOfDate)} ҳолатида{' '}
-        <ContractList contracts={p.contracts} /> {p.contractType}га асосан қарздорлиги тўлиқ
+        <b>{name}</b>нинг {edit ? edit.value('asOfDate') : uzLongDate(p.asOfDate)} ҳолатида{' '}
+        {contractList} {edit ? edit.text('contractType') : p.contractType}га асосан қарздорлиги тўлиқ
         қопланган ва ташкилот олдида қарздорлиги мавжуд эмаслигини маълум қиламиз.
       </p>
 
