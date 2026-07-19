@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { nextCertNumber } from '@/lib/cert-number';
+import { nextCertNumber } from '@spravka/shared/db';
 import { CertStatus, WfAction, isValidPinfl, parseContracts } from '@spravka/shared/core';
 
 const REQUIRED = [

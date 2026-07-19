@@ -10,3 +10,5 @@ if (process.env.NODE_ENV !== 'production') g.__spravkaPrisma = prisma;
 
 // Re-export generated types + enums so apps get them from one place.
 export * from '@prisma/client';
+
+export { nextCertNumber } from './cert-number';

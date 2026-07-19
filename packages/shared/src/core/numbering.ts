@@ -13,12 +13,18 @@ export function formatCertNumber(date: Date, seq: number): string {
   return `${dd}${mm}${yyyy}/${String(seq).padStart(2, '0')}`;
 }
 
-/** The year a certificate counts against — UTC, for the same reason as {@link formatCertNumber}. */
-export function certYear(date: Date): number {
-  return date.getUTCFullYear();
+/** The day a certificate counts against — UTC, for the same reason as {@link formatCertNumber}. */
+export function certDay(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
-/** Counter row id for a firm's yearly sequence. */
-export function counterId(firmId: string, year: number): string {
-  return `${firmId}:${year}`;
+/**
+ * Counter row id for a firm's daily sequence.
+ *
+ * Daily rather than yearly: NN restarts at 01 each day, so the first maʼlumotnoma of 20 July 2026
+ * is «20072026/01» and the second «20072026/02». The date is already in the number, so a per-day
+ * sequence stays unique — «20072026/01» and «21072026/01» are different documents.
+ */
+export function counterId(firmId: string, day: string): string {
+  return `${firmId}:${day}`;
 }
