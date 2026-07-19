@@ -8,7 +8,7 @@ import {
 } from '@spravka/shared/core';
 
 const REQUIRED = [
-  'firmId', 'personFullName', 'personPassport',
+  'firmId', 'personPinfl', 'personFullName', 'personPassport',
   'loanAmount', 'asOfDate', 'issueDate',
 ] as const satisfies readonly CertField[];
 
@@ -19,24 +19,15 @@ export async function POST(req: Request) {
   const b = await req.json().catch(() => ({}));
   const submit = b.action === 'submit';
 
+  /*
+    A draft is held to the same standard as a submission. Saving one allocates a maʼlumotnoma
+    number that is never reused, so an ariza too empty to be worth a number is not worth saving —
+    the sheet keeps itself in the browser until it is.
+  */
   const missing = missingFieldsError(b, REQUIRED);
   if (missing) return NextResponse.json({ error: missing }, { status: 400 });
 
-  /*
-    PINFL is what identifies the client, not what the document says — the maʼlumotnoma never prints
-    it. So a draft may be saved without one: the yurist is often part-way through, working from a
-    contract that has the name and the passport in front of it and the PINFL somewhere else.
-
-    Submitting is the point of no return for that: an ariza that reaches the admin without a PINFL
-    leaves a client the system can never match to their next one.
-  */
-  if (submit && !b.personPinfl) {
-    return NextResponse.json(
-      { error: 'Yuborishdan oldin PINFL kiriting — mijoz shu raqam boʻyicha taniladi' },
-      { status: 400 },
-    );
-  }
-  if (b.personPinfl && !isValidPinfl(b.personPinfl)) {
+  if (!isValidPinfl(b.personPinfl)) {
     return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
   }
 

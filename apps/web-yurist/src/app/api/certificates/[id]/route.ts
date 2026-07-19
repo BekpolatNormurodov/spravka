@@ -33,12 +33,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 
   const b = await req.json().catch(() => ({}));
+  // The same list the ariza was created against — an edit may not leave it emptier than it began.
   const REQUIRED = [
-    'personFullName', 'personPassport', 'loanAmount', 'asOfDate', 'issueDate',
+    'personPinfl', 'personFullName', 'personPassport', 'loanAmount', 'asOfDate', 'issueDate',
   ] as const satisfies readonly CertField[];
   const missing = missingFieldsError(b, REQUIRED);
   if (missing) return NextResponse.json({ error: missing }, { status: 400 });
-  if (b.personPinfl && !isValidPinfl(b.personPinfl)) {
+  if (!isValidPinfl(b.personPinfl)) {
     return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
   }
 

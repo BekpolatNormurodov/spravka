@@ -50,6 +50,7 @@ export function EditArizaSheet({
       // links the ariza to the person. No lookup: the details are already on the sheet, and
       // autofilling over them would undo the correction they came to make.
       pinfl
+      requirePinfl
       onPinflChange={(v) => store.patch({ personPinfl: v })}
       title="Hujjatni tahrirlash"
       subtitle={`№${number} · ${firm.letterheadName || firm.name}`}

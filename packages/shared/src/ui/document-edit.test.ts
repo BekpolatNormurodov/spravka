@@ -286,3 +286,25 @@ describe('what reaches the API', () => {
     expect(draftContracts(d)).toEqual([{ number: '8130', date: '2026-05-14' }]);
   });
 });
+
+describe('what a draft has to have', () => {
+  /*
+    A draft is held to the same standard as a submission, PINFL included. Saving one allocates a
+    maʼlumotnoma number that is never reused, so an ariza too empty to be worth a number is not
+    worth saving — the sheet keeps itself in the browser until it is.
+  */
+  it('wants the PINFL as much as everything else', () => {
+    const d = draft({ personPinfl: '' });
+    expect(draftProblems(d, { pinfl: true }).map((p) => p.field)).toEqual(['personPinfl']);
+  });
+
+  it('is satisfied by a complete document', () => {
+    expect(draftProblems(draft(), { pinfl: true })).toEqual([]);
+  });
+
+  it('names every empty one at once, in the order they appear on the page', () => {
+    const d = draft({ personPinfl: '', personFullName: '', loanAmount: '' });
+    expect(draftProblems(d, { pinfl: true }).map((p) => p.field))
+      .toEqual(['personPinfl', 'personFullName', 'loanAmount']);
+  });
+});

@@ -89,7 +89,9 @@ export function NewArizaSheet({ firm }: { firm: CertFirm & { id: string } }) {
   }
 
   const actions: SaveAction[] = [
-    { label: 'Qoralama saqlash', busyLabel: 'Saqlanmoqda…', run: () => save('draft') },
+    // A draft is checked too. Saving one allocates a number that is never reused, so the sheet
+    // has to be worth a number before it leaves the browser — until then localStorage holds it.
+    { label: 'Qoralama saqlash', busyLabel: 'Saqlanmoqda…', run: () => save('draft'), requiresValid: true },
     {
       label: 'Admin tasdigʻiga yuborish',
       busyLabel: 'Yuborilmoqda…',
