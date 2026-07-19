@@ -161,7 +161,7 @@ body {
    width of its own regardless of `size="1"`. Measured on the short slots, where it showed: the
    contract number wanted 37.3px of text and got a 48.8px box. */
 .cert-fit {
-  display: inline-block;
+  display: inline-grid;
   position: relative;
   vertical-align: baseline;
   /* The body paragraphs carry `text-indent: 1.25cm` from the blank, and text-indent inherits and
@@ -174,7 +174,7 @@ body {
    line-height — `normal`, not the document's 1.45 — and the taller box pushes the whole line
    apart the moment a slot is opened. No min-width either: the placeholder is the minimum, and a
    floor on top of it would only make short values sit in a box wider than they are. */
-.cert-fit::after,
+.cert-fit-sizer,
 .cert-fit > input {
   font: inherit;
   line-height: inherit;
@@ -191,16 +191,14 @@ body {
   height: 100%;
   min-width: 0;
 }
-/* No trailing space in the content. One space of Times at 14pt is 4.7px, and it was being added to
-   every slot — measured, not guessed: each one opened exactly 4.7px wider than it had been closed.
-   1px is what the caret needs at the end of the text, and that is all it gets. */
-.cert-fit {
-  padding-right: 1px;
-}
-.cert-fit::after {
-  content: attr(data-value);
+/* Both sizers share one grid cell, so the column is the wider of them: the placeholder is the
+   floor and the text grows past it. Nothing is added around them — the paragraph is justified, so
+   a single stray pixel is enough to tip a word onto the next line and re-space the whole one. */
+.cert-fit-sizer {
+  grid-area: 1 / 1;
   visibility: hidden;
-  white-space: pre-wrap;
+  white-space: pre;
+  pointer-events: none;
 }
 
 /* An open slot is still a word in a sentence, so it is marked the way the closed one is — a tint

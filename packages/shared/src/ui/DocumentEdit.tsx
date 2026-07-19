@@ -18,9 +18,10 @@
 
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
-  CERT_FIELD_LABELS, dmy, dmyToIso, formatSum, isoToDmy, maskAmount, maskDmy, maskPassport,
+  dmy, dmyToIso, formatSum, isoToDmy, maskAmount, maskDmy, maskPassport,
   unmaskAmount, uzLongDateToIso, type DocContract,
 } from '../core';
+import { CERT_FIELD_LABELS } from '../core/labels';
 import type { CertificateEdit } from './CertificateDocument';
 import { Ico } from './icons';
 
@@ -467,10 +468,19 @@ function ValueInput({
     than most of the letters it was standing in for, so opening a slot shoved the whole justified
     paragraph sideways.
   */
-  // `data-value` carries whichever of the two is on screen, so an empty slot is as wide as its
-  // example rather than collapsing and then jumping open on the first keystroke.
+  /*
+    Two hidden copies decide the width, and the wider one wins — they share a single grid cell, so
+    the box is max(placeholder, text) and never less than the example that was showing before it
+    was clicked. Sizing from the text alone made the slot snap down to one character on the first
+    keystroke and creep back out as the value was typed.
+
+    The input is absolutely positioned and so contributes nothing to that measurement, which is
+    the whole reason it can be laid over them.
+  */
   return (
-    <span className="cert-fit" data-value={text || placeholder || ''}>
+    <span className="cert-fit">
+      <span className="cert-fit-sizer" aria-hidden="true">{placeholder ?? ''}</span>
+      <span className="cert-fit-sizer" aria-hidden="true">{text}</span>
       <input
         autoFocus
         size={1}
@@ -564,11 +574,14 @@ export function EditableContracts({
 export type TextField = 'personFullName' | 'passportIssuedBy' | 'contractType' | 'asOfText';
 export type ValueField = 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'issueDate';
 
-/**
- * A slot's name comes from core's map, not a second copy here: the same value is named in an API
- * error when it is missing, and two lists would eventually call one field two things.
- */
-export const SLOT_LABELS = CERT_FIELD_LABELS;
+/*
+  A slot's name comes from core's CERT_FIELD_LABELS, not a second copy here: the same value is
+  named in an API error when it is missing, and two lists would eventually call one field two
+  things. It is read where it is used rather than aliased to a local const — a module-scope
+  `export const X = CERT_FIELD_LABELS` runs during module evaluation, and in the client bundle
+  that ran before the barrel it comes from had finished initialising: ReferenceError on every
+  page that loads the editor.
+*/
 
 /**
  * Grey examples of what belongs in each slot, shown only while it is empty.
@@ -633,7 +646,7 @@ export function certificateEditSlots(
     text: (field) => (
       <span data-slot={field}>
         <EditableText
-          label={SLOT_LABELS[field]}
+          label={CERT_FIELD_LABELS[field]}
           placeholder={SLOT_PLACEHOLDERS[field]}
           value={draft[field]}
           invalid={o.invalid(field)}
@@ -654,7 +667,7 @@ export function certificateEditSlots(
     value: (field) => (
       <span data-slot={field}>
         <EditableValue
-          label={SLOT_LABELS[field]}
+          label={CERT_FIELD_LABELS[field]}
           placeholder={SLOT_PLACEHOLDERS[field]}
           kind={VALUE_KIND[field]}
           value={draft[field]}
