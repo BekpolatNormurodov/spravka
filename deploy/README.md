@@ -206,7 +206,32 @@ generatsiya qiladi. Qo'lda to'ldirsangiz — mana to'rttasi:
 | `MYSQL_ROOT_PASSWORD` | mysql + `DATABASE_URL` | compose ko'tarilmaydi |
 | `AUTH_SECRET` | to'rtala app | prod'da **ishga tushmaydi** — ataylab |
 | `NEXT_PUBLIC_PUBLIC_URL` | **build argumenti** | prod'da **rad etiladi** — ataylab |
-| `SEED_PASSWORD` | faqat `db:seed` | prod'da **seed ishlamaydi** — ataylab |
+| `SEED_PASSWORD` | `db:seed` — `yurist` va `admin` uchun | prod'da **seed ishlamaydi** — ataylab |
+
+`SEED_PASSWORD` rahbarlarga tegishli emas: har bir firma rahbari yaratilganda
+o'ziga alohida tasodifiy parol oladi. To'qqizta direktorga bitta umumiy parol —
+bitta sizib chiqish to'qqizta firma degani, va bittasinikini almashtirib ham
+bo'lmasdi.
+
+### Rahbar hisoblari
+
+`update.sh` seed'ni **ishlatmaydi** — u faqat `db:push` qiladi. Firmalar ro'yxati
+yoki rahbar hisoblari o'zgarganda seed'ni qo'lda chaqiring:
+
+```bash
+sudo docker compose run --rm --no-deps -T public npm run db:seed
+```
+
+Login — firmaning id'si, `firm_` prefiksisiz: `bright_future`, `zaymly`, va
+hokazo. Parollarni skript oxirida jadval qilib chiqaradi.
+
+Qayta chaqirish xavfsiz: mavjud foydalanuvchining paroli **tegilmaydi**, faqat
+ismi, lavozimi va firmasi yangilanadi. Ya'ni odam parolini almashtirgan bo'lsa,
+keyingi seed uni qaytarib tashlamaydi.
+
+Ro'yxatda yo'q rahbar — eski umumiy `rahbar` hisobi ham — **o'chirilmaydi, faqat
+faolsizlantiriladi**: `Certificate.signedById` ularga qaraydi va bu kim
+imzolagani haqidagi yagona yozuv.
 
 `DATABASE_URL`, `PORT`, `CERT_STORAGE_DIR` jadvalda yo'q — ular
 `docker-compose.yml` ichida. Qo'lda qo'yiladigan joyi yo'q, ya'ni unutib

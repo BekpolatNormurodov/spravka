@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { prisma } from '../src/db/index';
 import { Role } from '../src/core/index';
 import { hashPassword, seedPassword } from '../src/core/password';
@@ -201,22 +202,84 @@ async function main() {
     }
   }
 
-  const pass = await hashPassword(pw);
-  const users = [
-    { login: 'yurist', fullName: 'Yurist Foydalanuvchi', role: Role.YURIST, position: 'Yurist' },
-    { login: 'admin', fullName: 'Admin Foydalanuvchi', role: Role.ADMIN, position: 'Administrator' },
-    // A RAHBAR is a firm's ijrochi direktor — must be attached to exactly one firm.
-    { login: 'rahbar', fullName: 'Rahbar Foydalanuvchi', role: Role.RAHBAR, position: 'Ijrochi direktor', firmId: 'firm_bright_future' },
+  /*
+    One rahbar per firm, named after the person who actually signs there.
+
+    A RAHBAR is a firm's ijrochi direktor and acts only on that firm's documents — the scoping is
+    already enforced in web-rahbar/src/lib/scope.ts, which reads the firm from the user row on
+    every request. What was missing was the accounts: a single shared `rahbar` login stood for all
+    nine firms, so whoever held it signed for all of them and the signature said nothing about who.
+  */
+  const rahbars = FIRMS.map((f) => ({
+    // The firm's own id, minus the prefix: short to type and impossible to mistake for another firm.
+    login: f.id.replace(/^firm_/, ''),
+    fullName: f.directorFullName ?? f.directorName,
+    role: Role.RAHBAR,
+    position: f.directorPosition ?? 'Ижрочи директори',
+    firmId: f.id,
+  }));
+
+  const staff = [
+    { login: 'yurist', fullName: 'Yurist Foydalanuvchi', role: Role.YURIST, position: 'Yurist', firmId: null },
+    { login: 'admin', fullName: 'Admin Foydalanuvchi', role: Role.ADMIN, position: 'Administrator', firmId: null },
   ];
-  for (const u of users) {
-    await prisma.user.upsert({
-      where: { login: u.login },
-      update: { fullName: u.fullName, role: u.role, position: u.position, firmId: (u as { firmId?: string }).firmId ?? null },
-      create: { ...u, passwordHash: pass, plainPassword: pw },
+
+  for (const u of [...staff, ...rahbars]) {
+    const existing = await prisma.user.findUnique({ where: { login: u.login }, select: { id: true } });
+    if (existing) {
+      // Never the password. Re-seeding is routine — deploy/update.sh does it — and resetting
+      // credentials someone has already been given is not what "update the firm list" should mean.
+      await prisma.user.update({
+        where: { login: u.login },
+        data: { fullName: u.fullName, role: u.role, position: u.position, firmId: u.firmId },
+      });
+      continue;
+    }
+    // Each rahbar gets their own password. One shared secret across nine directors is one leak
+    // away from nine firms, and there would be no way to change it for one of them.
+    const secret = u.role === Role.RAHBAR ? randomBytes(9).toString('base64url') : pw;
+    await prisma.user.create({
+      data: { ...u, passwordHash: await hashPassword(secret), plainPassword: secret },
     });
   }
 
-  console.log('Seed complete: %d firms, %d users, %d stale firms handled', FIRMS.length, users.length, stale.length);
+  /*
+    Any rahbar who is not one of the nine — the old shared `rahbar` account among them.
+
+    Deactivated, never deleted: `Certificate.signedById` points at them, and that link is the
+    record of who signed what. Removing the row would either fail on the constraint or erase the
+    answer to a question a maʼlumotnoma exists to answer.
+  */
+  const retired = await prisma.user.updateMany({
+    where: { role: Role.RAHBAR, isActive: true, login: { notIn: rahbars.map((r) => r.login) } },
+    data: { isActive: false },
+  });
+
+  console.log(
+    'Seed complete: %d firms, %d users (%d rahbar), %d stale firms handled, %d rahbar deactivated',
+    FIRMS.length, staff.length + rahbars.length, rahbars.length, stale.length, retired.count,
+  );
+
+  // Read back rather than printed from above, so a re-run shows the passwords that are actually in
+  // use rather than ones it just decided not to set.
+  // `User.firmId` carries no Prisma relation, so the names come from the list this seed just wrote.
+  const firmName = new Map(FIRMS.map((f) => [f.id, f.shortName ?? f.name]));
+  const accounts = await prisma.user.findMany({
+    where: { isActive: true },
+    select: { login: true, role: true, plainPassword: true, firmId: true },
+    orderBy: [{ role: 'asc' }, { login: 'asc' }],
+  });
+  console.log('\nLogin / parol:\n');
+  for (const a of accounts) {
+    console.log(
+      '  %s  %s  %s  %s',
+      a.login.padEnd(20),
+      (a.plainPassword ?? '(nomaʼlum)').padEnd(18),
+      String(a.role).padEnd(7),
+      a.firmId ? (firmName.get(a.firmId) ?? a.firmId) : '—',
+    );
+  }
+  console.log('\nHar bir foydalanuvchi birinchi kirgandan keyin parolini almashtirsin.');
 }
 
 main().finally(() => prisma.$disconnect());
