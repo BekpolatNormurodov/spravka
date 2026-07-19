@@ -156,8 +156,16 @@ body {
    The previous attempt set the width in `ch`. A `ch` is the width of a zero, and in Times a zero is
    wider than most letters, so opening a slot made the box jump wider than the text it replaced and
    shoved the whole justified paragraph sideways. */
+/* The hidden copy of the text is the only thing that gets to decide how wide this is, so the input
+   is taken out of the layout entirely and stretched over it.
+
+   The obvious version — both in one grid cell — does not work: `min-width: 0` removes an item's
+   automatic minimum but not its max-content contribution, and Chrome gives an <input> an intrinsic
+   width of its own regardless of `size="1"`. Measured on the short slots, where it showed: the
+   contract number wanted 37.3px of text and got a 48.8px box. */
 .cert-fit {
-  display: inline-grid;
+  display: inline-block;
+  position: relative;
   vertical-align: baseline;
 }
 /* Both items inherit the paragraph's metrics exactly. An input otherwise brings its own
@@ -166,25 +174,29 @@ body {
    floor on top of it would only make short values sit in a box wider than they are. */
 .cert-fit::after,
 .cert-fit > input {
-  grid-area: 1 / 1;
   font: inherit;
   line-height: inherit;
-  height: auto;
   padding: 0;
   margin: 0;
   border: 0;
   resize: none;
   appearance: none;
 }
-/* Without this the column sizes to the input, not to the text. A bare <input> carries a default
-   width of about twenty characters, and as a grid item its `min-width: auto` resolves to that —
-   so every slot opened three times wider than the value it held. */
 .cert-fit > input {
-  min-width: 0;
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+/* No trailing space in the content. One space of Times at 14pt is 4.7px, and it was being added to
+   every slot — measured, not guessed: each one opened exactly 4.7px wider than it had been closed.
+   1px is what the caret needs at the end of the text, and that is all it gets. */
+.cert-fit {
+  padding-right: 1px;
 }
 .cert-fit::after {
-  content: attr(data-value) ' ';
+  content: attr(data-value);
   visibility: hidden;
   white-space: pre-wrap;
 }
