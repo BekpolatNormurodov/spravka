@@ -144,10 +144,6 @@ body {
 }
 .cert-slot-empty { color: #9aa4b8; }
 
-/* A note to the person writing, standing where a value will go. `no-print` keeps it off paper;
-   this only styles it so it does not read as part of the document. */
-.cert-hint { color: #9aa4b8; font-weight: 400; font-size: .85em; }
-
 /* An input cannot size itself, so the wrapper does it.
 
    Both the input and a hidden copy of its text sit in one grid cell, so the cell — and therefore

@@ -211,16 +211,10 @@ export function CertificateDocument(p: CertificateDocumentProps) {
             <td style={{ width: '55.75%', verticalAlign: 'top', padding: 0, border: 0 }}>
               <div style={{ fontSize: '12pt', fontWeight: 700, lineHeight: 1.35 }}>
                 <div>Сана: {edit ? edit.value('issueDate') : dmy(p.issueDate)} й</div>
-                {/* The counter issues the number on save, so an ariza being written has none. The
-                    row still stands — the blank's top table is date, number, addressee — but what
-                    fills it is a screen-only note. Nothing here can print a mark that is not a
-                    certificate number. */}
-                {(p.number || edit) && (
-                  <div>
-                    {'№ '}
-                    {p.number || <span className="cert-hint no-print">—</span>}
-                  </div>
-                )}
+                {/* The counter issues the number when the ariza is saved, so one being written has
+                    none and the row simply is not there yet. Nothing stands in for it: a mark in
+                    the place of a certificate number is a mark that is not a certificate number. */}
+                {p.number && <div>№ {p.number}</div>}
               </div>
             </td>
             <td style={{ width: '44.25%', verticalAlign: 'top', padding: 0, border: 0 }}>

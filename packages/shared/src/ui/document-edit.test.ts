@@ -171,14 +171,14 @@ describe('the top table, as the blank writes it', () => {
     expect(words(markup)).not.toContain('№');
   });
 
-  it('keeps the row while writing, filled with a note that cannot print', () => {
+  it('leaves it out while the ariza is being written too', () => {
+    // The counter issues the number on save. Nothing stands in for it in the meantime: a mark in
+    // the place of a certificate number is a mark that is not a certificate number.
     const d = draft();
     const markup = renderToStaticMarkup(
       React.createElement(CertificateDocument, { ...docProps(d), number: '', edit: slots(d) }),
     );
-    expect(words(markup)).toContain('№');
-    // `no-print` is what keeps it off paper; without that class it would be printed text.
-    expect(markup).toContain('cert-hint no-print');
+    expect(words(markup)).not.toContain('№');
   });
 });
 
