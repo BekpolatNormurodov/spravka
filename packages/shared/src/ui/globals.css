@@ -136,6 +136,10 @@ body {
 }
 .cert-slot-empty { color: #9aa4b8; }
 
+/* A note to the person writing, standing where a value will go. `no-print` keeps it off paper;
+   this only styles it so it does not read as part of the document. */
+.cert-hint { color: #9aa4b8; font-weight: 400; font-size: .85em; }
+
 /* Sized to its own content by the component, so the line barely moves when it opens. */
 .cert-slot-editing {
   font: inherit; color: inherit;

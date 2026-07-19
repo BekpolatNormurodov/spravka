@@ -190,8 +190,13 @@ export function CertificateDocument(p: CertificateDocumentProps) {
         ── Сана/№ | addressee ────────────────────────────────────────────
         A borderless 2-column table, exactly as the .docx has it:
         w:tblW 9374 dxa split 5226 / 4148 → 55.75% / 44.25%, all w:tblBorders "none".
-        Left cell 12pt bold ('Сана: 14.07.2026' — no trailing 'й', '№14072026/01' — no
-        space after №). Right cell 14pt bold.
+        Left cell 12pt bold, right cell 14pt bold.
+
+        Corrected 2026-07-19 against a screenshot of the source document, which shows
+        'Сана: 26.06.2026 й', '№ 26062026/04' and '…ҚИЗИга'. This comment previously asserted the
+        opposite of all three — no trailing 'й', no space after №, an uppercase 'ГА' — and there is
+        no .docx in the repo to check either claim against. The blank is the authority; if a future
+        reading of it disagrees, re-measure rather than trusting either version of this note.
       */}
       <table
         style={{ width: '100%', borderCollapse: 'collapse', marginTop: '14pt', tableLayout: 'fixed' }}
@@ -200,16 +205,22 @@ export function CertificateDocument(p: CertificateDocumentProps) {
           <tr>
             <td style={{ width: '55.75%', verticalAlign: 'top', padding: 0, border: 0 }}>
               <div style={{ fontSize: '12pt', fontWeight: 700, lineHeight: 1.35 }}>
-                <div>Сана: {edit ? edit.value('issueDate') : dmy(p.issueDate)}</div>
-                {/* No number yet means this ariza has never been saved: the counter issues one at
-                    that point and not before. Printing a placeholder for it would put a mark on
-                    the document that is not a certificate number. */}
-                {p.number && <div>№{p.number}</div>}
+                <div>Сана: {edit ? edit.value('issueDate') : dmy(p.issueDate)} й</div>
+                {/* The counter issues the number on save, so an ariza being written has none. The
+                    row still stands — the blank's top table is date, number, addressee — but what
+                    fills it is a screen-only note. Nothing here can print a mark that is not a
+                    certificate number. */}
+                {(p.number || edit) && (
+                  <div>
+                    {'№ '}
+                    {p.number || <span className="cert-hint no-print">saqlanganda beriladi</span>}
+                  </div>
+                )}
               </div>
             </td>
             <td style={{ width: '44.25%', verticalAlign: 'top', padding: 0, border: 0 }}>
               <div style={{ fontSize: '14pt', fontWeight: 700, lineHeight: 1.3 }}>
-                {name}ГА
+                {name}га
               </div>
             </td>
           </tr>

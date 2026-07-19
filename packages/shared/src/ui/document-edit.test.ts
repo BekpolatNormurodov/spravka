@@ -108,6 +108,46 @@ describe('editing and printing agree', () => {
   });
 });
 
+describe('the top table, as the blank writes it', () => {
+  /*
+    Three details measured off the source document on 2026-07-19. Each was previously rendered the
+    other way round, and each is invisible enough to be "tidied" back by someone reading the code
+    without the blank in front of them. Pinned here so that costs a failing test.
+  */
+  const printed = () => words(renderToStaticMarkup(
+    React.createElement(CertificateDocument, docProps(draft())),
+  ));
+
+  it('ends the date with й', () => {
+    expect(printed()).toContain('Сана: 26.06.2026 й');
+  });
+
+  it('puts a space after №', () => {
+    expect(printed()).toContain('№ 26062026/01');
+  });
+
+  it('addresses the person with a lowercase га', () => {
+    expect(printed()).toContain('КАМБАРОВА МОХИРА ХАСАНОВНАга');
+  });
+
+  it('leaves the № row out entirely when the ariza has no number and is not being written', () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CertificateDocument, { ...docProps(draft()), number: '' }),
+    );
+    expect(words(markup)).not.toContain('№');
+  });
+
+  it('keeps the row while writing, filled with a note that cannot print', () => {
+    const d = draft();
+    const markup = renderToStaticMarkup(
+      React.createElement(CertificateDocument, { ...docProps(d), number: '', edit: slots(d) }),
+    );
+    expect(words(markup)).toContain('№');
+    // `no-print` is what keeps it off paper; without that class it would be printed text.
+    expect(markup).toContain('cert-hint no-print');
+  });
+});
+
 describe('undo history', () => {
   it('undoes and redoes back to where it started', () => {
     const a = draft();
