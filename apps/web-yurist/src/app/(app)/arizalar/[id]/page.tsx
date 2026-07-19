@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { CertStatus, dmy, formatSum, ACTION_LABELS } from '@spravka/shared/core';
+import { CertStatus, dmy, formatSum, ACTION_LABELS, canEdit, Role } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
 import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice, ContractCell, EventTimeline } from '@spravka/shared/ui';
 
@@ -64,6 +64,16 @@ export default async function CertDetail({ params }: { params: { id: string } })
         </div>
 
         <div className="space-y-4">
+          {/* A draft is still the yurist's to change; once submitted it is not (core's canEdit). */}
+          {canEdit(session!.role as Role, c.status) && (
+            <div className="card p-5">
+              <h3 className="mb-3 text-sm font-semibold">Amal</h3>
+              <Link href={`/arizalar/${c.id}/tahrir`} className="btn-ghost w-full justify-center">
+                Hujjatni tahrirlash
+              </Link>
+            </div>
+          )}
+
           <QrCard dataUrl={qr} url={publicUrl} signed={c.status === CertStatus.SIGNED} />
 
           <div className="card p-5 text-sm">

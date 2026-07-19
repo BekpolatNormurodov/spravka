@@ -111,7 +111,15 @@ body {
 .cert-slot:focus,
 .cert-slot:focus-within { background: rgba(59, 130, 246, .1); box-shadow: 0 0 0 2px rgba(59, 130, 246, .35); }
 
-/* An empty slot still has to occupy its place in the line. */
+/* An empty slot still has to occupy its place in the line — and has to be a big enough target to
+   click. An empty inline box is the thing browsers refuse to put a caret in; inline-block gives it
+   a real box while `:empty` lasts, and the moment a letter is typed the rule stops matching and the
+   slot goes back to inline, so a long name wraps and re-justifies the way printed text does. */
+.cert-slot:empty {
+  display: inline-block;
+  min-width: 4ch;
+  min-height: 1em;
+}
 .cert-slot[data-placeholder]:empty::before {
   content: attr(data-placeholder);
   color: #9aa4b8;

@@ -40,7 +40,7 @@ export interface CertDraft {
   issueDate: string;
 }
 
-/** How long typing has to stop before it becomes one undo step. */
+/** How long typing has to stop before the draft is mirrored to localStorage. */
 const QUIET_MS = 400;
 const HISTORY_MAX = 50;
 
@@ -137,7 +137,6 @@ export interface CertDraftStore {
 export function useCertDraft(initial: CertDraft, storageKey: string | null): CertDraftStore {
   const [h, dispatch] = useReducer(reduceDraft, initialHistory(initial));
 
-  const timer = useRef<ReturnType<typeof setTimeout>>();
   const [recovered, setRecovered] = useState<CertDraft | null>(null);
   const initialJson = useRef(JSON.stringify(initial));
 
@@ -171,15 +170,32 @@ export function useCertDraft(initial: CertDraft, storageKey: string | null): Cer
   const currentRef = useRef(h.present);
   currentRef.current = h.present;
 
+  /** Which value the open, uncommitted step belongs to. */
+  const pending = useRef<string | null>(null);
+
+  /**
+   * One undo step per value, not per pause.
+   *
+   * The step ends when the person moves to a different part of the document — which is how they
+   * think about what they just did ("I fixed the name", "I fixed the sum"), and it does not depend
+   * on how fast they type. A timer would cut a slow typist's name into four steps and merge a fast
+   * one's name and passport into one.
+   */
   const patch = useCallback((p: Partial<CertDraft>, immediate = false) => {
+    const field = Object.keys(p).sort().join(',');
+    if (pending.current !== null && pending.current !== field) dispatch({ type: 'commit' });
     dispatch({ type: 'set', value: { ...currentRef.current, ...p } });
-    clearTimeout(timer.current);
-    if (immediate) dispatch({ type: 'commit' });
-    else timer.current = setTimeout(() => dispatch({ type: 'commit' }), QUIET_MS);
+    if (immediate) {
+      dispatch({ type: 'commit' });
+      pending.current = null;
+    } else {
+      pending.current = field;
+    }
   }, []);
 
   const flushThen = useCallback((type: 'undo' | 'redo') => {
-    clearTimeout(timer.current);
+    // The open step is finished by the undo itself — the reducer folds it in before stepping back.
+    pending.current = null;
     dispatch({ type });
   }, []);
 
@@ -198,8 +214,6 @@ export function useCertDraft(initial: CertDraft, storageKey: string | null): Cer
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [undo, redo]);
-
-  useEffect(() => () => clearTimeout(timer.current), []);
 
   const clearStored = useCallback(() => {
     if (!storageKey) return;
@@ -230,6 +244,22 @@ export function useCertDraft(initial: CertDraft, storageKey: string | null): Cer
 
 const slotClass = (invalid?: boolean) =>
   `cert-slot${invalid ? ' cert-slot-bad' : ''}`;
+
+/** Drop the caret inside an element that has no text to anchor it to. */
+function placeCaret(el: HTMLElement) {
+  const sel = typeof window !== 'undefined' ? window.getSelection?.() : null;
+  if (!sel) return;
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch {
+    // Selection APIs vary; a browser that refuses this still has its own caret handling to fall
+    // back on, and failing here must not stop the person from typing.
+  }
+}
 
 /**
  * A long value, editable as real text inside the paragraph.
@@ -273,9 +303,17 @@ export function EditableText({
       contentEditable
       suppressContentEditableWarning
       role="textbox"
+      aria-multiline="false"
       aria-label={label}
       data-placeholder={placeholder}
       className={slotClass(invalid)}
+      onFocus={(e) => {
+        // Tab and click both end up here. An empty slot has no text node to anchor a caret to, so
+        // one is placed explicitly; otherwise focus lands on the element and keystrokes go nowhere.
+        const el = e.currentTarget;
+        if (el.textContent) return;
+        placeCaret(el);
+      }}
       onMouseDown={(e) => {
         /*
           An empty inline contenteditable is a box browsers will not put a caret in — the click
@@ -290,12 +328,7 @@ export function EditableText({
         if (el.textContent) return;
         e.preventDefault();
         el.focus();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        range.collapse(true);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
+        placeCaret(el);
       }}
       onInput={(e) => onChange(e.currentTarget.textContent ?? '')}
       onBeforeInput={(e) => {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import React, { useState } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { EditableText, EditableValue } from './DocumentEdit';
+import { EditableText, EditableValue, useCertDraft, type CertDraft } from './DocumentEdit';
 
 afterEach(cleanup);
 
@@ -140,5 +140,68 @@ describe('date entry', () => {
     render(<ValueHarness kind="date" start="2026-05-14" />);
     fireEvent.click(screen.getByRole('button', { name: 'Qiymat' }));
     expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('14.05.2026');
+  });
+});
+
+const emptyDraft = (): CertDraft => ({
+  personPinfl: '', personFullName: '', personPassport: '', passportIssuedBy: '',
+  passportIssuedAt: '', contracts: [{ number: '', date: '' }],
+  contractType: 'шартнома', loanAmount: '', asOfDate: '', issueDate: '',
+});
+
+/** The draft store driven the way the editor drives it: one patch per value touched. */
+function DraftHarness() {
+  const s = useCertDraft(emptyDraft(), null);
+  return (
+    <>
+      <button onClick={() => s.patch({ personFullName: 'АЗИЗ' })}>name-1</button>
+      <button onClick={() => s.patch({ personFullName: 'АЗИЗБЕК' })}>name-2</button>
+      <button onClick={() => s.patch({ personPassport: 'AE1234567' })}>pass</button>
+      <button onClick={s.undo}>undo</button>
+      <button onClick={s.redo}>redo</button>
+      <output data-testid="name">{s.draft.personFullName}</output>
+      <output data-testid="pass">{s.draft.personPassport}</output>
+    </>
+  );
+}
+
+describe('one undo step per value', () => {
+  const click = (label: string) => fireEvent.click(screen.getByText(label));
+  const name = () => screen.getByTestId('name').textContent;
+  const pass = () => screen.getByTestId('pass').textContent;
+
+  it('treats a whole field as one step however many keystrokes it took', () => {
+    render(<DraftHarness />);
+    click('name-1');
+    click('name-2');
+    click('undo');
+    // Both edits were to the name, so they undo together — not letter by letter.
+    expect(name()).toBe('');
+  });
+
+  it('ends the step when the person moves to another value', () => {
+    render(<DraftHarness />);
+    click('name-1');
+    click('pass');
+    click('undo');
+    expect(pass()).toBe('');
+    expect(name()).toBe('АЗИЗ');
+
+    click('undo');
+    expect(name()).toBe('');
+  });
+
+  it('redoes the steps in the order they were made', () => {
+    render(<DraftHarness />);
+    click('name-1');
+    click('pass');
+    click('undo');
+    click('undo');
+    expect(name()).toBe('');
+
+    click('redo');
+    expect(name()).toBe('АЗИЗ');
+    click('redo');
+    expect(pass()).toBe('AE1234567');
   });
 });

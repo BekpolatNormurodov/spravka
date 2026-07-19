@@ -94,8 +94,14 @@ same record, and they would not stay in step.
 5. `Qoralama saqlash` or `Admin tasdigʻiga yuborish` posts to the existing
    `POST /api/certificates` — unchanged, same body it takes today.
 
-The admin route is the same sheet over a loaded row, saving through the existing
-`PUT /api/certificates/[id]`. The firm is fixed there, so the sidebar does not change.
+Both edit routes are the same sheet over a loaded row, saving through `PUT /api/certificates/[id]`.
+The firm is fixed there, so the sidebar does not change.
+
+**Who may reopen a document is core's `canEdit`, not a UI choice.** A yurist gets their own `DRAFT`;
+an admin gets `DRAFT` and `ADMIN_REVIEW`; after that the document is frozen for everyone. The
+yurist's route adds an ownership check on top — `canEdit` says *whether a draft may be edited*, not
+*whose draft it is*, and neither guard implies the other. A yurist arriving at a submitted ariza is
+redirected to the read-only page rather than refused: they came to look at their document.
 
 ## 6. Editable slots
 
@@ -120,11 +126,14 @@ print.
 
 ## 7. Undo
 
-One history over the whole draft, not per field.
+One history over the whole draft, and **one step per value edited**.
 
 - `Ctrl+Z` / `Ctrl+Shift+Z` / `Ctrl+Y`, plus two buttons — the shortcut is not discoverable.
-- Typing coalesces on a 400 ms quiet period, so a word is one step. Structural changes (a contract
-  row added or removed) commit immediately.
+- A step ends when the person moves to a different part of the document, not on a timer. That is
+  how they describe what they just did — "I fixed the name", "I fixed the sum" — and it does not
+  depend on typing speed. The 400 ms quiet period this replaced cut a slow typist's name into four
+  steps and merged a fast one's name and passport into one.
+- Structural changes (a contract row added or removed) close their step immediately.
 - History is capped at 50 steps.
 - The browser's own `contenteditable` history is suppressed inside the slots by cancelling
   `historyUndo`/`historyRedo` on `beforeinput` and dispatching ours. Two competing stacks is why an
