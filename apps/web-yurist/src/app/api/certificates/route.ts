@@ -3,12 +3,14 @@ import { nanoid } from 'nanoid';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { nextCertNumber } from '@spravka/shared/db';
-import { CertStatus, WfAction, isValidPinfl, parseContracts } from '@spravka/shared/core';
+import {
+  CertStatus, WfAction, isValidPinfl, parseContracts, missingFieldsError, type CertField,
+} from '@spravka/shared/core';
 
 const REQUIRED = [
   'firmId', 'personFullName', 'personPassport',
   'loanAmount', 'asOfDate', 'issueDate',
-] as const;
+] as const satisfies readonly CertField[];
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -17,9 +19,8 @@ export async function POST(req: Request) {
   const b = await req.json().catch(() => ({}));
   const submit = b.action === 'submit';
 
-  for (const k of REQUIRED) {
-    if (!b[k]) return NextResponse.json({ error: `Maydon toʻldirilmagan: ${k}` }, { status: 400 });
-  }
+  const missing = missingFieldsError(b, REQUIRED);
+  if (missing) return NextResponse.json({ error: missing }, { status: 400 });
 
   /*
     PINFL is what identifies the client, not what the document says — the maʼlumotnoma never prints

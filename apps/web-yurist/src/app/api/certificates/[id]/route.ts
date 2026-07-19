@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { canEdit, isValidPinfl, parseContracts, Role } from '@spravka/shared/core';
+import {
+  canEdit, isValidPinfl, parseContracts, Role, missingFieldsError, type CertField,
+} from '@spravka/shared/core';
 
 /**
  * A yurist correcting their own ariza before it leaves them.
@@ -31,10 +33,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 
   const b = await req.json().catch(() => ({}));
-  const required = ['personFullName', 'personPassport', 'loanAmount', 'asOfDate', 'issueDate'];
-  for (const k of required) {
-    if (!b[k]) return NextResponse.json({ error: `Maydon toʻldirilmagan: ${k}` }, { status: 400 });
-  }
+  const REQUIRED = [
+    'personFullName', 'personPassport', 'loanAmount', 'asOfDate', 'issueDate',
+  ] as const satisfies readonly CertField[];
+  const missing = missingFieldsError(b, REQUIRED);
+  if (missing) return NextResponse.json({ error: missing }, { status: 400 });
   if (b.personPinfl && !isValidPinfl(b.personPinfl)) {
     return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
   }

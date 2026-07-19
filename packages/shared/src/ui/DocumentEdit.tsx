@@ -18,8 +18,8 @@
 
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
-  dmy, dmyToIso, formatSum, isoToDmy, maskAmount, maskDmy, maskPassport, unmaskAmount,
-  uzLongDateToIso, type DocContract,
+  CERT_FIELD_LABELS, dmy, dmyToIso, formatSum, isoToDmy, maskAmount, maskDmy, maskPassport,
+  unmaskAmount, uzLongDateToIso, type DocContract,
 } from '../core';
 import type { CertificateEdit } from './CertificateDocument';
 import { Ico } from './icons';
@@ -564,16 +564,11 @@ export function EditableContracts({
 export type TextField = 'personFullName' | 'passportIssuedBy' | 'contractType' | 'asOfText';
 export type ValueField = 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'issueDate';
 
-export const SLOT_LABELS: Record<TextField | ValueField, string> = {
-  personFullName: 'Mijozning F.I.SH.',
-  passportIssuedBy: 'Passportni kim bergan',
-  contractType: 'Shartnoma turi',
-  personPassport: 'Passport raqami',
-  passportIssuedAt: 'Passport berilgan sana',
-  loanAmount: 'Kredit summasi',
-  asOfText: 'Holat sanasi',
-  issueDate: 'Maʼlumotnoma sanasi',
-};
+/**
+ * A slot's name comes from core's map, not a second copy here: the same value is named in an API
+ * error when it is missing, and two lists would eventually call one field two things.
+ */
+export const SLOT_LABELS = CERT_FIELD_LABELS;
 
 /**
  * Grey examples of what belongs in each slot, shown only while it is empty.
