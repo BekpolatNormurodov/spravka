@@ -144,6 +144,15 @@ export function CertSheetEditor({
           </label>
         )}
 
+        <button
+          type="button"
+          onClick={() => patch({ contracts: [...draft.contracts, { number: '', date: '' }] }, true)}
+          className="btn-ghost px-3 py-2 text-xs"
+          title="Maʼlumotnoma bir nechta shartnomani qamrab olishi mumkin"
+        >
+          <Ico.add size={16} /> Shartnoma
+        </button>
+
         <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
           <IconBtn onClick={undo} disabled={!canUndo} label="Orqaga qaytarish (Ctrl+Z)"><Ico.undo size={16} /></IconBtn>
           <IconBtn onClick={redo} disabled={!canRedo} label="Qaytadan (Ctrl+Shift+Z)"><Ico.redo size={16} /></IconBtn>

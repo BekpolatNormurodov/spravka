@@ -18,10 +18,10 @@
 
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
-  dmy, formatSum, maskAmount, maskPassport, unmaskAmount, uzLongDate, type DocContract,
+  dmy, dmyToIso, formatSum, isoToDmy, maskAmount, maskDmy, maskPassport, unmaskAmount, uzLongDate,
+  type DocContract,
 } from '../core';
 import type { CertificateEdit } from './CertificateDocument';
-import { DatePicker } from './DatePicker';
 import { Ico } from './icons';
 
 /* ── Draft state, history and persistence ───────────────────────────────────────────────────── */
@@ -276,6 +276,27 @@ export function EditableText({
       aria-label={label}
       data-placeholder={placeholder}
       className={slotClass(invalid)}
+      onMouseDown={(e) => {
+        /*
+          An empty inline contenteditable is a box browsers will not put a caret in — the click
+          lands, nothing focuses, and typing goes to the page instead of the document. It looks
+          exactly like a field that does not work, and it is why the placeholder slots refused to
+          take a name while the masked inputs beside them were fine.
+
+          Only when empty: with text in it, the browser's own caret placement is what the person
+          expects and taking it over would drop them at the start of a name they meant to fix.
+        */
+        const el = e.currentTarget;
+        if (el.textContent) return;
+        e.preventDefault();
+        el.focus();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }}
       onInput={(e) => onChange(e.currentTarget.textContent ?? '')}
       onBeforeInput={(e) => {
         // The browser keeps its own per-element history. Left alone it fights the document-level
@@ -303,8 +324,12 @@ export function EditableText({
 type ValueKind = 'passport' | 'amount' | 'date' | 'text';
 
 /**
- * A short value: printed text until clicked, then an input sized to its own content so the line
- * around it barely moves.
+ * A short value: printed text until clicked, then a plain masked input sized to its own content,
+ * so the line around it barely moves.
+ *
+ * Deliberately not a date picker. A popup calendar opening inside a justified 14pt paragraph
+ * displaces the text it is meant to sit in, and a clerk copying «27.10.2024» off a contract wants
+ * to type eight digits, not navigate three months back. The mask does the rest.
  */
 export function EditableValue({
   value,
@@ -340,39 +365,75 @@ export function EditableValue({
     );
   }
 
-  if (kind === 'date') {
-    return (
-      <span className="cert-slot-editing cert-slot-date">
-        <DatePicker
-          value={value}
-          onChange={(v) => { onChange(v); setOpen(false); }}
-          error={invalid}
-        />
-      </span>
-    );
-  }
+  return (
+    <ValueInput
+      key="editing"
+      value={value}
+      onChange={onChange}
+      kind={kind}
+      placeholder={placeholder}
+      label={label}
+      onDone={() => setOpen(false)}
+    />
+  );
+}
 
-  const mask = kind === 'passport' ? maskPassport : kind === 'amount' ? maskAmount : undefined;
-  const shown = kind === 'amount' ? maskAmount(value) : value;
+/** How each kind reads while it is being typed, which is not always how it is stored. */
+function toText(kind: ValueKind, value: string): string {
+  if (kind === 'date') return isoToDmy(value);
+  if (kind === 'amount') return maskAmount(value);
+  return value;
+}
+
+/**
+ * The open editor. Its own component so it can hold the half-typed text: '27.10' is a real thing
+ * to have on screen and not a date, so the input keeps it while the stored value stays empty.
+ */
+function ValueInput({
+  value, onChange, kind, placeholder, label, onDone,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  kind: ValueKind;
+  placeholder: string;
+  label: string;
+  onDone: () => void;
+}) {
+  const [text, setText] = useState(() => toText(kind, value));
+
+  const handle = (raw: string) => {
+    if (kind === 'date') {
+      const masked = maskDmy(raw);
+      setText(masked);
+      onChange(dmyToIso(masked));
+      return;
+    }
+    if (kind === 'amount') {
+      const masked = maskAmount(raw);
+      setText(masked);
+      onChange(unmaskAmount(masked));
+      return;
+    }
+    const masked = kind === 'passport' ? maskPassport(raw) : raw;
+    setText(masked);
+    onChange(masked);
+  };
 
   return (
     <input
       autoFocus
       aria-label={label}
       className="cert-slot-editing"
-      style={{ width: `${Math.max(shown.length, placeholder.length) + 1}ch` }}
-      value={shown}
-      inputMode={kind === 'amount' ? 'numeric' : undefined}
+      style={{ width: `${Math.max(text.length, placeholder.length) + 1}ch` }}
+      value={text}
+      inputMode={kind === 'amount' || kind === 'date' ? 'numeric' : undefined}
       placeholder={placeholder}
-      onChange={(e) => {
-        const v = mask ? mask(e.target.value) : e.target.value;
-        onChange(kind === 'amount' ? unmaskAmount(v) : v);
-      }}
-      onBlur={() => setOpen(false)}
+      onChange={(e) => handle(e.target.value)}
+      onBlur={onDone}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === 'Escape') {
           e.preventDefault();
-          setOpen(false);
+          onDone();
         }
       }}
     />
@@ -382,8 +443,9 @@ export function EditableValue({
 /**
  * The contract list, inline where it prints: «14.05.2026 йилдаги 8130-сонли, …».
  *
- * Add and remove sit in the flow rather than in a panel, so a second contract pushes the paragraph
- * exactly as far as it will on paper.
+ * Adding is a control in the bar above the paper, not a button in the sentence: a «+» sitting in
+ * the middle of a legal paragraph reads as part of the document. Removing stays here, because it
+ * has to say *which* contract, but it is invisible until the row is hovered.
  */
 export function EditableContracts({
   rows,
@@ -429,7 +491,7 @@ export function EditableContracts({
             {rows.length > 1 && (
               <button
                 type="button"
-                className="cert-row-btn cert-row-del no-print"
+                className="cert-row-del no-print"
                 title="Shartnomani olib tashlash"
                 aria-label={`${i + 1}-shartnomani olib tashlash`}
                 onClick={() => onChange(rows.filter((_, j) => j !== i), true)}
@@ -440,15 +502,6 @@ export function EditableContracts({
           </React.Fragment>
         );
       })}
-      <button
-        type="button"
-        className="cert-row-btn no-print"
-        title="Yana shartnoma qoʻshish"
-        aria-label="Yana shartnoma qoʻshish"
-        onClick={() => onChange([...rows, { number: '', date: '' }], true)}
-      >
-        <Ico.add size={12} />
-      </button>
     </>
   );
 }

@@ -68,10 +68,17 @@ export function isValidPinfl(v: string): boolean {
   return /^\d{14}$/.test(v);
 }
 
-/** Typed date — digits auto-dotted as DD.MM.YYYY (see DatePicker). */
+/**
+ * Typed date — digits auto-dotted as DD.MM.YYYY.
+ *
+ * Only the digits are kept, so typing the dots and skipping them come out the same, and the
+ * eight-digit cap means a full date stops accepting more rather than growing a tail.
+ */
 export function maskDmy(v: string): string {
   const d = digits(v).slice(0, 8);
   if (d.length <= 2) return d;
   if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
   return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
 }
+
+// `dmyToIso` / `isoToDmy` live in ./calendar — the masked input pairs with those, not with copies.

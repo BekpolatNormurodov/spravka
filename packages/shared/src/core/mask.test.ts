@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   maskAmount, unmaskAmount, maskPhone, unmaskPhone,
   maskPassport, maskStir, maskAccount, maskMfo, maskPinfl, isValidPinfl,
+  maskDmy,
 } from './mask';
+import { dmyToIso, isoToDmy } from './calendar';
 
 describe('maskAmount', () => {
   it('groups thousands with spaces', () => {
@@ -73,5 +75,37 @@ describe('maskPinfl', () => {
     expect(isValidPinfl('12345678901234')).toBe(true);
     expect(isValidPinfl('1234567890123')).toBe(false);
     expect(isValidPinfl('abcdefghijklmn')).toBe(false);
+  });
+});
+
+describe('dates typed into the document', () => {
+  it('formats digits as they are typed, dots or no dots', () => {
+    expect(maskDmy('27102024')).toBe('27.10.2024');
+    expect(maskDmy('27.10.2024')).toBe('27.10.2024');
+    expect(maskDmy('2710')).toBe('27.10');
+    expect(maskDmy('27')).toBe('27');
+  });
+
+  it('stops at a whole date instead of growing a tail', () => {
+    expect(maskDmy('271020249999')).toBe('27.10.2024');
+  });
+
+  it('reads a whole date and refuses a partial one', () => {
+    // The pairing that matters: whatever maskDmy emits is what dmyToIso is asked to read.
+    expect(dmyToIso(maskDmy('27102024'))).toBe('2024-10-27');
+    expect(dmyToIso(maskDmy('2710'))).toBe('');
+    expect(dmyToIso('')).toBe('');
+  });
+
+  it('refuses a date that does not exist rather than rolling it forward', () => {
+    // new Date(2024, 1, 31) is 2 March. A maʼlumotnoma must not quietly say a different day.
+    expect(dmyToIso('31.02.2024')).toBe('');
+    expect(dmyToIso('00.10.2024')).toBe('');
+    expect(dmyToIso('27.13.2024')).toBe('');
+  });
+
+  it('shows a stored date the way it is read', () => {
+    expect(isoToDmy('2024-10-27')).toBe('27.10.2024');
+    expect(isoToDmy('')).toBe('');
   });
 });

@@ -32,7 +32,9 @@ rahbar's screens; free-text rewriting of the template (`bodyText` stays unused).
 | Firm selection | Sidebar, route-driven (`/arizalar/yangi/[firmId]`) | The firm picks the blank, so it is navigation, not a field. Deriving the panel from the URL means browser back works and a reload keeps the state. |
 | PINFL | A slim bar above the sheet, outside the paper | PINFL is never printed. Everything on the paper must be something that prints, or "what you see is what you get" stops being true. |
 | Long values | `contenteditable` spans in the real text flow | They must wrap and re-justify like the printed text does. An overlaid input cannot wrap. |
-| Short masked values | Click-to-edit auto-width input | Masks, date pickers and validation are unworkable inside `contenteditable`. |
+| Short masked values | Click-to-edit auto-width input, masked text only | Masks and validation are unworkable inside `contenteditable`. Dates get `maskDmy`, not a calendar: a popup opening inside a justified 14pt paragraph displaces the text it sits in, and a clerk copying a date off a contract types eight digits rather than navigating months. Dots optional, eight digits and it stops. |
+| Adding a contract | A control in the bar above the paper | A «+» in the middle of a legal paragraph reads as part of the document. Removal stays inline — it has to say which contract — but is invisible until the paragraph is hovered. |
+| An unsaved ariza's number | The `№` line is omitted entirely | The counter issues the number on save. A placeholder in its place puts a mark on the document that is not a certificate number. |
 | Undo | App-level, over the whole draft | Native undo is per-field and does not see a contract row being added or removed. |
 | Autosave | Browser only; the row is created on an explicit save | `nextCertNumber` increments an atomic counter that is never reused. A row per abandoned attempt punches holes in the official number sequence. |
 | Screen colour | Soft grey text on screen, black in print | Softer on screen; the printed and frozen document is unchanged. A preview toggle shows the print truth on demand. |
@@ -61,6 +63,13 @@ packages/shared/src/ui/
 `EditableText` renders its value as children once, from a frozen ref, and updates the node
 imperatively after that. Children alone would move the caret to the start on every keystroke; the
 effect alone would leave the span empty in the server's markup and blank on first paint.
+
+It also places the caret itself when the slot is empty. **An empty inline `contenteditable` is a box
+browsers will not focus on click** — the click lands, nothing takes focus, and typing goes to the
+page. On screen that is indistinguishable from a field that does not work, and it is exactly what
+happened: the name slots refused every keystroke while the masked inputs beside them were fine.
+Taking over caret placement is limited to the empty case; with text in it, clicking mid-name has to
+land mid-name.
 
 ### Touched
 - `apps/web-yurist/src/app/(app)/layout.tsx` — supplies the sidebar panel.
@@ -143,8 +152,20 @@ The load-bearing test: **the same draft rendered in edit mode and rendered for t
 same text.** That assertion is the only thing standing between this feature and the drift the freeze
 spec forbids.
 
-Unit — `src/ui/document-edit.test.ts`. The suite runs in vitest's node environment over `.test.ts`
-files, so it renders through `renderToStaticMarkup` rather than a DOM:
+Two environments, because a static render says nothing about whether keystrokes arrive. `.test.ts`
+runs in node; `.test.tsx` runs in happy-dom. **The first version of this work shipped with only the
+node half, and every interaction bug in it survived a green suite** — that is what the second half
+is for, not thoroughness for its own sake.
+
+Interaction — `src/ui/editing.test.tsx` (happy-dom):
+- A contenteditable slot keeps what is typed, on the second and third keystroke as well as the
+  first, and carries it to the other places the same field prints.
+- Clicking an empty slot focuses it; clicking a slot with text in it does not hijack the caret.
+- A date types as `27102024` or `27.10.2024`, shows `27.10.2024`, stores `2024-10-27`, stops at
+  eight digits, and holds a partial `27.10` without inventing a date to go with it.
+- A passport masks to `AE5348993` as it is typed.
+
+Unit — `src/ui/document-edit.test.ts` (node), rendering through `renderToStaticMarkup`:
 - Editing and printing produce the same words, from the same draft.
 - The sum is grouped, and every contract stays in the sentence, exactly as printed.
 - The one deliberate divergence is pinned: empty issuer slots appear while editing and are absent
@@ -154,9 +175,10 @@ files, so it renders through `renderToStaticMarkup` rather than a DOM:
 - `draftProblems` reports each missing value once in page order, and skips PINFL where none is
   asked for; `draftContracts` drops a row left blank.
 
-Manual, on the running app — the interactive half a node-environment suite cannot reach:
+Manual, on the running app — what neither environment can settle:
 - A long F.I.SH. wraps to a second line and the paragraph re-justifies.
-- The caret stays where it was typed, across all three places the name appears.
+- The caret stays put mid-word, across all three places the name appears. happy-dom reports focus
+  but does not lay text out, so caret drift is only visible in a real browser.
 - `Ctrl+Z` undoes a contract row addition.
 - A reload after typing offers the draft back.
 - Saving produces a row identical to one the old form would have produced.

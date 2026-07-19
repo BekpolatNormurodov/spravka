@@ -99,9 +99,10 @@ export function NewArizaSheet({ firm }: { firm: CertFirm & { id: string } }) {
   return (
     <CertSheetEditor
       firm={firm}
-      // The real one is issued by the counter at save time — burning a number on a document that
-      // may never be saved would leave gaps in the official sequence.
-      number="—"
+      // Empty, so the № line is left off entirely: the counter issues the number at save time —
+      // burning one on a document that may never be saved would leave gaps in the sequence — and
+      // a placeholder standing in for it would look like a number the document does not have.
+      number=""
       store={store}
       actions={actions}
       pinfl

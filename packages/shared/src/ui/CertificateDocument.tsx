@@ -201,7 +201,10 @@ export function CertificateDocument(p: CertificateDocumentProps) {
             <td style={{ width: '55.75%', verticalAlign: 'top', padding: 0, border: 0 }}>
               <div style={{ fontSize: '12pt', fontWeight: 700, lineHeight: 1.35 }}>
                 <div>Сана: {edit ? edit.value('issueDate') : dmy(p.issueDate)}</div>
-                <div>№{p.number}</div>
+                {/* No number yet means this ariza has never been saved: the counter issues one at
+                    that point and not before. Printing a placeholder for it would put a mark on
+                    the document that is not a certificate number. */}
+                {p.number && <div>№{p.number}</div>}
               </div>
             </td>
             <td style={{ width: '44.25%', verticalAlign: 'top', padding: 0, border: 0 }}>
