@@ -93,6 +93,20 @@ describe('editing and printing agree', () => {
     expect(editing).toContain('26.05.2026 йилдаги 28324-сонли');
   });
 
+  it('leaves an unfilled slot blank rather than standing a specimen value in it', () => {
+    // «00.00.0000» and «AE0000000» in every empty slot made the document read as though it said
+    // those things. A blank in the line is what a paper blank leaves, and it is also the truth.
+    const d = draft({ personPassport: '', loanAmount: '', personFullName: '' });
+    const editing = words(renderToStaticMarkup(
+      React.createElement(CertificateDocument, { ...docProps(d), edit: slots(d) }),
+    ));
+    expect(editing).not.toMatch(/0{4}/);
+    expect(editing).not.toContain('AE0000000');
+    expect(editing).not.toContain('Ф.И.Ш.');
+    // The template around the missing values is still all there.
+    expect(editing).toContain('сўм миқдорида кредитлар ажратилган');
+  });
+
   it('offers the issuer slots even when they are empty, which the printed page omits', () => {
     // The one deliberate divergence — the optional values need somewhere to be typed. The
     // print-preview toggle drops `edit`, which is the branch asserted on the left here.

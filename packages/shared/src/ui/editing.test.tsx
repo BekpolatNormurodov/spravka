@@ -12,9 +12,9 @@ function TextHarness({ start = '' }: { start?: string }) {
   const [v, setV] = useState(start);
   return (
     <>
-      <EditableText label="Ism" value={v} onChange={setV} onUndo={noop} onRedo={noop} placeholder="Ф.И.Ш." />
+      <EditableText label="Ism" value={v} onChange={setV} onUndo={noop} onRedo={noop} />
       {/* A second copy, because the name prints in three places and all of them show one value. */}
-      <EditableText label="Ism 2" value={v} onChange={setV} onUndo={noop} onRedo={noop} placeholder="Ф.И.Ш." />
+      <EditableText label="Ism 2" value={v} onChange={setV} onUndo={noop} onRedo={noop} />
       <output data-testid="state">{v}</output>
     </>
   );
@@ -24,7 +24,7 @@ function ValueHarness({ kind, start = '' }: { kind: 'passport' | 'amount' | 'dat
   const [v, setV] = useState(start);
   return (
     <>
-      <EditableValue label="Qiymat" kind={kind} value={v} display={v} onChange={setV} placeholder="—" />
+      <EditableValue label="Qiymat" kind={kind} value={v} display={v} onChange={setV} />
       <output data-testid="state">{v}</output>
     </>
   );

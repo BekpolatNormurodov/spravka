@@ -272,7 +272,6 @@ function placeCaret(el: HTMLElement) {
 export function EditableText({
   value,
   onChange,
-  placeholder,
   invalid,
   label,
   onUndo,
@@ -280,7 +279,6 @@ export function EditableText({
 }: {
   value: string;
   onChange: (v: string) => void;
-  placeholder?: string;
   invalid?: boolean;
   label: string;
   onUndo: () => void;
@@ -305,7 +303,7 @@ export function EditableText({
       role="textbox"
       aria-multiline="false"
       aria-label={label}
-      data-placeholder={placeholder}
+      title={label}
       className={slotClass(invalid)}
       onFocus={(e) => {
         // Tab and click both end up here. An empty slot has no text node to anchor a caret to, so
@@ -369,7 +367,6 @@ export function EditableValue({
   display,
   onChange,
   kind,
-  placeholder,
   invalid,
   label,
 }: {
@@ -379,7 +376,6 @@ export function EditableValue({
   display: string;
   onChange: (v: string) => void;
   kind: ValueKind;
-  placeholder: string;
   invalid?: boolean;
   label: string;
 }) {
@@ -390,10 +386,14 @@ export function EditableValue({
       <button
         type="button"
         aria-label={label}
+        title={label}
         className={`${slotClass(invalid)} cert-slot-btn`}
         onClick={() => setOpen(true)}
       >
-        {display || <span className="cert-slot-empty">{placeholder}</span>}
+        {/* Empty means empty — a blank in the line, the way a paper blank leaves one. A specimen
+            value like «00.00.0000» standing in every unfilled slot reads as the document saying
+            something, and it says it loudly enough to drown out what is actually written. */}
+        {display}
       </button>
     );
   }
@@ -404,7 +404,6 @@ export function EditableValue({
       value={value}
       onChange={onChange}
       kind={kind}
-      placeholder={placeholder}
       label={label}
       onDone={() => setOpen(false)}
     />
@@ -423,12 +422,11 @@ function toText(kind: ValueKind, value: string): string {
  * to have on screen and not a date, so the input keeps it while the stored value stays empty.
  */
 function ValueInput({
-  value, onChange, kind, placeholder, label, onDone,
+  value, onChange, kind, label, onDone,
 }: {
   value: string;
   onChange: (v: string) => void;
   kind: ValueKind;
-  placeholder: string;
   label: string;
   onDone: () => void;
 }) {
@@ -452,24 +450,34 @@ function ValueInput({
     onChange(masked);
   };
 
+  /*
+    The wrapper is what sets the width, not the input.
+
+    `data-value` is echoed by a hidden ::after in the same grid cell, so the box is exactly as wide
+    as the text rendered in the document's own font — no wider. Measuring in `ch` was the previous
+    attempt and it stretched the line: `ch` is the width of a zero, and in Times a zero is wider
+    than most of the letters it was standing in for, so opening a slot shoved the whole justified
+    paragraph sideways.
+  */
   return (
-    <input
-      autoFocus
-      aria-label={label}
-      className="cert-slot-editing"
-      style={{ width: `${Math.max(text.length, placeholder.length) + 1}ch` }}
-      value={text}
-      inputMode={kind === 'amount' || kind === 'date' ? 'numeric' : undefined}
-      placeholder={placeholder}
-      onChange={(e) => handle(e.target.value)}
-      onBlur={onDone}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === 'Escape') {
-          e.preventDefault();
-          onDone();
-        }
-      }}
-    />
+    <span className="cert-fit" data-value={text}>
+      <input
+        autoFocus
+        aria-label={label}
+        title={label}
+        className="cert-slot-editing"
+        value={text}
+        inputMode={kind === 'amount' || kind === 'date' ? 'numeric' : undefined}
+        onChange={(e) => handle(e.target.value)}
+        onBlur={onDone}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === 'Escape') {
+            e.preventDefault();
+            onDone();
+          }
+        }}
+      />
+    </span>
   );
 }
 
@@ -503,8 +511,7 @@ export function EditableContracts({
               kind="date"
               label={`${i + 1}-shartnoma sanasi`}
               value={row.date}
-              display={row.date ? row.date.split('-').reverse().join('.') : ''}
-              placeholder="00.00.0000"
+              display={isoToDmy(row.date)}
               invalid={bad.date}
               onChange={(v) => patch(i, 'date', v)}
             />
@@ -515,7 +522,6 @@ export function EditableContracts({
                 label={`${i + 1}-shartnoma raqami`}
                 value={row.number}
                 display={row.number}
-                placeholder="00000"
                 invalid={bad.number}
                 onChange={(v) => patch(i, 'number', v.replace(/\D/g, ''))}
               />
@@ -553,17 +559,6 @@ export const SLOT_LABELS: Record<TextField | ValueField, string> = {
   loanAmount: 'Kredit summasi',
   asOfDate: 'Holat sanasi',
   issueDate: 'Maʼlumotnoma sanasi',
-};
-
-export const SLOT_PLACEHOLDERS: Record<TextField | ValueField, string> = {
-  personFullName: 'Ф.И.Ш.',
-  passportIssuedBy: 'кем берилган',
-  contractType: 'шартнома тури',
-  personPassport: 'AE0000000',
-  passportIssuedAt: '00.00.0000',
-  loanAmount: '0',
-  asOfDate: '0000 йил 0 ой',
-  issueDate: '00.00.0000',
 };
 
 const VALUE_KIND: Record<ValueField, ValueKind> = {
@@ -614,7 +609,6 @@ export function certificateEditSlots(
         <EditableText
           label={SLOT_LABELS[field]}
           value={draft[field]}
-          placeholder={SLOT_PLACEHOLDERS[field]}
           invalid={o.invalid(field)}
           onChange={(v) => o.patch({ [field]: v } as Partial<CertDraft>)}
           onUndo={o.undo}
@@ -630,7 +624,6 @@ export function certificateEditSlots(
           kind={VALUE_KIND[field]}
           value={draft[field]}
           display={displayOf(field, draft)}
-          placeholder={SLOT_PLACEHOLDERS[field]}
           invalid={o.invalid(field)}
           onChange={(v) => o.patch({ [field]: v } as Partial<CertDraft>)}
         />

@@ -119,6 +119,17 @@ redirected to the read-only page rather than refused: they came to look at their
 Not editable: letterhead, rekvizitlar, director, certificate number. Those come from the firm row
 and the counter.
 
+**An unfilled slot is blank, not a specimen.** «00.00.0000» and «AE0000000» standing in every empty
+slot made the document read as though it said those things, loudly enough to drown out what was
+actually written. A blank in the line is what a paper blank leaves, and it is also the truth. The
+slot keeps a minimum box so it can still be clicked; the field's name is in its `title` and
+`aria-label`.
+
+**An open slot is sized to its own text**, by a grid wrapper echoing the value into a hidden
+`::after`, so the box is exactly as wide as that text in the document's own font. Sizing in `ch` —
+the width of a zero, wider than most letters in Times — made opening a slot jump wider than the
+text it replaced and shove the justified paragraph sideways.
+
 **One deliberate difference between editing and printing.** The passport clause prints its short
 form when the issuing details are blank. In edit mode the long form is always shown, or the optional
 slots would have nowhere to be typed. The preview toggle resolves it: it renders exactly what will
