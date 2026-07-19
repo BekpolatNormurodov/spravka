@@ -165,7 +165,7 @@ Skriptlar repo'ni o'zi topadi (`BASH_SOURCE`), ya'ni `/opt/spravka` shart emas �
 `~/spravka` ham bo'laveradi.
 
 `init.sh` — `.env` ni o'zi yozadi va parollarni generatsiya qiladi
-(`MYSQL_ROOT_PASSWORD`, `AUTH_SECRET`, `SEED_PASSWORD`). Mavjud `.env` ustidan
+(`MYSQL_ROOT_PASSWORD`, `AUTH_SECRET`). Mavjud `.env` ustidan
 **yozmaydi**, qayta yurgizish xavfsiz. 80/443/5100-5103 band bo'lsa to'xtaydi —
 host'da nginx o'rnatilgan bo'lsa aynan shu chiqadi.
 
@@ -206,54 +206,49 @@ generatsiya qiladi. Qo'lda to'ldirsangiz — mana to'rttasi:
 | `MYSQL_ROOT_PASSWORD` | mysql + `DATABASE_URL` | compose ko'tarilmaydi |
 | `AUTH_SECRET` | to'rtala app | prod'da **ishga tushmaydi** — ataylab |
 | `NEXT_PUBLIC_PUBLIC_URL` | **build argumenti** | prod'da **rad etiladi** — ataylab |
-| `SEED_PASSWORD` | `db:seed` — `yurist` va `admin` uchun | prod'da **seed ishlamaydi** — ataylab |
 
-`SEED_PASSWORD` rahbarlarga tegishli emas: har bir firma rahbari yaratilganda
-o'ziga alohida tasodifiy parol oladi. To'qqizta direktorga bitta umumiy parol —
-bitta sizib chiqish to'qqizta firma degani, va bittasinikini almashtirib ham
-bo'lmasdi.
+`SEED_PASSWORD` yo'q. Ilgari u seed hamma hisobga bitta parol berishidan
+saqlardi; endi seed har bir hisobga alohida tasodifiy parol beradi, ya'ni
+saqlanadigan umumiy parol qolmadi. Ishlamaydigan majburiy o'zgaruvchi
+yo'qidan yomonroq — u himoya bordek ko'rinadi.
 
-### Rahbar hisoblari
+### Hisoblar va parollar
 
-`update.sh` seed'ni **ishlatmaydi** — u faqat `db:push` qiladi. Firmalar ro'yxati
-yoki rahbar hisoblari o'zgarganda seed'ni qo'lda chaqiring:
+Hammasi `db:seed` ichida: firmalar, bitta `yurist`, bitta `admin`, va har bir
+firmaga rahbar.
 
 ```bash
 sudo docker compose run --rm --no-deps -T public npm run db:seed
 ```
 
-Login — firmaning id'si, `firm_` prefiksisiz: `bright_future`, `zaymly`, va
-hokazo. Parollarni skript oxirida jadval qilib chiqaradi.
-
-Qayta chaqirish xavfsiz: mavjud foydalanuvchining paroli **tegilmaydi**, faqat
-ismi, lavozimi va firmasi yangilanadi. Ya'ni odam parolini almashtirgan bo'lsa,
-keyingi seed uni qaytarib tashlamaydi.
-
-Ro'yxatda yo'q rahbar — eski umumiy `rahbar` hisobi ham — **o'chirilmaydi, faqat
-faolsizlantiriladi**: `Certificate.signedById` ularga qaraydi va bu kim
-imzolagani haqidagi yagona yozuv.
-
-### Hamma parolni qaytadan berish
-
-Hisoblarni noldan tuzib, parollarni bir marta ko'rsatish uchun alohida skript
-bor. `db:seed` dan farqi: bu **yangi parol beradi**, ya'ni hozirgi parollar
-ishlamay qoladi. Shuning uchun tasdiq so'raydi.
-
-```bash
-sudo docker compose run --rm --no-deps -T -e CONFIRM=1 public npm run db:accounts
-```
-
-Jadval chiqadi — login, parol, rol, firma. Parollar boshqa hech qayerda
+Oxirida jadval chiqadi — login, parol, rol, firma. Parollar boshqa hech qayerda
 ko'rsatilmaydi (bazadagi `plainPassword` dan tashqari), shuning uchun o'sha
 paytda nusxa oling.
 
-Kim bo'lishi `packages/shared/prisma/accounts.ts` boshidagi `RAHBAR_FIRMS`
-ro'yxatida. **Bir firmani bir necha marta yozish mumkin** — bitta firmada
-ikkinchi rahbar kerak bo'lsa, uni ikki marta yozing: loginlar `bright_future`
-va `bright_future2` bo'ladi, ikkalasi ham o'sha firmaga bog'lanadi.
+Login — firmaning id'si, `firm_` prefiksisiz: `bright_future`, `zaymly`. Parol —
+firma nomi belgisi va sakkiz tasodifiy belgi: `Bright-v2sZaUKH`. Belgi sir emas,
+u to'qqizta odamga tarqatiladigan parolni kimniki ekanini aytish uchun.
+
+**Qayta chaqirish xavfsiz.** Mavjud foydalanuvchining paroli tegilmaydi — faqat
+ismi, lavozimi va firmasi yangilanadi. `update.sh` seed'ni chaqirmaydi, lekin
+`init.sh` chaqiradi, va odamlar allaqachon ishlatayotgan parolni jimgina
+almashtirish hech qanday xato bermaydi — kimdir kirmoqchi bo'lgunicha.
+
+Hammaga yangi parol kerak bo'lsa, buni ochiq ayting:
+
+```bash
+sudo docker compose run --rm --no-deps -T -e RESET_PASSWORDS=1 public npm run db:seed
+```
+
+Kim bo'lishi `packages/shared/prisma/seed.ts` dagi `RAHBAR_FIRMS` ro'yxatida.
+**Bir firmani bir necha marta yozish mumkin** — bitta firmada ikkinchi rahbar
+kerak bo'lsa, uni ikki marta yozing: loginlar `bright_future` va
+`bright_future2` bo'ladi, ikkalasi ham o'sha firmaga bog'lanadi.
 
 Ro'yxatda yo'q hisoblar o'chiriladi; hujjat yaratgan yoki imzolaganlari esa
-faolsizlantiriladi — ular o'chirilsa, kim imzolagani haqidagi yozuv yo'qolardi.
+**faolsizlantiriladi** — `Certificate.createdById`, `Certificate.signedById` va
+`WorkflowEvent.actorId` ularga qaraydi, va bu kim yozgani va kim imzolagani
+haqidagi yagona yozuv. Baza o'chirishga yo'l ham qo'ymaydi.
 
 `DATABASE_URL`, `PORT`, `CERT_STORAGE_DIR` jadvalda yo'q — ular
 `docker-compose.yml` ichida. Qo'lda qo'yiladigan joyi yo'q, ya'ni unutib

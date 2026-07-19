@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { prisma } from '../src/db/index';
 import { Role } from '../src/core/index';
-import { hashPassword, seedPassword } from '../src/core/password';
+import { hashPassword } from '../src/core/password';
 
 /**
  * Real firms.
@@ -177,12 +177,55 @@ const FIRMS = [
   },
 ];
 
-async function main() {
-  // Before any write. This throws in production when SEED_PASSWORD is unset, and the block below
-  // upserts nine firms and DELETES the stale ones — so checking it where the password is actually
-  // used would leave a half-seeded database behind on the way out.
-  const pw = seedPassword();
+/**
+ * Who gets a rahbar account, in the order they are printed.
+ *
+ * A firm may appear more than once. `Certificate.firmId` is what scopes a rahbar, and nothing
+ * requires that scope to belong to one person — two directors at one firm both sign that firm's
+ * documents, and each signature records which of them it was. Name a firm twice and the logins
+ * come out `bright_future` and `bright_future2`.
+ */
+const RAHBAR_FIRMS: string[] = [
+  'firm_bright_future',
+  'firm_urban_finance',
+  'firm_muvaffaqiyat',
+  'firm_community',
+  'firm_fundflow',
+  'firm_dynamic_credit',
+  'firm_darrowmad',
+  'firm_zaymly',
+  'firm_prestige_moliya',
+];
 
+/** No O/0 and no l/1/I: these are read off a screen and retyped by someone else. */
+const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+
+function randomChars(n: number): string {
+  const bytes = randomBytes(n);
+  let out = '';
+  for (let i = 0; i < n; i++) out += ALPHABET[bytes[i]! % ALPHABET.length];
+  return out;
+}
+
+/**
+ * A password that says which firm it belongs to and is still random enough to be one.
+ *
+ * The marker is not a secret and is not meant to be: these get copied into a message and sent to
+ * nine different people, and a password found later with no idea whose it was is a password
+ * nobody dares change. The eight characters after it carry the strength.
+ */
+function newPassword(marker: string): string {
+  return `${marker}-${randomChars(8)}`;
+}
+
+/** '«BRIGHT FUTURE FINANCING» МЧЖ' -> 'Bright'. The first word is what people call the firm. */
+function markerFor(name: string): string {
+  const word = name.trim().split(/[\s"«»']+/).filter(Boolean)[0] ?? 'Firma';
+  const latin = word.replace(/[^A-Za-z]/g, '') || 'Firma';
+  return latin[0]!.toUpperCase() + latin.slice(1).toLowerCase();
+}
+
+async function main() {
   for (const f of FIRMS) {
     await prisma.firm.upsert({ where: { id: f.id }, update: f, create: f });
   }
@@ -210,75 +253,107 @@ async function main() {
     every request. What was missing was the accounts: a single shared `rahbar` login stood for all
     nine firms, so whoever held it signed for all of them and the signature said nothing about who.
   */
-  const rahbars = FIRMS.map((f) => ({
-    // The firm's own id, minus the prefix: short to type and impossible to mistake for another firm.
-    login: f.id.replace(/^firm_/, ''),
-    fullName: f.directorFullName ?? f.directorName,
-    role: Role.RAHBAR,
-    position: f.directorPosition ?? 'Ижрочи директори',
-    firmId: f.id,
-  }));
+  const byId = new Map(FIRMS.map((f) => [f.id, f]));
 
-  const staff = [
-    { login: 'yurist', fullName: 'Yurist Foydalanuvchi', role: Role.YURIST, position: 'Yurist', firmId: null },
-    { login: 'admin', fullName: 'Admin Foydalanuvchi', role: Role.ADMIN, position: 'Administrator', firmId: null },
+  // Login per firm, numbered from the second one on: bright_future, bright_future2.
+  const seen = new Map<string, number>();
+  const wanted = [
+    { login: 'yurist', fullName: 'Yurist', role: Role.YURIST, position: 'Yurist', firmId: null as string | null, marker: 'Yurist' },
+    { login: 'admin', fullName: 'Administrator', role: Role.ADMIN, position: 'Administrator', firmId: null as string | null, marker: 'Admin' },
+    ...RAHBAR_FIRMS.map((firmId) => {
+      const firm = byId.get(firmId);
+      if (!firm) throw new Error(`RAHBAR_FIRMS names a firm that is not in FIRMS: ${firmId}`);
+      const slug = firmId.replace(/^firm_/, '');
+      const n = (seen.get(slug) ?? 0) + 1;
+      seen.set(slug, n);
+      return {
+        login: n === 1 ? slug : `${slug}${n}`,
+        fullName: firm.directorFullName ?? firm.directorName,
+        role: Role.RAHBAR,
+        position: firm.directorPosition ?? 'Ижрочи директори',
+        firmId,
+        marker: markerFor(firm.shortName ?? firm.name),
+      };
+    }),
   ];
 
-  for (const u of [...staff, ...rahbars]) {
-    const existing = await prisma.user.findUnique({ where: { login: u.login }, select: { id: true } });
-    if (existing) {
-      // Never the password. Re-seeding is routine — deploy/update.sh does it — and resetting
-      // credentials someone has already been given is not what "update the firm list" should mean.
-      await prisma.user.update({
-        where: { login: u.login },
-        data: { fullName: u.fullName, role: u.role, position: u.position, firmId: u.firmId },
-      });
-      continue;
+  /*
+    Clear out whoever is not on the list — the old shared `rahbar` account among them.
+
+    A user a maʼlumotnoma points at is deactivated rather than deleted:
+    `Certificate.createdById`, `Certificate.signedById` and `WorkflowEvent.actorId` all reference
+    User, and that reference is the record of who wrote and who signed a legal document. The
+    database would refuse the delete anyway.
+  */
+  const others = await prisma.user.findMany({
+    where: { login: { notIn: wanted.map((w) => w.login) } },
+    select: { id: true, login: true, _count: { select: { createdCerts: true, signedCerts: true, events: true } } },
+  });
+  let deleted = 0;
+  const deactivated: string[] = [];
+  for (const u of others) {
+    if (u._count.createdCerts + u._count.signedCerts + u._count.events > 0) {
+      await prisma.user.update({ where: { id: u.id }, data: { isActive: false } });
+      deactivated.push(u.login);
+    } else {
+      await prisma.user.delete({ where: { id: u.id } });
+      deleted++;
     }
-    // Each rahbar gets their own password. One shared secret across nine directors is one leak
-    // away from nine firms, and there would be no way to change it for one of them.
-    const secret = u.role === Role.RAHBAR ? randomBytes(9).toString('base64url') : pw;
-    await prisma.user.create({
-      data: { ...u, passwordHash: await hashPassword(secret), plainPassword: secret },
-    });
   }
 
   /*
-    Any rahbar who is not one of the nine — the old shared `rahbar` account among them.
+    An existing account keeps its password unless RESET_PASSWORDS=1 is asked for.
 
-    Deactivated, never deleted: `Certificate.signedById` points at them, and that link is the
-    record of who signed what. Removing the row would either fail on the constraint or erase the
-    answer to a question a maʼlumotnoma exists to answer.
+    Seeding is routine — deploy/init.sh runs it — and quietly reissuing credentials people are
+    already using locks all of them out, with no error until someone tries to log in. When new
+    passwords are what you want, say so:  RESET_PASSWORDS=1 npm run db:seed
   */
-  const retired = await prisma.user.updateMany({
-    where: { role: Role.RAHBAR, isActive: true, login: { notIn: rahbars.map((r) => r.login) } },
-    data: { isActive: false },
-  });
+  const reset = process.env.RESET_PASSWORDS === '1';
+  for (const w of wanted) {
+    const existing = await prisma.user.findUnique({ where: { login: w.login }, select: { id: true } });
+    const profile = { fullName: w.fullName, role: w.role, position: w.position, firmId: w.firmId, isActive: true };
+    if (existing && !reset) {
+      await prisma.user.update({ where: { id: existing.id }, data: profile });
+      continue;
+    }
+    // Each rahbar gets their own. One secret across nine directors is one leak away from nine
+    // firms, and there would be no way to change it for just one of them.
+    const password = newPassword(w.marker);
+    const secret = { passwordHash: await hashPassword(password), plainPassword: password };
+    if (existing) await prisma.user.update({ where: { id: existing.id }, data: { ...profile, ...secret } });
+    else await prisma.user.create({ data: { login: w.login, ...profile, ...secret } });
+  }
 
   console.log(
-    'Seed complete: %d firms, %d users (%d rahbar), %d stale firms handled, %d rahbar deactivated',
-    FIRMS.length, staff.length + rahbars.length, rahbars.length, stale.length, retired.count,
+    '\nSeed: %d firma, %d hisob (%d rahbar), %d eski firma, %d hisob oʻchirildi, %d faolsizlantirildi%s',
+    FIRMS.length, wanted.length, RAHBAR_FIRMS.length, stale.length, deleted, deactivated.length,
+    deactivated.length ? ` (${deactivated.join(', ')})` : '',
   );
 
-  // Read back rather than printed from above, so a re-run shows the passwords that are actually in
-  // use rather than ones it just decided not to set.
-  // `User.firmId` carries no Prisma relation, so the names come from the list this seed just wrote.
+  // Read back, so a run that kept existing passwords still prints the ones actually in use.
   const firmName = new Map(FIRMS.map((f) => [f.id, f.shortName ?? f.name]));
-  const accounts = await prisma.user.findMany({
+  const rows = (await prisma.user.findMany({
     where: { isActive: true },
     select: { login: true, role: true, plainPassword: true, firmId: true },
-    orderBy: [{ role: 'asc' }, { login: 'asc' }],
-  });
-  console.log('\nLogin / parol:\n');
-  for (const a of accounts) {
-    console.log(
-      '  %s  %s  %s  %s',
-      a.login.padEnd(20),
-      (a.plainPassword ?? '(nomaʼlum)').padEnd(18),
-      String(a.role).padEnd(7),
-      a.firmId ? (firmName.get(a.firmId) ?? a.firmId) : '—',
-    );
-  }
+  })).sort((a, b) => wanted.findIndex((w) => w.login === a.login) - wanted.findIndex((w) => w.login === b.login));
+
+  const cells = rows.map((r) => ({
+    login: r.login,
+    password: r.plainPassword ?? '(nomaʼlum)',
+    role: String(r.role),
+    where: r.firmId ? (firmName.get(r.firmId) ?? r.firmId) : '—',
+  }));
+  // Widths padded here: console.log understands %s but not a width on it — '%-7s' prints literally.
+  const w1 = Math.max(...cells.map((c) => c.login.length), 5);
+  const w2 = Math.max(...cells.map((c) => c.password.length), 5);
+  const w3 = Math.max(...cells.map((c) => c.role.length), 3);
+  const line = (a: string, b: string, c: string, d: string) =>
+    `${a.padEnd(w1)} | ${b.padEnd(w2)} | ${c.padEnd(w3)} | ${d}`;
+
+  console.log('');
+  console.log(line('LOGIN', 'PAROL', 'ROL', 'FIRMA'));
+  console.log(`${'-'.repeat(w1)}-+-${'-'.repeat(w2)}-+-${'-'.repeat(w3)}-+-${'-'.repeat(24)}`);
+  for (const c of cells) console.log(line(c.login, c.password, c.role, c.where));
   console.log('\nHar bir foydalanuvchi birinchi kirgandan keyin parolini almashtirsin.');
 }
 

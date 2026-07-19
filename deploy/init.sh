@@ -47,14 +47,13 @@ if [ -f .env ]; then
   echo "    mavjud — tegilmadi"
 else
   cp .env.docker.example .env
-  # Generated rather than left blank: a human filling four secrets by hand gets one wrong, and the
-  # ones here fail in ways that do not name themselves — a weak AUTH_SECRET forges sessions, a
-  # missing one refuses to boot.
+  # Generated rather than left blank: a human filling secrets by hand gets one wrong, and the ones
+  # here fail in ways that do not name themselves — a weak AUTH_SECRET forges sessions, a missing
+  # one refuses to boot.
   #
   # tr strips # and $: compose reads .env, and those characters change meaning inside it.
   sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$(openssl rand -base64 24 | tr -d '#$/+=\n')|" .env
   sed -i "s|^AUTH_SECRET=.*|AUTH_SECRET=$(openssl rand -base64 48 | tr -d '#$\n')|" .env
-  sed -i "s|^SEED_PASSWORD=.*|SEED_PASSWORD=$(openssl rand -base64 18 | tr -d '#$\n')|" .env
   chmod 600 .env
   echo "    yaratildi, parollar generatsiya qilindi"
   echo "    NEXT_PUBLIC_PUBLIC_URL tekshiring — u build'da kodga QOTIB QOLADI:"
@@ -77,14 +76,8 @@ docker compose ps mysql --format '{{.Health}}' 2>/dev/null | grep -q healthy || 
 
 docker compose run --rm --no-deps -T public npm run db:push
 
-# The seed is safe to re-run — its upsert sets passwordHash only when creating — but the password
-# is only worth printing when it was actually applied. Announcing a generated one on a re-run
-# would be a lie the operator finds out about at the login screen.
-users="$(docker compose run --rm --no-deps -T public node -e \
-  'const{PrismaClient}=require("@prisma/client");const p=new PrismaClient();
-   p.user.count().then(n=>console.log(n)).catch(()=>console.log(0)).finally(()=>p.$disconnect())' \
-  2>/dev/null | tr -dc '0-9' || echo 0)"
-
+# Safe to re-run: the seed leaves an existing account's password alone, and prints the ones that
+# are actually in use rather than announcing generated values it decided not to apply.
 docker compose run --rm --no-deps -T public npm run db:seed
 
 say "Ishga tushirilmoqda"
@@ -106,15 +99,15 @@ for pair in $APPS; do
 done
 
 echo
-if [ "${users:-0}" -eq 0 ]; then
-  echo "──────────────────────────────────────────────────────────"
-  echo " Login (yurist / admin / rahbar) paroli — .env ichida:"
-  grep '^SEED_PASSWORD=' .env | sed 's/^/   /'
-  echo " Birinchi kirgandan keyin har biri oʻzinikini qoʻysin."
-  echo "──────────────────────────────────────────────────────────"
-else
-  echo "    bazada $users foydalanuvchi bor edi — parollar tegilmadi"
-fi
+echo "──────────────────────────────────────────────────────────"
+echo " Loginlar va parollar yuqorida, db:seed chiqishida — har"
+echo " foydalanuvchiga o'zinikidan. Nusxa oling: boshqa joyda"
+echo " ko'rsatilmaydi."
+echo ""
+echo " Keyinroq qaytadan ko'rish yoki yangilash:"
+echo "   docker compose run --rm --no-deps -T public npm run db:seed"
+echo "   RESET_PASSWORDS=1 bilan — hammaga yangi parol."
+echo "──────────────────────────────────────────────────────────"
 
 [ "$failed" -eq 0 ] || die "app'lar koʻtarilmadi — yuqoridagi logs'ni qarang"
 

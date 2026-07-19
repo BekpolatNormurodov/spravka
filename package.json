@@ -13,8 +13,7 @@
     "db:seed": "tsx packages/shared/prisma/seed.ts",
     "test": "npm run test -w @spravka/shared",
     "dev:qr": "npm run dev -w @spravka/web-qr",
-    "build": "npm run db:generate && npm run build --workspaces --if-present",
-    "db:accounts": "tsx packages/shared/prisma/accounts.ts"
+    "build": "npm run db:generate && npm run build --workspaces --if-present"
   },
   "devDependencies": {
     "prisma": "^5.22.0",
