@@ -233,6 +233,15 @@ describe('what reaches the API', () => {
     expect(draftProblems(d, { pinfl: false })).toEqual([]);
   });
 
+  it('lets an otherwise complete draft be saved with no PINFL at all', () => {
+    // Saving a draft passes `pinfl: false`; submitting passes true. The yurist is often working
+    // from a contract that has the name and passport on it and the PINFL somewhere else, and the
+    // ariza is worth keeping in the meantime.
+    const d = draft({ personPinfl: '' });
+    expect(draftProblems(d, { pinfl: false })).toEqual([]);
+    expect(draftProblems(d, { pinfl: true }).map((p) => p.field)).toEqual(['personPinfl']);
+  });
+
   it('rejects a half-filled contract row', () => {
     const d = draft({ contracts: [{ number: '8130', date: '' }] });
     expect(draftProblems(d, { pinfl: true })[0]?.field).toBe('contracts');

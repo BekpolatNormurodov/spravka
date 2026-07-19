@@ -46,6 +46,11 @@ export function EditArizaSheet({
       number={number}
       store={store}
       actions={actions}
+      // Shown so a draft saved without a PINFL can get one here — that is the edit that finally
+      // links the ariza to the person. No lookup: the details are already on the sheet, and
+      // autofilling over them would undo the correction they came to make.
+      pinfl
+      onPinflChange={(v) => store.patch({ personPinfl: v })}
       title="Hujjatni tahrirlash"
       subtitle={`№${number} · ${firm.letterheadName || firm.name}`}
     />

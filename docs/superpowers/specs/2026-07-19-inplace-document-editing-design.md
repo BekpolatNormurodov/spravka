@@ -149,7 +149,8 @@ successful save. Nothing reaches the database without an explicit save.
 
 | Case | Behaviour |
 |---|---|
-| Invalid slot (passport shape, empty required, bad contract row) | Red dashed underline on the slot. The save bar counts them and focuses the first when clicked. |
+| Invalid slot (passport shape, empty required, bad contract row) | Nothing is marked until a submit is refused. A blank maʼlumotnoma is entirely unfilled, so validating from the first render paints the whole document red before a word is typed. The save bar always counts what submitting still needs; the red marks appear when they mean something and clear as each is fixed. |
+| Draft saved with no PINFL | Allowed. PINFL identifies the client and is never printed — a yurist often has the contract in hand and the PINFL somewhere else. Submitting requires it: an ariza that reaches the admin without one leaves a client the system can never match to their next. The link to `Client` is made on whichever edit supplies the PINFL, in both edit routes. |
 | Save rejected by the API | The message is shown above the save bar; the draft is untouched and stays recoverable. |
 | Content overflows one A4 page | A warning under the sheet. It must be visible while it can still be fixed, not discovered after signing. |
 | `localStorage` unavailable or full | Editing continues without persistence. Recovery is a convenience; losing it must not block saving. |

@@ -213,7 +213,7 @@ export function CertificateDocument(p: CertificateDocumentProps) {
                 {(p.number || edit) && (
                   <div>
                     {'№ '}
-                    {p.number || <span className="cert-hint no-print">saqlanganda beriladi</span>}
+                    {p.number || <span className="cert-hint no-print">—</span>}
                   </div>
                 )}
               </div>

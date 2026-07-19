@@ -106,6 +106,9 @@ export function NewArizaSheet({ firm }: { firm: CertFirm & { id: string } }) {
       store={store}
       actions={actions}
       pinfl
+      // Needed to submit, not to save a draft — the yurist often has the contract in hand and the
+      // PINFL somewhere else, and the ariza is worth keeping in the meantime.
+      requirePinfl
       onPinflChange={(v) => patch({ personPinfl: v })}
       lookup={lookup}
       title="Yangi maʼlumotnoma"

@@ -40,6 +40,7 @@ export function CertSheetEditor({
   store,
   actions,
   pinfl,
+  requirePinfl,
   onPinflChange,
   lookup,
   title,
@@ -50,8 +51,13 @@ export function CertSheetEditor({
   number: string;
   store: CertDraftStore;
   actions: SaveAction[];
-  /** Absent for the admin: the client is already linked and the lookup would only confuse. */
+  /** Show the PINFL field. Absent for the admin, whose ariza already has a client. */
   pinfl?: boolean;
+  /**
+   * Whether a missing PINFL blocks the primary action. False while a draft is only being saved:
+   * the yurist often has the contract in front of them and the PINFL somewhere else.
+   */
+  requirePinfl?: boolean;
   onPinflChange?: (v: string) => void;
   lookup?: ClientLookup;
   title: string;
@@ -64,8 +70,24 @@ export function CertSheetEditor({
   const [overflows, setOverflows] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  const problems = useMemo(() => draftProblems(draft, { pinfl: !!pinfl }), [draft, pinfl]);
-  const bad = useMemo(() => new Set(problems.map((p) => p.field)), [problems]);
+  const problems = useMemo(
+    () => draftProblems(draft, { pinfl: !!requirePinfl }),
+    [draft, requirePinfl],
+  );
+
+  /*
+    Nothing is marked wrong until the person says they are finished.
+
+    A blank maʼlumotnoma is entirely unfilled, so validating from the first render paints the whole
+    document red before a word is typed — every slot flagged for the sin of not having been reached
+    yet. The marks appear when a submit is refused, which is the moment they mean something, and
+    clear again as each one is fixed.
+  */
+  const [showProblems, setShowProblems] = useState(false);
+  const bad = useMemo(
+    () => new Set(showProblems ? problems.map((p) => p.field) : []),
+    [problems, showProblems],
+  );
 
   /*
     A second page is a thing to notice while it can still be fixed, not after signing.
@@ -94,7 +116,10 @@ export function CertSheetEditor({
   };
 
   async function run(a: SaveAction) {
-    if (a.requiresValid && problems.length) return focusFirstProblem();
+    if (a.requiresValid && problems.length) {
+      setShowProblems(true);
+      return focusFirstProblem();
+    }
     setBusy(a.label);
     setErr('');
     try {
@@ -132,12 +157,11 @@ export function CertSheetEditor({
           <label className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2">
             <span className="text-xs font-medium text-muted">PINFL</span>
             <input
-              className="w-[13ch] bg-transparent font-mono text-sm tabular-nums outline-none"
+              className="w-[17ch] bg-transparent font-mono text-sm tabular-nums outline-none"
               inputMode="numeric"
               placeholder="12345678901234"
               value={draft.personPinfl}
               aria-label="Mijoz PINFL"
-              aria-invalid={bad.has('personPinfl')}
               onChange={(e) => onPinflChange?.(maskPinfl(e.target.value))}
             />
             <LookupBadge lookup={lookup ?? { state: 'idle' }} pinfl={draft.personPinfl} />
@@ -203,8 +227,12 @@ export function CertSheetEditor({
         )}
         <div className="flex flex-wrap items-center justify-end gap-3">
           {problems[0] && (
-            <button type="button" onClick={focusFirstProblem} className="mr-auto text-left text-xs text-muted hover:text-fg">
-              {problems.length} ta maydon toʻldirilmagan — <span className="underline">birinchisiga oʻtish</span>
+            <button
+              type="button"
+              onClick={() => { setShowProblems(true); focusFirstProblem(); }}
+              className="mr-auto text-left text-xs text-muted hover:text-fg"
+            >
+              Yuborish uchun {problems.length} ta maydon kerak — <span className="underline">birinchisiga oʻtish</span>
               <span className="block text-[11px] opacity-70">{problems[0].message}</span>
             </button>
           )}
@@ -245,8 +273,13 @@ function IconBtn({
   );
 }
 
+/**
+ * Says only what happened. An idle or half-typed PINFL says nothing at all — the field's own
+ * placeholder already shows the shape, and a standing "14 ta raqam" reads as a complaint about
+ * something the person is still in the middle of doing.
+ */
 function LookupBadge({ lookup, pinfl }: { lookup: ClientLookup; pinfl: string }) {
-  if (!isValidPinfl(pinfl)) return <span className="text-[11px] text-muted">14 ta raqam</span>;
+  if (!isValidPinfl(pinfl)) return null;
   if (lookup.state === 'searching') return <span className="text-[11px] text-muted">Qidirilmoqda…</span>;
   if (lookup.state === 'found') {
     return (

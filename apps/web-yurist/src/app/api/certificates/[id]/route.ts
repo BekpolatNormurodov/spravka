@@ -44,7 +44,33 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
   const passportIssuedAt = b.passportIssuedAt ? new Date(b.passportIssuedAt) : null;
 
+  const person = {
+    fullName: b.personFullName,
+    passport: b.personPassport,
+    passportIssuedBy: b.passportIssuedBy || null,
+    passportIssuedAt,
+  };
+
   await prisma.$transaction(async (tx) => {
+    /*
+      A draft may have been saved without a PINFL, which leaves it with no client. When one is
+      typed in later this is where the link finally gets made — otherwise the ariza would stay
+      detached from the person for good, and their next one would not find them.
+    */
+    let clientId = cert.clientId;
+    if (b.personPinfl) {
+      const client = await tx.client.upsert({
+        where: { pinfl: b.personPinfl },
+        create: { pinfl: b.personPinfl, ...person, createdById: session.sub },
+        update: person,
+        select: { id: true },
+      });
+      clientId = client.id;
+    } else if (clientId) {
+      // Keep the linked client in step so future arizas autofill the corrected data.
+      await tx.client.update({ where: { id: clientId }, data: person });
+    }
+
     await tx.certificate.update({
       where: { id: params.id },
       data: {
@@ -52,6 +78,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         personPassport: b.personPassport,
         passportIssuedBy: b.passportIssuedBy || null,
         passportIssuedAt,
+        personPinfl: b.personPinfl || null,
+        clientId,
         // Rows carry no stable identity across an edit, so the list is replaced rather than diffed
         // — the same rule the admin's route follows.
         contracts: { deleteMany: {}, create: parsed.contracts },
@@ -61,18 +89,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         issueDate: new Date(b.issueDate),
       },
     });
-    // Keep the linked client in step so future arizas autofill the corrected data.
-    if (cert.clientId) {
-      await tx.client.update({
-        where: { id: cert.clientId },
-        data: {
-          fullName: b.personFullName,
-          passport: b.personPassport,
-          passportIssuedBy: b.passportIssuedBy || null,
-          passportIssuedAt,
-        },
-      });
-    }
   });
 
   return NextResponse.json({ ok: true });
