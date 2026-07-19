@@ -233,6 +233,28 @@ Ro'yxatda yo'q rahbar — eski umumiy `rahbar` hisobi ham — **o'chirilmaydi, f
 faolsizlantiriladi**: `Certificate.signedById` ularga qaraydi va bu kim
 imzolagani haqidagi yagona yozuv.
 
+### Hamma parolni qaytadan berish
+
+Hisoblarni noldan tuzib, parollarni bir marta ko'rsatish uchun alohida skript
+bor. `db:seed` dan farqi: bu **yangi parol beradi**, ya'ni hozirgi parollar
+ishlamay qoladi. Shuning uchun tasdiq so'raydi.
+
+```bash
+sudo docker compose run --rm --no-deps -T -e CONFIRM=1 public npm run db:accounts
+```
+
+Jadval chiqadi — login, parol, rol, firma. Parollar boshqa hech qayerda
+ko'rsatilmaydi (bazadagi `plainPassword` dan tashqari), shuning uchun o'sha
+paytda nusxa oling.
+
+Kim bo'lishi `packages/shared/prisma/accounts.ts` boshidagi `RAHBAR_FIRMS`
+ro'yxatida. **Bir firmani bir necha marta yozish mumkin** — bitta firmada
+ikkinchi rahbar kerak bo'lsa, uni ikki marta yozing: loginlar `bright_future`
+va `bright_future2` bo'ladi, ikkalasi ham o'sha firmaga bog'lanadi.
+
+Ro'yxatda yo'q hisoblar o'chiriladi; hujjat yaratgan yoki imzolaganlari esa
+faolsizlantiriladi — ular o'chirilsa, kim imzolagani haqidagi yozuv yo'qolardi.
+
 `DATABASE_URL`, `PORT`, `CERT_STORAGE_DIR` jadvalda yo'q — ular
 `docker-compose.yml` ichida. Qo'lda qo'yiladigan joyi yo'q, ya'ni unutib
 bo'lmaydi. Ilgari `PORT` unutilsa systemd `-p` ni bo'sh berib, app 502 ortida
