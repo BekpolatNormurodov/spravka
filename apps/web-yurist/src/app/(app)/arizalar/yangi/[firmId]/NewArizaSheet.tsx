@@ -26,12 +26,41 @@ const blank = (): CertDraft => ({
   issueDate: today(),
 });
 
-export function NewArizaSheet({ firm }: { firm: CertFirm & { id: string } }) {
+export function NewArizaSheet({
+  firm,
+  nextNumber,
+}: {
+  firm: CertFirm & { id: string };
+  nextNumber: string;
+}) {
   const router = useRouter();
   // Per firm, so a draft started on one blank does not surface on another's.
   const store = useCertDraft(blank(), `spravka.draft.new.${firm.id}`);
   const { draft, patch } = store;
   const [lookup, setLookup] = useState<ClientLookup>({ state: 'idle' });
+
+  /*
+    The number carries the issue date, so changing that date changes it. The server worked out the
+    one for today; this asks again whenever the date on the sheet moves.
+
+    Still only a guess — nothing is reserved until the ariza is saved, and the save writes whatever
+    the counter actually gives it.
+  */
+  const [number, setNumber] = useState(nextNumber);
+  useEffect(() => {
+    if (draft.issueDate === today()) { setNumber(nextNumber); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/certificates/next-number?firmId=${firm.id}&date=${draft.issueDate}`);
+        const d = await res.json();
+        if (!cancelled && d.number) setNumber(d.number);
+      } catch {
+        // Keep showing the last one we had; the real number is issued on save regardless.
+      }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [draft.issueDate, firm.id, nextNumber]);
 
   // A known client fills in what the document says about them, so repeat arizas stay consistent
   // with each other rather than with whoever typed them fastest.
@@ -104,10 +133,7 @@ export function NewArizaSheet({ firm }: { firm: CertFirm & { id: string } }) {
   return (
     <CertSheetEditor
       firm={firm}
-      // Empty, so the № line is left off entirely: the counter issues the number at save time —
-      // burning one on a document that may never be saved would leave gaps in the sequence — and
-      // a placeholder standing in for it would look like a number the document does not have.
-      number=""
+      number={number}
       store={store}
       actions={actions}
       pinfl

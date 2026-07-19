@@ -1,8 +1,11 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { peekCertNumber } from '@spravka/shared/db';
 import { NewArizaSheet } from './NewArizaSheet';
 
 export const dynamic = 'force-dynamic';
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 /**
  * A blank maʼlumotnoma on the chosen firm's letterhead.
@@ -22,5 +25,9 @@ export default async function NewArizaOnFirmPage({ params }: { params: { firmId:
   });
   if (!firm) notFound();
 
-  return <NewArizaSheet firm={firm} />;
+  // The number this ariza would get if saved right now, so the sheet does not open with an empty
+  // top table. Nothing is reserved by asking — see peekCertNumber.
+  const nextNumber = await peekCertNumber(firm.id, new Date(`${today()}T00:00:00.000Z`));
+
+  return <NewArizaSheet firm={firm} nextNumber={nextNumber} />;
 }

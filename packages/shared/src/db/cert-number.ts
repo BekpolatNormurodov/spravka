@@ -26,28 +26,11 @@ export async function nextCertNumber(
     a certificate of that name already exists, and `Certificate.number` is unique — the save would
     fail, on a day chosen by whenever the switch happened.
 
-    So a day's counter starts past whatever that day already issued. It only costs a query the
+    So a day's counter starts past whatever that day already issued. It costs a query only the
     first time each day is used, and only days that predate the change are ever above zero.
   */
   const known = await prisma.counter.findUnique({ where: { id }, select: { id: true } });
-  let start = 0;
-  if (!known) {
-    /*
-      Read the numbers, not `seq`. They are the thing that must not repeat, and the two can differ:
-      a row carrying `ZZ-EIMZO/TEST` with seq 994 sits on one of these days, and going by seq would
-      have made the next real certificate «16072026/995». Anything not shaped «DDMMYYYY/NN» is not
-      competing for a number and is skipped.
-    */
-    const prefix = formatCertNumber(issueDate, 0).slice(0, 8);
-    const sameDay = await prisma.certificate.findMany({
-      where: { firmId, number: { startsWith: `${prefix}/` } },
-      select: { number: true },
-    });
-    for (const { number } of sameDay) {
-      const nn = Number(number.slice(prefix.length + 1));
-      if (Number.isInteger(nn) && nn > start) start = nn;
-    }
-  }
+  const start = known ? 0 : await highestIssuedOn(firmId, issueDate);
 
   // upsert rather than create-then-increment: two saves racing on a day's first certificate both
   // reach this, and the loser must increment what the winner created rather than fail.
@@ -58,4 +41,43 @@ export async function nextCertNumber(
   });
 
   return { seq: counter.value, number: formatCertNumber(issueDate, counter.value) };
+}
+
+/**
+ * What the next number *would* be, without taking it.
+ *
+ * For showing on an ariza that has not been saved. It is a guess and it says so here rather than on
+ * screen: nothing is reserved, so a colleague saving first on the same firm and day takes this
+ * number and the sheet gets the one after. The document only ever carries the number it was
+ * actually issued — this is replaced by the real one the moment it is saved.
+ */
+export async function peekCertNumber(firmId: string, issueDate: Date): Promise<string> {
+  const counter = await prisma.counter.findUnique({
+    where: { id: counterId(firmId, certDay(issueDate)) },
+    select: { value: true },
+  });
+  const start = counter?.value ?? (await highestIssuedOn(firmId, issueDate));
+  return formatCertNumber(issueDate, start + 1);
+}
+
+/**
+ * The largest NN already issued to this firm on this day.
+ *
+ * Reads the numbers, not `seq`. They are the thing that must not repeat, and the two can differ: a
+ * row carrying `ZZ-EIMZO/TEST` with seq 994 sits on one of these days, and going by seq would have
+ * made the next real certificate «16072026/995». Anything not shaped «DDMMYYYY/NN» is not competing
+ * for a number and is skipped.
+ */
+async function highestIssuedOn(firmId: string, issueDate: Date): Promise<number> {
+  const prefix = formatCertNumber(issueDate, 0).slice(0, 8);
+  const sameDay = await prisma.certificate.findMany({
+    where: { firmId, number: { startsWith: `${prefix}/` } },
+    select: { number: true },
+  });
+  let highest = 0;
+  for (const { number } of sameDay) {
+    const nn = Number(number.slice(prefix.length + 1));
+    if (Number.isInteger(nn) && nn > highest) highest = nn;
+  }
+  return highest;
 }
