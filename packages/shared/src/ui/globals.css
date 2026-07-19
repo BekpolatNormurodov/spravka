@@ -118,11 +118,12 @@ body {
 
    None of this can print. The PDF and the public page render the same component with no `edit`
    prop, and a placeholder only exists inside an editor. */
+/* The placeholder supplies the width; this is only the floor for a slot that somehow has none,
+   and the box browsers need before they will put a caret anywhere. */
 .cert-slot:empty,
 .cert-slot-btn:empty {
   display: inline-block;
-  min-width: 4ch;
-  min-height: 1em;
+  min-width: 2ch;
   vertical-align: baseline;
 }
 .cert-slot[data-placeholder]:empty::before {
@@ -157,15 +158,21 @@ body {
    shoved the whole justified paragraph sideways. */
 .cert-fit {
   display: inline-grid;
-  min-width: 5ch;
   vertical-align: baseline;
 }
+/* Both items inherit the paragraph's metrics exactly. An input otherwise brings its own
+   line-height — `normal`, not the document's 1.45 — and the taller box pushes the whole line
+   apart the moment a slot is opened. No min-width either: the placeholder is the minimum, and a
+   floor on top of it would only make short values sit in a box wider than they are. */
 .cert-fit::after,
 .cert-fit > input {
   grid-area: 1 / 1;
   font: inherit;
-  padding: 0 1px;
+  line-height: inherit;
+  height: auto;
+  padding: 0;
   margin: 0;
+  border: 0;
   resize: none;
   appearance: none;
 }
@@ -182,12 +189,15 @@ body {
   white-space: pre-wrap;
 }
 
+/* An open slot is still a word in a sentence, so it is marked the way the closed one is — a tint
+   and the line under it. A 2px ring around it drew a box the size of a button in the middle of a
+   justified paragraph, which is what made it look like it did not belong there. */
 .cert-slot-editing {
   font: inherit; color: inherit;
   width: 100%;
-  background: rgba(59, 130, 246, .1);
-  border: 0; border-radius: 2px; outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, .35);
+  background: rgba(59, 130, 246, .12);
+  outline: none;
+  box-shadow: inset 0 -1px 0 rgba(59, 130, 246, .8);
 }
 
 
