@@ -109,3 +109,21 @@ describe('dates typed into the document', () => {
     expect(isoToDmy('')).toBe('');
   });
 });
+
+describe('a dot typed at a boundary', () => {
+  it('is kept, so the separator does not vanish under the fingers', () => {
+    expect(maskDmy('17.')).toBe('17.');
+    expect(maskDmy('17.10.')).toBe('17.10.');
+  });
+
+  it('does not appear where it does not belong', () => {
+    expect(maskDmy('1')).toBe('1');
+    expect(maskDmy('1.')).toBe('1');
+    expect(maskDmy('171')).toBe('17.1');
+    expect(maskDmy('17.10.2024')).toBe('17.10.2024');
+  });
+
+  it('leaves a half-typed date unreadable, as it should be', () => {
+    expect(dmyToIso(maskDmy('17.'))).toBe('');
+  });
+});

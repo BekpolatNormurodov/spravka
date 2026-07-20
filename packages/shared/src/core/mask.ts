@@ -76,8 +76,12 @@ export function isValidPinfl(v: string): boolean {
  */
 export function maskDmy(v: string): string {
   const d = digits(v).slice(0, 8);
-  if (d.length <= 2) return d;
-  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  // A dot typed at a boundary is kept. Stripping it made «17.» come back as «17», so the separator
+  // the person just pressed vanished under their fingers and the field looked like it had refused
+  // it — even though the next digit would have put it back.
+  const dot = /\D$/.test(v) && (d.length === 2 || d.length === 4) ? '.' : '';
+  if (d.length <= 2) return d + dot;
+  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}${dot}`;
   return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
 }
 

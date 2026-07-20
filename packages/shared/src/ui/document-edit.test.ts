@@ -308,3 +308,37 @@ describe('what a draft has to have', () => {
       .toEqual(['personPinfl', 'personFullName', 'loanAmount']);
   });
 });
+
+describe('strict checks', () => {
+  const fields = (d: CertDraft) => draftProblems(d, { pinfl: true }).map((p) => p.field);
+
+  it('refuses a contract dated on a day that does not exist', () => {
+    // 31.02 reaches MySQL as 3 March, and the document then names a day the contract was not
+    // signed on — wrong, printed, and impossible to spot afterwards.
+    expect(fields(draft({ contracts: [{ number: '8130', date: '2026-02-31' }] }))).toContain('contracts');
+  });
+
+  it('refuses a sum of zero', () => {
+    expect(fields(draft({ loanAmount: '0' }))).toContain('loanAmount');
+  });
+
+  it('refuses a holat phrase it cannot read', () => {
+    // asOfDate keeps its last good value when the phrase is unreadable, so checking the date
+    // instead of the words would pass a document that says something else.
+    expect(fields(draft({ asOfText: '2026 йил 19' }))).toContain('asOfText');
+    expect(fields(draft({ asOfText: 'ЛОРЕМ ИПСУМ' }))).toContain('asOfText');
+  });
+
+  it('accepts the phrase in the shape the document prints', () => {
+    expect(fields(draft({ asOfText: '2026 йил 19 июль' }))).toEqual([]);
+  });
+
+  it('counts the digits back when the PINFL is short', () => {
+    const p = draftProblems(draft({ personPinfl: '123' }), { pinfl: true })[0];
+    expect(p?.message).toContain('3 ta');
+  });
+
+  it('says it plainly when the PINFL is empty', () => {
+    expect(draftProblems(draft({ personPinfl: '' }), { pinfl: true })[0]?.message).toBe('PINFL kiritilmagan');
+  });
+});

@@ -18,7 +18,7 @@
 
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
-  dmy, dmyToIso, formatSum, isoToDmy, maskAmount, maskDmy, maskPassport,
+  dmy, dmyToIso, formatSum, isValidDay, isoToDmy, maskAmount, maskDmy, maskPassport,
   unmaskAmount, uzLongDateToIso, type DocContract,
 } from '../core';
 import { CERT_FIELD_LABELS } from '../core/labels';
@@ -399,6 +399,10 @@ export function EditableValue({
         className={`${slotClass(invalid)} cert-slot-btn`}
         data-placeholder={placeholder}
         onClick={() => setOpen(true)}
+        // Tab lands here and opens it, so the whole document can be filled from the keyboard
+        // without reaching for the mouse between every value. Closing on blur means Tab out is
+        // the same gesture — focus has already moved on by the time this button renders again.
+        onFocus={() => setOpen(true)}
       >
         {display}
       </button>
@@ -707,8 +711,14 @@ export interface DraftProblem {
  */
 export function draftProblems(d: CertDraft, opts: { pinfl: boolean }): DraftProblem[] {
   const out: DraftProblem[] = [];
+
   if (opts.pinfl && !/^\d{14}$/.test(d.personPinfl)) {
-    out.push({ field: 'personPinfl', message: 'PINFL 14 ta raqam boʻlishi kerak' });
+    out.push({
+      field: 'personPinfl',
+      message: d.personPinfl.trim()
+        ? `PINFL 14 ta raqam boʻlishi kerak — hozir ${d.personPinfl.replace(/\D/g, '').length} ta`
+        : 'PINFL kiritilmagan',
+    });
   }
   if (d.personFullName.trim().length < 4) {
     out.push({ field: 'personFullName', message: 'F.I.SH. toʻliq yozilmagan' });
@@ -716,17 +726,37 @@ export function draftProblems(d: CertDraft, opts: { pinfl: boolean }): DraftProb
   if (!/^[A-Z]{2}\d{7}$/.test(d.personPassport)) {
     out.push({ field: 'personPassport', message: 'Passport 2 harf + 7 raqam (AE5348993)' });
   }
+
+  /*
+    Every contract is checked as a whole date, not merely as something typed. «31.02.2026» reaches
+    the API as a Date that MySQL turns into 3 March, and the maʼlumotnoma then names a contract on
+    a day it was not signed — wrong, printed, and impossible to spot afterwards.
+  */
   const filled = d.contracts.filter((r) => r.number.trim() || r.date.trim());
-  if (!filled.length || filled.some((r) => !r.number.trim() || !r.date.trim())) {
+  if (!filled.length) {
+    out.push({ field: 'contracts', message: 'Kamida bitta shartnoma kerak' });
+  } else if (filled.some((r) => !r.number.trim() || !r.date.trim())) {
     out.push({ field: 'contracts', message: 'Har bir shartnomaning raqami va sanasi kerak' });
+  } else if (filled.some((r) => !isValidDay(r.date))) {
+    out.push({ field: 'contracts', message: 'Shartnoma sanasi notoʻgʻri' });
   }
-  if (!unmaskAmount(d.loanAmount)) {
-    out.push({ field: 'loanAmount', message: 'Kredit summasi kiritilmagan' });
+
+  const sum = unmaskAmount(d.loanAmount);
+  if (!sum) out.push({ field: 'loanAmount', message: 'Kredit summasi kiritilmagan' });
+  else if (Number(sum) <= 0) out.push({ field: 'loanAmount', message: 'Kredit summasi noldan katta boʻlsin' });
+
+  // The phrase is what prints, so the phrase is what must be right. `asOfDate` follows it and is
+  // never the thing the person typed — an unreadable phrase leaves it at its last good value, so
+  // checking the date instead of the words would pass a document that says something else.
+  if (!d.asOfText.trim()) {
+    out.push({ field: 'asOfText', message: 'Holat sanasi kiritilmagan' });
+  } else if (!uzLongDateToIso(d.asOfText)) {
+    out.push({ field: 'asOfText', message: 'Holat sanasi oʻqilmadi — «2026 йил 19 июль» koʻrinishida yozing' });
   }
-  // The phrase is what prints, so it is the phrase that must be there. `asOfDate` follows it and
-  // is never the thing the person typed.
-  if (!d.asOfText.trim()) out.push({ field: 'asOfText', message: 'Holat sanasi kiritilmagan' });
+
   if (!d.issueDate) out.push({ field: 'issueDate', message: 'Maʼlumotnoma sanasi kiritilmagan' });
+  else if (!isValidDay(d.issueDate)) out.push({ field: 'issueDate', message: 'Maʼlumotnoma sanasi notoʻgʻri' });
+
   return out;
 }
 

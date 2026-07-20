@@ -88,6 +88,8 @@ export function CertSheetEditor({
     () => new Set(showProblems ? problems.map((p) => p.field) : []),
     [problems, showProblems],
   );
+  const pinflBad = bad.has('personPinfl');
+  const pinflRef = useRef<HTMLInputElement>(null);
 
   /*
     A second page is a thing to notice while it can still be fixed, not after signing.
@@ -110,9 +112,16 @@ export function CertSheetEditor({
   const focusFirstProblem = () => {
     const first = problems[0];
     if (!first) return;
+    // PINFL lives in this bar, not on the paper, so it is not a `data-slot` — walking to the first
+    // problem has to know that or it silently does nothing on the one field most likely to be empty.
+    if (first.field === 'personPinfl') {
+      pinflRef.current?.focus();
+      pinflRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
     const el = sheetRef.current?.querySelector<HTMLElement>(`[data-slot="${first.field}"]`);
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    el?.focus();
+    (el?.firstElementChild as HTMLElement | null)?.focus() ?? el?.focus();
   };
 
   async function run(a: SaveAction) {
@@ -154,18 +163,37 @@ export function CertSheetEditor({
         </div>
 
         {pinfl && (
-          <label className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2">
-            <span className="text-xs font-medium text-muted">PINFL</span>
-            <input
-              className="w-[17ch] bg-transparent font-mono text-sm tabular-nums outline-none"
-              inputMode="numeric"
-              placeholder="12345678901234"
-              value={draft.personPinfl}
-              aria-label="Mijoz PINFL"
-              onChange={(e) => onPinflChange?.(maskPinfl(e.target.value))}
-            />
-            <LookupBadge lookup={lookup ?? { state: 'idle' }} pinfl={draft.personPinfl} />
-          </label>
+          /* PINFL is not on the paper, so it cannot be marked the way a slot is — it gets its own
+             red border and its own message, right where it is typed. It was the one required value
+             that could be left empty with nothing on screen saying so. */
+          <div>
+            <label
+              className={`flex items-center gap-2 rounded-xl border bg-surface px-3 py-2 ${
+                pinflBad ? 'border-rose-500/60 ring-2 ring-rose-500/25' : 'border-line'
+              }`}
+            >
+              <span className={`text-xs font-medium ${pinflBad ? 'text-rose-600 dark:text-rose-300' : 'text-muted'}`}>
+                PINFL
+              </span>
+              <input
+                ref={pinflRef}
+                className="w-[17ch] bg-transparent font-mono text-sm tabular-nums outline-none"
+                inputMode="numeric"
+                placeholder="12345678901234"
+                value={draft.personPinfl}
+                aria-label="Mijoz PINFL"
+                aria-invalid={pinflBad}
+                aria-describedby={pinflBad ? 'pinfl-err' : undefined}
+                onChange={(e) => onPinflChange?.(maskPinfl(e.target.value))}
+              />
+              <LookupBadge lookup={lookup ?? { state: 'idle' }} pinfl={draft.personPinfl} />
+            </label>
+            {pinflBad && (
+              <p id="pinfl-err" role="alert" className="mt-1 text-[11px] font-medium text-rose-600 dark:text-rose-300">
+                {problems.find((p) => p.field === 'personPinfl')?.message}
+              </p>
+            )}
+          </div>
         )}
 
         <button
