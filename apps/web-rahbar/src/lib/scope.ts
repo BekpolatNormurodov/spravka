@@ -27,11 +27,17 @@ export async function rahbarFirmId(): Promise<string | null> {
 }
 
 /**
- * The firm scope for a page. Sends anyone without one back to the login rather than rendering an
- * unscoped list — every certificate query in this app is filtered by the value it returns.
+ * The firm scope for a page. Anyone without one is logged out rather than shown an unscoped list —
+ * every certificate query in this app is filtered by the value it returns.
+ *
+ * Logged out, not merely sent to `/login`. Redirecting there while the cookie is still set is a
+ * loop: the middleware bounces `/login` back to `/` for any valid RAHBAR token, and `/` comes
+ * straight back here. A rahbar deactivated or moved off their firm mid-token satisfies both ends
+ * at once and the browser ping-pongs until it gives up — which is what happened when the seed
+ * deactivated the old shared `rahbar` account while a live token was still in a browser.
  */
 export async function requireRahbarFirmId(): Promise<string> {
   const firmId = await rahbarFirmId();
-  if (!firmId) redirect('/login');
+  if (!firmId) redirect('/api/auth/expired');
   return firmId;
 }
