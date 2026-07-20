@@ -31,9 +31,17 @@ say "1/5 Dummy sertifikat — nginx 443 da koʻtarila olishi uchun"
 # The circle this breaks: nginx will not start while ssl_certificate points at a missing file, and
 # certbot cannot get the real file without nginx serving the challenge on :80. A throwaway
 # self-signed cert lets nginx boot; step 4 replaces it.
-docker compose run --rm --entrypoint "sh -c \
-  'mkdir -p $LIVE && openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
-   -keyout $LIVE/privkey.pem -out $LIVE/fullchain.pem -subj /CN=localhost'" certbot
+#
+# Only when there is nothing there. Re-running this script on a working system must not throw away
+# a real certificate to put a self-signed one in its place — the whole point of step 4's `--expand`
+# is that a failed run leaves what was working alone.
+if docker compose run --rm --entrypoint "sh -c '[ -f $LIVE/fullchain.pem ]'" certbot; then
+  echo "    sertifikat bor — tegilmadi"
+else
+  docker compose run --rm --entrypoint "sh -c \
+    'mkdir -p $LIVE && openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+     -keyout $LIVE/privkey.pem -out $LIVE/fullchain.pem -subj /CN=qrsystem.uz'" certbot
+fi
 
 say "2/5 nginx"
 docker compose up -d nginx
@@ -64,16 +72,22 @@ yubormaslik uchun."
 fi
 
 say "4/5 Haqiqiy sertifikat"
-docker compose run --rm --entrypoint "sh -c \
-  'rm -rf /etc/letsencrypt/live/qrsystem.uz /etc/letsencrypt/archive/qrsystem.uz /etc/letsencrypt/renewal/qrsystem.uz.conf'" certbot
-
+# The certificate on disk is NOT deleted first. It used to be — `rm -rf .../live/qrsystem.uz` ran
+# before certbot was called, on the reasoning that a changed domain list needs a clean lineage.
+# What that actually does is destroy the working certificate and then ask for a new one: when the
+# request fails, nothing is left, and nginx does not start at all without the file it points at.
+# That happened — the whole site was down, crash-looping once a minute, until a self-signed cert
+# was put back by hand.
+#
+# `--expand` is what handles a changed domain list, in place. A failed request now leaves the old
+# certificate exactly where it was, and the site stays up on it.
 args=""
 for d in "${DOMAINS[@]}"; do args="$args -d $d"; done
 
 # shellcheck disable=SC2086
 docker compose run --rm --entrypoint "certbot certonly --webroot -w /var/www/certbot \
   --cert-name qrsystem.uz $args \
-  --email $EMAIL --agree-tos --no-eff-email --force-renewal" certbot
+  --email $EMAIL --agree-tos --no-eff-email --expand --force-renewal" certbot
 
 say "5/5 nginx reload"
 docker compose exec nginx nginx -s reload
