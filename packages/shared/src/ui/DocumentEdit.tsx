@@ -602,6 +602,16 @@ export type ValueField = 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 
  * then get out of the way. They cannot reach paper: the PDF renders the same component with no
  * `edit` prop, and a placeholder only exists inside an editor.
  */
+/**
+ * What the «Маълумот учун:» line says until someone changes it.
+ *
+ * A real value, not a grey example: switching the line on writes this into the draft, and saving
+ * straight away saves exactly this. Nearly every one of these goes to the same insurance company,
+ * so the common case is a document that is already right — which is also why the toolbar button
+ * is labelled «Sugʻurta» rather than after the line it adds.
+ */
+export const DEFAULT_INFO_RECIPIENT = '«KAPITAL SUGʻURTA» Акциядорлик жамиятига';
+
 export const SLOT_PLACEHOLDERS: Record<TextField | ValueField, string> = {
   personFullName: 'Ф.И.Ш.',
   passportIssuedBy: 'Олмазор ИИБ',
@@ -611,9 +621,9 @@ export const SLOT_PLACEHOLDERS: Record<TextField | ValueField, string> = {
   loanAmount: '4 000 000',
   asOfText: '2026 йил 1 январь',
   issueDate: '01.01.2026',
-  // Written out with its case ending, because that is what has to be typed — the document appends
-  // nothing to this value, and an example ending «…жамияти» would teach the wrong shape.
-  infoRecipient: '«KAPITAL SUGʻURTA» Акциядорлик жамиятига',
+  // Only ever seen when the line has been cleared by hand — it arrives already written. Same text
+  // as the default, so the example and the thing it is an example of cannot drift apart.
+  infoRecipient: DEFAULT_INFO_RECIPIENT,
 };
 
 const VALUE_KIND: Record<ValueField, ValueKind> = {

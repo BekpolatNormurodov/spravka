@@ -225,10 +225,12 @@ export function CertificateDocument(p: CertificateDocumentProps) {
           */}
           {withInfoFor && (
             <tr>
-              <td style={{ verticalAlign: 'bottom', padding: '14pt 4mm 0 0', border: 0, textAlign: 'right' }}>
+              {/* 18pt is one blank 14pt line at this line-height — the gap the blank leaves between
+                  the two addressees, rather than an arbitrary margin that happens to look close. */}
+              <td style={{ verticalAlign: 'bottom', padding: '18pt 4mm 0 0', border: 0, textAlign: 'right' }}>
                 <div style={{ fontSize: '12pt', lineHeight: 1.3 }}>Маълумот учун:</div>
               </td>
-              <td style={{ verticalAlign: 'bottom', padding: '14pt 0 0', border: 0 }}>
+              <td style={{ verticalAlign: 'bottom', padding: '18pt 0 0', border: 0 }}>
                 <div style={{ fontSize: '14pt', fontWeight: 700, lineHeight: 1.3 }}>
                   {edit ? edit.text('infoRecipient') : p.infoRecipient}
                 </div>

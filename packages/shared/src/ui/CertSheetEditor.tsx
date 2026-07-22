@@ -13,7 +13,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { maskPinfl, isValidPinfl } from '../core';
 import { CertificateDocument, type CertFirm } from './CertificateDocument';
 import {
-  asDate, certificateEditSlots, draftProblems, previewContracts,
+  asDate, certificateEditSlots, draftProblems, previewContracts, DEFAULT_INFO_RECIPIENT,
   type CertDraftStore,
 } from './DocumentEdit';
 import { Ico } from './icons';
@@ -209,23 +209,30 @@ export function CertSheetEditor({
           The «Маълумот учун:» line, switched on and off from here rather than from the page — a
           control sitting in the address block would read as part of the document.
 
+          Named after what it is for rather than after the line it adds: these go to the insurance
+          company, and «Sugʻurta» is what the person is looking for in the toolbar. The line arrives
+          already saying so, so switching it on is usually the whole job.
+
           `immediate`, so adding the line and removing it are each one Ctrl+Z. Switching it off
           drops whatever was written in it; undo brings both the line and the text back, which is
           why this goes through the draft history rather than a useState beside it.
         */}
         <button
           type="button"
-          onClick={() => patch({ infoRecipient: draft.infoRecipient === null ? '' : null }, true)}
+          onClick={() => patch(
+            { infoRecipient: draft.infoRecipient === null ? DEFAULT_INFO_RECIPIENT : null },
+            true,
+          )}
           className="btn-ghost px-3 py-2 text-xs"
           aria-pressed={draft.infoRecipient !== null}
           title={
             draft.infoRecipient === null
-              ? 'Hujjatga «Маълумот учун:» qatorini qoʻshadi'
+              ? `Hujjatga «Маълумот учун: ${DEFAULT_INFO_RECIPIENT}» qatorini qoʻshadi`
               : 'Qatorni va unda yozilganini olib tashlaydi'
           }
         >
           {draft.infoRecipient === null ? <Ico.add size={16} /> : <Ico.minus size={16} />}
-          Maʼlumot uchun
+          Sugʻurta
         </button>
 
         <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">

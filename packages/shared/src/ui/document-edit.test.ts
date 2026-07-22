@@ -114,9 +114,13 @@ describe('editing and printing agree', () => {
     const printed = words(renderToStaticMarkup(
       React.createElement(CertificateDocument, docProps(d)),
     ));
-    for (const sample of [
-      'AA1234567', '4 000 000', 'Ф.И.Ш.', '01.01.2026', 'Олмазор ИИБ', '8130', 'KAPITAL SUGʻURTA',
-    ]) {
+    /*
+      `infoRecipient` is deliberately not in this list. Its placeholder is the same text as its
+      default, so a document legitimately carrying «KAPITAL SUGʻURTA» is indistinguishable from a
+      leaked placeholder — and unlike a passport number, printing it is not a forgery. The line is
+      kept off the page by `withInfoFor`, which the tests below cover directly.
+    */
+    for (const sample of ['AA1234567', '4 000 000', 'Ф.И.Ш.', '01.01.2026', 'Олмазор ИИБ', '8130']) {
       expect(printed).not.toContain(sample);
     }
     // The template itself is untouched by any of them being missing.
