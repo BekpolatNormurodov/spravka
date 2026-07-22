@@ -42,6 +42,12 @@ export interface CertDraft {
   /** The «... ҳолатида» phrase as typed — this is what prints. */
   asOfText: string;
   issueDate: string;
+  /**
+   * The «Маълумот учун:» addressee. `null` means the document has no such line — which is not the
+   * same as `''`, an empty line the person has switched on and is about to write into. The toggle
+   * moves between null and `''`; typing moves between `''` and text.
+   */
+  infoRecipient: string | null;
 }
 
 /** How long typing has to stop before the draft is mirrored to localStorage. */
@@ -575,7 +581,8 @@ export function EditableContracts({
 
 /* ── The slot set ───────────────────────────────────────────────────────────────────────────── */
 
-export type TextField = 'personFullName' | 'passportIssuedBy' | 'contractType' | 'asOfText';
+export type TextField =
+  'personFullName' | 'passportIssuedBy' | 'contractType' | 'asOfText' | 'infoRecipient';
 export type ValueField = 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'issueDate';
 
 /*
@@ -604,6 +611,9 @@ export const SLOT_PLACEHOLDERS: Record<TextField | ValueField, string> = {
   loanAmount: '4 000 000',
   asOfText: '2026 йил 1 январь',
   issueDate: '01.01.2026',
+  // Written out with its case ending, because that is what has to be typed — the document appends
+  // nothing to this value, and an example ending «…жамияти» would teach the wrong shape.
+  infoRecipient: '«KAPITAL SUGʻURTA» Акциядорлик жамиятига',
 };
 
 const VALUE_KIND: Record<ValueField, ValueKind> = {
@@ -652,7 +662,9 @@ export function certificateEditSlots(
         <EditableText
           label={CERT_FIELD_LABELS[field]}
           placeholder={SLOT_PLACEHOLDERS[field]}
-          value={draft[field]}
+          // `infoRecipient` is the one text field that can be null, and null only reaches here
+          // when the line is switched on — the document does not render the slot otherwise.
+          value={draft[field] ?? ''}
           invalid={o.invalid(field)}
           onChange={(v) => o.patch(
             field === 'asOfText'
@@ -723,6 +735,14 @@ export function draftProblems(d: CertDraft, opts: { pinfl: boolean }): DraftProb
   if (d.personFullName.trim().length < 4) {
     out.push({ field: 'personFullName', message: 'F.I.SH. toʻliq yozilmagan' });
   }
+  /*
+    Only checked once the line exists. Switching it on and leaving it blank would print «Маълумот
+    учун:» pointing at nobody — so an empty line is a problem, while no line at all is not.
+  */
+  if (d.infoRecipient !== null && !d.infoRecipient.trim()) {
+    out.push({ field: 'infoRecipient', message: 'Maʼlumot uchun — tashkilot yozilmagan' });
+  }
+
   if (!/^[A-Z]{2}\d{7}$/.test(d.personPassport)) {
     out.push({ field: 'personPassport', message: 'Passport 2 harf + 7 raqam (AE5348993)' });
   }

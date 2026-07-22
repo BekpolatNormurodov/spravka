@@ -148,6 +148,15 @@ model Certificate {
   /// `asOfDate` only for sorting, never as evidence of what was printed.
   asOfText         String?
 
+  /// The second addressee — the «Маълумот учун:» line under the person the maʼlumotnoma is
+  /// written to, e.g. '«KAPITAL SUGʻURTA» Акциядорлик жамиятига'.
+  ///
+  /// Null means the document has no such line at all, which is the ordinary case and what every
+  /// row issued before this field existed says. Stored with its own case ending («…жамиятига»,
+  /// «…МЧЖга», «…банкига») rather than having one appended: the suffix depends on the word it
+  /// attaches to, and guessing it wrong prints a grammatical error on a legal document.
+  infoRecipient    String?
+
   bodyText         String?    @db.Text
   /// Path (relative to CERT_STORAGE_DIR) of the document frozen at SIGN time. This file is the
   /// issued maʼlumotnoma — the on-screen view is a re-render of it, not the other way round.

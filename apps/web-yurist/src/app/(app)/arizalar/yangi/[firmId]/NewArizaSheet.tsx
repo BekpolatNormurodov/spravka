@@ -24,6 +24,8 @@ const blank = (): CertDraft => ({
   // rather than filling a date field that then turns into prose somewhere else.
   asOfText: uzLongDate(new Date(`${today()}T00:00:00.000Z`)),
   issueDate: today(),
+  // No «Маълумот учун:» line until the yurist asks for one. Most maʼlumotnoma have none.
+  infoRecipient: null,
 });
 
 export function NewArizaSheet({

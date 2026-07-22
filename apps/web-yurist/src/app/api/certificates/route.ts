@@ -88,6 +88,9 @@ export async function POST(req: Request) {
       asOfDate: new Date(b.asOfDate),
       // What prints. The date beside it is derived, and is not what the document says.
       asOfText: b.asOfText || null,
+      // Optional second addressee. Blank and absent both mean the document has no such line — the
+      // sheet refuses to submit an empty one, and null is what «no line» looks like in the row.
+      infoRecipient: typeof b.infoRecipient === 'string' ? b.infoRecipient.trim() || null : null,
       createdById: session.sub,
       ...(submit
         ? {

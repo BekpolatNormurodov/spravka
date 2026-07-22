@@ -44,6 +44,7 @@ export default async function EditArizaPage({ params }: { params: { id: string }
         // Arizas written before the phrase existed read from the date they were made with.
         asOfText: c.asOfText ?? uzLongDate(c.asOfDate),
         issueDate: iso(c.issueDate),
+        infoRecipient: c.infoRecipient,
       }}
     />
   );

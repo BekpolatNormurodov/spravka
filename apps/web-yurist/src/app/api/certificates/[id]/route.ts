@@ -92,6 +92,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         asOfDate: new Date(b.asOfDate),
         // What prints. The date beside it is derived, and is not what the document says.
         asOfText: b.asOfText || null,
+        // Blank and absent both clear the «Маълумот учун:» line — an edit that removes it has to
+        // be able to say so, and an empty string is exactly how the sheet says it.
+        infoRecipient: typeof b.infoRecipient === 'string' ? b.infoRecipient.trim() || null : null,
         issueDate: new Date(b.issueDate),
       },
     });

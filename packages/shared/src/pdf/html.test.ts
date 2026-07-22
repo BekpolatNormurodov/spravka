@@ -28,7 +28,7 @@ const props: CertificateDocumentProps = {
     mfo: '01183',
     bankName: 'АО "ANORBANK"',
   },
-  signed: true,
+  infoRecipient: '«KAPITAL SUGʻURTA» Акциядорлик жамиятига',
   qrDataUrl: 'data:image/png;base64,iVBORw0KGgo=',
 };
 
@@ -75,9 +75,23 @@ describe('certificateHtml', () => {
     expect(html.indexOf('8130')).toBeLessThan(html.indexOf('28324'));
   });
 
-  it('stamps a signed document ТАСДИҚЛАНДИ', () => {
-    expect(html).toContain('ТАСДИҚЛАНДИ');
+  it('carries no stamp of ours', () => {
+    // The rotated ТАСДИҚЛАНДИ badge was removed: the source blank has no such mark, and it was the
+    // one thing on an issued document that announced it came out of a web app.
+    expect(html).not.toContain('ТАСДИҚЛАНДИ');
     expect(html).not.toContain('ТАСДИҚЛАНМАГАН');
+  });
+
+  it('prints the «Маълумот учун» addressee under the first one', () => {
+    expect(html).toContain('Маълумот учун:');
+    expect(html).toContain('Акциядорлик жамиятига');
+    // Under, not over — it is the second addressee, and the order is what says which is which.
+    expect(html.indexOf('КАМБАРОВА')).toBeLessThan(html.indexOf('Маълумот учун:'));
+  });
+
+  it('leaves the line out entirely when there is no second addressee', () => {
+    // Which is the ordinary case, and every row issued before the field existed.
+    expect(certificateHtml({ ...props, infoRecipient: null })).not.toContain('Маълумот учун');
   });
 
   it('embeds the QR that was passed in', () => {

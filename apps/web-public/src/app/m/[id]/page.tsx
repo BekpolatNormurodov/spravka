@@ -65,8 +65,8 @@ export default async function PublicCert({ params }: { params: { id: string } })
             loanAmount={cert.loanAmount.toString()}
             asOfDate={cert.asOfDate}
             asOfText={cert.asOfText}
+            infoRecipient={cert.infoRecipient}
             firm={firmForDocument(cert.firm, cert.firmSnapshot)}
-            signed
             qrDataUrl={qr}
           />
         </div>

@@ -147,6 +147,7 @@ const emptyDraft = (): CertDraft => ({
   personPinfl: '', personFullName: '', personPassport: '', passportIssuedBy: '',
   passportIssuedAt: '', contracts: [{ number: '', date: '' }],
   contractType: 'шартнома', loanAmount: '', asOfDate: '', asOfText: '', issueDate: '',
+  infoRecipient: null,
 });
 
 /** The draft store driven the way the editor drives it: one patch per value touched. */

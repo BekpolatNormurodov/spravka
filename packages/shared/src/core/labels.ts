@@ -17,7 +17,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 export type CertField =
   | 'firmId' | 'personPinfl' | 'personFullName' | 'personPassport'
   | 'passportIssuedBy' | 'passportIssuedAt' | 'contracts' | 'contractType'
-  | 'loanAmount' | 'asOfDate' | 'asOfText' | 'issueDate';
+  | 'loanAmount' | 'asOfDate' | 'asOfText' | 'issueDate' | 'infoRecipient';
 
 /**
  * What each value is called when someone is told about it — on the document as a slot's name, and
@@ -40,6 +40,7 @@ export const CERT_FIELD_LABELS: Record<CertField, string> = {
   asOfDate: 'Holat sanasi',
   asOfText: 'Holat sanasi',
   issueDate: 'Maʼlumotnoma sanasi',
+  infoRecipient: 'Maʼlumot uchun (tashkilot)',
 };
 
 /**

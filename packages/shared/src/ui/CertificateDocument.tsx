@@ -47,41 +47,14 @@ export function firmForDocument(firm: CertFirm, firmSnapshot: unknown): CertFirm
   return (firmSnapshot as CertFirm | null) ?? firm;
 }
 
-/**
- * The rubber stamp over the signature block. Both states use the same geometry so a document
- * reads the same before and after signing and only the verdict changes; «ТАСДИҚЛАНМАГАН» is
- * three characters longer, so it carries its own tracking to stay inside the right margin.
- */
-function Stamp({ signed }: { signed: boolean }) {
-  const tone = signed ? '#059669' : '#dc2626';
-  return (
-    <div
-      aria-label={signed ? 'Тасдиқланди' : 'Тасдиқланмаган'}
-      style={{
-        position: 'absolute',
-        right: '8mm',
-        top: '-6mm',
-        transform: 'rotate(-12deg)',
-        border: `3px solid ${tone}`,
-        borderRadius: '6px',
-        padding: '4px 10px',
-        color: tone,
-        // Arial, not the UI's Plus Jakarta Sans: Jakarta ships no Cyrillic, so every letter of
-        // ТАСДИҚЛАНДИ already fell through to the generic sans — measured, not assumed. Naming
-        // Arial changes nothing on screen and gives the PDF a family it can pin deterministically.
-        fontFamily: 'Arial, Helvetica, sans-serif',
-        fontWeight: 800,
-        letterSpacing: signed ? '2px' : '1px',
-        fontSize: signed ? '12pt' : '10.5pt',
-        opacity: 0.85,
-        pointerEvents: 'none',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {signed ? 'ТАСДИҚЛАНДИ' : 'ТАСДИҚЛАНМАГАН'}
-    </div>
-  );
-}
+/*
+  There was a rotated «ТАСДИҚЛАНДИ» / «ТАСДИҚЛАНМАГАН» badge over the signature block. It was ours,
+  not the blank's, and it was removed on request: the source .docx carries no such mark, so it was
+  the one thing on the page that told a reader this document came out of a web app.
+
+  Nothing is lost by dropping it. Only a SIGNED certificate is ever served publicly, the public page
+  says so above the paper in its own words, and the QR is what actually answers «is this real».
+*/
 
 /**
  * Turns the document's variable slots into editors, in place.
@@ -95,7 +68,9 @@ function Stamp({ signed }: { signed: boolean }) {
  */
 export interface CertificateEdit {
   /** A long value that wraps inside a paragraph. */
-  text: (field: 'personFullName' | 'passportIssuedBy' | 'contractType' | 'asOfText') => React.ReactNode;
+  text: (
+    field: 'personFullName' | 'passportIssuedBy' | 'contractType' | 'asOfText' | 'infoRecipient',
+  ) => React.ReactNode;
   /** A short masked value: passport, a date, a sum. */
   value: (field: 'personPassport' | 'passportIssuedAt' | 'loanAmount' | 'issueDate') => React.ReactNode;
   /** The whole contract list, add and remove included. */
@@ -119,9 +94,15 @@ export interface CertificateDocumentProps {
    * every document issued before this field existed reads exactly as it always did.
    */
   asOfText?: string | null;
+  /**
+   * The «Маълумот учун:» addressee, written with its own case ending — nothing is appended to it.
+   *
+   * Three states, and they are not the same: absent/null is a document with no such line, `''` is
+   * one that has the line but has not been written yet (only reachable while editing), and text
+   * prints. Most maʼlumotnoma have no second addressee, so null is the ordinary case.
+   */
+  infoRecipient?: string | null;
   firm: CertFirm;
-  /** Renders the green «ТАСДИҚЛАНДИ» stamp. */
-  signed?: boolean;
   /** Optional QR data-URL (our addition — printed in the bottom corner). */
   qrDataUrl?: string;
   /**
@@ -169,6 +150,16 @@ export function CertificateDocument(p: CertificateDocumentProps) {
     turns editing off and shows exactly what will print.
   */
   const withIssuer = edit ? true : !!(p.passportIssuedAt && p.passportIssuedBy);
+
+  /*
+    The «Маълумот учун:» line, on the page only when the document has one.
+
+    While editing, having the line is the yurist's own choice — they switch it on and it appears
+    empty, waiting to be typed. On paper an empty one would print a label pointing at nobody, so
+    only a written value shows.
+  */
+  const withInfoFor = edit ? p.infoRecipient != null : !!p.infoRecipient?.trim();
+
   const passportInfo = (
     <>
       (шахс гувохномаси: {edit ? edit.value('personPassport') : p.personPassport}
@@ -223,6 +214,27 @@ export function CertificateDocument(p: CertificateDocumentProps) {
               </div>
             </td>
           </tr>
+
+          {/*
+            A second addressee, in the same two columns so it lines up with the first.
+
+            Both cells sit on the bottom of the row, which is what puts «Маълумот учун:» beside the
+            *last* line of the organisation rather than its first — the blank has it that way, and
+            with a two-line name the difference is obvious. The label is 12pt regular: it is a note
+            about who else is receiving this, not part of the address.
+          */}
+          {withInfoFor && (
+            <tr>
+              <td style={{ verticalAlign: 'bottom', padding: '14pt 4mm 0 0', border: 0, textAlign: 'right' }}>
+                <div style={{ fontSize: '12pt', lineHeight: 1.3 }}>Маълумот учун:</div>
+              </td>
+              <td style={{ verticalAlign: 'bottom', padding: '14pt 0 0', border: 0 }}>
+                <div style={{ fontSize: '14pt', fontWeight: 700, lineHeight: 1.3 }}>
+                  {edit ? edit.text('infoRecipient') : p.infoRecipient}
+                </div>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 
@@ -251,7 +263,7 @@ export function CertificateDocument(p: CertificateDocumentProps) {
       </p>
 
       {/* ── Signature block ──────────────────────────────────────────── */}
-      <div style={{ position: 'relative', marginTop: '30pt' }}>
+      <div style={{ marginTop: '30pt' }}>
         <div style={{ fontSize: '14pt', fontWeight: 700, maxWidth: '58mm', lineHeight: 1.3 }}>{blankName}</div>
         <div
           style={{
@@ -266,8 +278,6 @@ export function CertificateDocument(p: CertificateDocumentProps) {
           <span>{firm.directorPosition}</span>
           <span>{firm.directorName}</span>
         </div>
-
-        <Stamp signed={!!p.signed} />
       </div>
 
       {/*

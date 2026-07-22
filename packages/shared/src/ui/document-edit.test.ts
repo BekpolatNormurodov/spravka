@@ -26,6 +26,9 @@ const draft = (over: Partial<CertDraft> = {}): CertDraft => ({
   asOfDate: '2026-06-25',
   asOfText: '2026 йил 25 июнь',
   issueDate: '2026-06-26',
+  // Deliberately not the SLOT_PLACEHOLDERS example: a fixture that happens to equal the
+  // placeholder cannot tell a leaked placeholder from a printed value.
+  infoRecipient: '«ANOR BANK» Акциядорлик жамиятига',
   ...over,
 });
 
@@ -55,6 +58,7 @@ function docProps(d: CertDraft): CertificateDocumentProps {
     loanAmount: d.loanAmount,
     asOfDate: asDate(d.asOfDate),
     asOfText: d.asOfText,
+    infoRecipient: d.infoRecipient,
     firm: FIRM,
   };
 }
@@ -105,12 +109,14 @@ describe('editing and printing agree', () => {
     // Every slot a placeholder could fill is emptied, so anything matching below leaked.
     const d = draft({
       personPassport: '', loanAmount: '', personFullName: '', asOfDate: '',
-      passportIssuedBy: '', passportIssuedAt: '', contracts: [],
+      passportIssuedBy: '', passportIssuedAt: '', contracts: [], infoRecipient: '',
     });
     const printed = words(renderToStaticMarkup(
       React.createElement(CertificateDocument, docProps(d)),
     ));
-    for (const sample of ['AA1234567', '4 000 000', 'Ф.И.Ш.', '01.01.2026', 'Олмазор ИИБ', '8130']) {
+    for (const sample of [
+      'AA1234567', '4 000 000', 'Ф.И.Ш.', '01.01.2026', 'Олмазор ИИБ', '8130', 'KAPITAL SUGʻURTA',
+    ]) {
       expect(printed).not.toContain(sample);
     }
     // The template itself is untouched by any of them being missing.
@@ -179,6 +185,62 @@ describe('the top table, as the blank writes it', () => {
       React.createElement(CertificateDocument, { ...docProps(d), number: '', edit: slots(d) }),
     );
     expect(words(markup)).not.toContain('№');
+  });
+});
+
+describe('the «Маълумот учун» addressee', () => {
+  const printedWith = (infoRecipient: string | null) => words(renderToStaticMarkup(
+    React.createElement(CertificateDocument, { ...docProps(draft()), infoRecipient }),
+  ));
+
+  it('prints under the person the maʼlumotnoma is written to', () => {
+    const out = printedWith('«KAPITAL SUGʻURTA» Акциядорлик жамиятига');
+    expect(out).toContain('Маълумот учун:');
+    expect(out).toContain('Акциядорлик жамиятига');
+    expect(out.indexOf('КАМБАРОВА')).toBeLessThan(out.indexOf('Маълумот учун:'));
+  });
+
+  it('adds nothing to what was typed', () => {
+    // The case ending belongs to the word it attaches to («…жамиятига», «…МЧЖга», «…банкига») and
+    // is written by the person. Appending «га» here would print a grammatical error on a document
+    // nobody can correct after it is signed.
+    const out = printedWith('«ANOR BANK» АЖ');
+    expect(out).toContain('«ANOR BANK» АЖ');
+    expect(out).not.toContain('«ANOR BANK» АЖга');
+  });
+
+  it('is absent when the document has no second addressee', () => {
+    expect(printedWith(null)).not.toContain('Маълумот учун');
+  });
+
+  it('does not print an empty line, even though one can be open while writing', () => {
+    // '' is a line switched on and not yet written. On paper it would be a label pointing at
+    // nobody, so only the editor shows it — the same rule as the passport issuer slots.
+    expect(printedWith('')).not.toContain('Маълумот учун');
+
+    const d = draft({ infoRecipient: '' });
+    const editing = renderToStaticMarkup(
+      React.createElement(CertificateDocument, { ...docProps(d), edit: slots(d) }),
+    );
+    expect(words(editing)).toContain('Маълумот учун:');
+    expect(editing).toContain('data-slot="infoRecipient"');
+  });
+});
+
+describe('the stamp that used to be here', () => {
+  it('is gone from both branches', () => {
+    // Removed on request: the source blank carries no such mark. Asserted rather than merely
+    // deleted, because a rotated «ТАСДИҚЛАНДИ» badge is exactly the kind of thing that gets
+    // re-added as a nicety by someone who never saw the blank.
+    const d = draft();
+    const printed = renderToStaticMarkup(React.createElement(CertificateDocument, docProps(d)));
+    const editing = renderToStaticMarkup(
+      React.createElement(CertificateDocument, { ...docProps(d), edit: slots(d) }),
+    );
+    for (const markup of [printed, editing]) {
+      expect(markup).not.toContain('ТАСДИҚЛАНДИ');
+      expect(markup).not.toContain('ТАСДИҚЛАНМАГАН');
+    }
   });
 });
 
@@ -331,6 +393,18 @@ describe('strict checks', () => {
 
   it('accepts the phrase in the shape the document prints', () => {
     expect(fields(draft({ asOfText: '2026 йил 19 июль' }))).toEqual([]);
+  });
+
+  it('refuses a «Маълумот учун» line that was opened and left blank', () => {
+    // It would print the label with nobody after it.
+    expect(fields(draft({ infoRecipient: '' }))).toContain('infoRecipient');
+    expect(fields(draft({ infoRecipient: '   ' }))).toContain('infoRecipient');
+  });
+
+  it('says nothing when there is no such line at all', () => {
+    // null is not an empty field — it is a document that does not have this line, which is most
+    // of them. Checking it like a required value would block every ordinary maʼlumotnoma.
+    expect(fields(draft({ infoRecipient: null }))).toEqual([]);
   });
 
   it('counts the digits back when the PINFL is short', () => {

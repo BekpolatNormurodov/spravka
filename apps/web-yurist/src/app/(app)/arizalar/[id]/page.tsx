@@ -58,8 +58,8 @@ export default async function CertDetail({ params }: { params: { id: string } })
             loanAmount={c.loanAmount.toString()}
             asOfDate={c.asOfDate}
             asOfText={c.asOfText}
+            infoRecipient={c.infoRecipient}
             firm={firmForDocument(c.firm, c.firmSnapshot)}
-            signed={c.status === CertStatus.SIGNED}
             qrDataUrl={qr}
           />
         </div>

@@ -101,9 +101,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   /*
     Signing is two calls, because the rahbar signs *bytes* and the server has to know exactly
-    which bytes it handed out. Rendering first and committing only once the signature comes back
-    also resolves the apparent circularity — the PDF carries the ТАСДИҚЛАНДИ stamp, which needs
-    a signed status, which needs the PDF.
+    which bytes it handed out. The document is rendered first and the row is moved to SIGNED only
+    once a signature comes back over exactly those bytes.
   */
   /*
     The browser reporting that E-IMZO refused. Nothing is written to the certificate — a failed
@@ -119,7 +118,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (typeof challengeId === 'string' && challengeId) {
       await prisma.signChallenge.deleteMany({ where: { id: challengeId, certificateId: cert.id } });
     }
-    // sign-prepare rendered a stamped PDF before anyone signed anything. Left behind, it is an
+    // sign-prepare rendered a PDF before anyone signed anything. Left behind, it is an
     // unsigned document that looks issued — unreachable (only SIGNED certificates are served),
     // but not a thing to leave lying in the store. Guarded on status: an already-signed
     // certificate's file is the issued document and must never be deleted by a failed attempt.

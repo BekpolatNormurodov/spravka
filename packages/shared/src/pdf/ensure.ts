@@ -19,13 +19,7 @@ export const CERT_PDF_INCLUDE = {
   contracts: { orderBy: { order: 'asc' } },
 } satisfies Prisma.CertificateInclude;
 
-/**
- * Render the document exactly as it is issued: signed, stamped, QR included.
- *
- * `signed: true` is not a lie about the row's status — it is what the file will attest once the
- * caller commits. The apparent circularity (the stamp needs `signed`, `signed` needs the file)
- * is resolved by rendering optimistically and only *keeping* the result if the transaction lands.
- */
+/** Render the document exactly as it is issued, QR included. */
 export async function buildCertificatePdf(cert: CertificateWithFirm): Promise<Buffer> {
   const qrDataUrl = await certQrDataUrl(cert.id);
   return renderPdf(
@@ -44,8 +38,8 @@ export async function buildCertificatePdf(cert: CertificateWithFirm): Promise<Bu
       // PDF that words its «... ҳолатида» differently from the document on screen — the one kind
       // of divergence this whole pipeline exists to prevent.
       asOfText: cert.asOfText,
+      infoRecipient: cert.infoRecipient,
       firm: firmForDocument(cert.firm, cert.firmSnapshot),
-      signed: true,
       qrDataUrl,
     }),
   );
