@@ -54,25 +54,25 @@ export interface CertDraft {
 const QUIET_MS = 400;
 const HISTORY_MAX = 50;
 
-export interface DraftHistory {
-  past: CertDraft[];
-  present: CertDraft;
-  future: CertDraft[];
+export interface DraftHistory<T> {
+  past: T[];
+  present: T;
+  future: T[];
   /** The last value pushed into history. Differs from `present` mid-keystroke. */
-  committed: CertDraft;
+  committed: T;
 }
 
 /** Starting history for a draft — exported so the reducer can be exercised without React. */
-export const initialHistory = (d: CertDraft): DraftHistory => ({
+export const initialHistory = <T,>(d: T): DraftHistory<T> => ({
   past: [], present: d, future: [], committed: d,
 });
 
-export type DraftAction =
-  | { type: 'set'; value: CertDraft }
+export type DraftAction<T> =
+  | { type: 'set'; value: T }
   | { type: 'commit' }
   | { type: 'undo' }
   | { type: 'redo' }
-  | { type: 'reset'; value: CertDraft };
+  | { type: 'reset'; value: T };
 
 /**
  * One history for the whole draft rather than one per field.
@@ -81,7 +81,7 @@ export type DraftAction =
  * contract row being added, and Ctrl+Z lands in whichever field happens to hold focus rather than
  * undoing the last thing the person actually did.
  */
-export function reduceDraft(s: DraftHistory, a: DraftAction): DraftHistory {
+export function reduceDraft<T>(s: DraftHistory<T>, a: DraftAction<T>): DraftHistory<T> {
   switch (a.type) {
     case 'set':
       return { ...s, present: a.value, future: [] };
@@ -96,7 +96,7 @@ export function reduceDraft(s: DraftHistory, a: DraftAction): DraftHistory {
 
     case 'undo': {
       // Typing that has not settled into history yet is still a step the person expects back.
-      const base: DraftHistory =
+      const base: DraftHistory<T> =
         s.present === s.committed
           ? s
           : { ...s, past: [...s.past, s.committed].slice(-HISTORY_MAX), committed: s.present };
@@ -121,21 +121,24 @@ export function reduceDraft(s: DraftHistory, a: DraftAction): DraftHistory {
   }
 }
 
-export interface CertDraftStore {
-  draft: CertDraft;
+export interface DraftStore<T> {
+  draft: T;
   /** Patch one or more fields. `immediate` skips coalescing — use it for structural changes. */
-  patch: (p: Partial<CertDraft>, immediate?: boolean) => void;
+  patch: (p: Partial<T>, immediate?: boolean) => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
   /** A stored draft was found that differs from what the server gave us. */
-  recovered: CertDraft | null;
+  recovered: T | null;
   restore: () => void;
   dismissRecovered: () => void;
   /** Drop the stored copy — call after a save lands. */
   clearStored: () => void;
 }
+
+/** The maʼlumotnoma's store — {@link useDraft} specialised to {@link CertDraft}. */
+export type CertDraftStore = DraftStore<CertDraft>;
 
 /**
  * Draft state, undo history and browser-local persistence.
@@ -144,10 +147,13 @@ export interface CertDraftStore {
  * counter that is never reused, so creating a row to autosave into would burn an official
  * маълумотнома number on every abandoned attempt.
  */
-export function useCertDraft(initial: CertDraft, storageKey: string | null): CertDraftStore {
-  const [h, dispatch] = useReducer(reduceDraft, initialHistory(initial));
+export function useDraft<T>(initial: T, storageKey: string | null): DraftStore<T> {
+  const [h, dispatch] = useReducer(
+    reduceDraft as React.Reducer<DraftHistory<T>, DraftAction<T>>,
+    initialHistory(initial),
+  );
 
-  const [recovered, setRecovered] = useState<CertDraft | null>(null);
+  const [recovered, setRecovered] = useState<T | null>(null);
   const initialJson = useRef(JSON.stringify(initial));
 
   // Look for an interrupted session once, on mount.
@@ -155,7 +161,7 @@ export function useCertDraft(initial: CertDraft, storageKey: string | null): Cer
     if (!storageKey) return;
     try {
       const raw = localStorage.getItem(storageKey);
-      if (raw && raw !== initialJson.current) setRecovered(JSON.parse(raw) as CertDraft);
+      if (raw && raw !== initialJson.current) setRecovered(JSON.parse(raw) as T);
     } catch {
       /* private mode, quota, corrupt JSON — recovery is a convenience, never a blocker */
     }
@@ -191,7 +197,7 @@ export function useCertDraft(initial: CertDraft, storageKey: string | null): Cer
    * on how fast they type. A timer would cut a slow typist's name into four steps and merge a fast
    * one's name and passport into one.
    */
-  const patch = useCallback((p: Partial<CertDraft>, immediate = false) => {
+  const patch = useCallback((p: Partial<T>, immediate = false) => {
     const field = Object.keys(p).sort().join(',');
     if (pending.current !== null && pending.current !== field) dispatch({ type: 'commit' });
     dispatch({ type: 'set', value: { ...currentRef.current, ...p } });
@@ -249,6 +255,13 @@ export function useCertDraft(initial: CertDraft, storageKey: string | null): Cer
     clearStored,
   };
 }
+
+/**
+ * The maʼlumotnoma draft store — {@link useDraft} specialised to {@link CertDraft}, kept so every
+ * existing editor call site reads exactly as before while the ariza reuses the same machinery.
+ */
+export const useCertDraft = (initial: CertDraft, storageKey: string | null): CertDraftStore =>
+  useDraft(initial, storageKey);
 
 /* ── Slots ──────────────────────────────────────────────────────────────────────────────────── */
 
