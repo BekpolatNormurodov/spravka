@@ -267,14 +267,9 @@ export function CertificateDocument(p: CertificateDocumentProps) {
         қопланган ва ташкилот олдида қарздорлиги мавжуд эмаслигини маълум қиламиз.
       </p>
 
-      {/*
-        ── Signature block ────────────────────────────────────────────
-        The QR is the verification «seal» — centred in the open space of the signature, where a round
-        stamp (М.П.) is pressed: the firm name to its left, the director's signature on the line below.
-        Absolutely placed so it never disturbs the firm name or the signature line around it.
-      */}
-      <div style={{ marginTop: '30pt', position: 'relative', minHeight: '26mm' }}>
-        <div style={{ fontSize: '14pt', fontWeight: 700, maxWidth: '60mm', lineHeight: 1.3 }}>{blankName}</div>
+      {/* ── Signature block ──────────────────────────────────────────── */}
+      <div style={{ marginTop: '30pt' }}>
+        <div style={{ fontSize: '14pt', fontWeight: 700, maxWidth: '58mm', lineHeight: 1.3 }}>{blankName}</div>
         <div
           style={{
             display: 'flex',
@@ -282,45 +277,51 @@ export function CertificateDocument(p: CertificateDocumentProps) {
             alignItems: 'flex-end',
             fontSize: '14pt',
             fontWeight: 700,
-            marginTop: '12pt',
+            marginTop: '2pt',
           }}
         >
           <span>{firm.directorPosition}</span>
           <span>{firm.directorName}</span>
         </div>
-
-        {p.qrDataUrl && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              bottom: 0,
-              left: '58%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={p.qrDataUrl}
-              alt={`${p.number}-сонли маълумотномани текшириш учун QR код`}
-              style={{ width: '25mm', height: '25mm', display: 'block' }}
-            />
-            <div style={{ fontSize: '7pt', color: '#475569', lineHeight: 1.25, marginTop: '1.5mm', whiteSpace: 'nowrap' }}>
-              Ҳақиқийлигини текширинг
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* ── Footer: Ижрочи keeps its .docx position (bottom-left, 10pt). ── */}
-      {hasExecutor && (
-        <div style={{ marginTop: '26pt', fontSize: '10pt', lineHeight: 1.35 }}>
-          {firm.executorName && <div>Ижрочи: {firm.executorName}</div>}
-          {executorPhone && <div>Тел: {executorPhone}</div>}
+      {/*
+        ── Footer ────────────────────────────────────────────────────────
+        Ижрочи keeps its .docx position (bottom-left, 10pt). The QR is ours, not the blank's,
+        so it sits in the empty right corner behind a hairline that marks where the document
+        ends and verification begins — rather than floating under the page on its own.
+      */}
+      {(hasExecutor || p.qrDataUrl) && (
+        <div
+          style={{
+            marginTop: '26pt',
+            paddingTop: p.qrDataUrl ? '4mm' : 0,
+            borderTop: p.qrDataUrl ? '0.5pt solid #cbd5e1' : 'none',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: '8mm',
+          }}
+        >
+          <div style={{ fontSize: '10pt', lineHeight: 1.35 }}>
+            {firm.executorName && <div>Ижрочи: {firm.executorName}</div>}
+            {executorPhone && <div>Тел: {executorPhone}</div>}
+          </div>
+
+          {p.qrDataUrl && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2.5mm', flexShrink: 0 }}>
+              <div style={{ textAlign: 'right', fontSize: '8pt', lineHeight: 1.35, color: '#475569' }}>
+                <div style={{ fontWeight: 700 }}>Ҳужжат ҳақиқийлигини текширинг</div>
+                <div>QR кодни сканерланг</div>
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.qrDataUrl}
+                alt={`${p.number}-сонли маълумотномани текшириш учун QR код`}
+                style={{ width: '22mm', height: '22mm', display: 'block' }}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
