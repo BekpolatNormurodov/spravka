@@ -1,5 +1,32 @@
 import { describe, it, expect } from 'vitest';
 import { contractTypePlural, formatSum, dmy, uzLongDate, uzLongDateToIso } from './document';
+import {
+  uzLongDateLatin, uzLongDateLatinToIso, arizaHeaderDate,
+  formatSumDecimal, unmaskAmountDecimal, maskAmountDecimal,
+} from './document';
+
+describe('Latin long dates', () => {
+  const d = new Date(Date.UTC(2026, 6, 15)); // 15 July 2026
+  it('formats long-form', () => expect(uzLongDateLatin(d)).toBe('2026 yil 15 iyul'));
+  it('round-trips', () => expect(uzLongDateLatinToIso('2026 yil 15 iyul')).toBe('2026-07-15'));
+  it('is forgiving of case and spacing', () =>
+    expect(uzLongDateLatinToIso('  2026  yil 1 Yanvar ')).toBe('2026-01-01'));
+  it('rejects a non-day', () => expect(uzLongDateLatinToIso('2026 yil 31 fevral')).toBe(''));
+  it('formats the header date with two spaces', () =>
+    expect(arizaHeaderDate(d)).toBe('"15"  iyul 2026-yil'));
+});
+
+describe('decimal money', () => {
+  it('groups thousands and comma-decimals the tiyin', () =>
+    expect(formatSumDecimal('24318882.63')).toBe('24 318 882,63'));
+  it('drops the comma for a whole amount', () =>
+    expect(formatSumDecimal('24900000')).toBe('24 900 000'));
+  it('unmasks to a dot-decimal for the API', () =>
+    expect(unmaskAmountDecimal('24 318 882,63')).toBe('24318882.63'));
+  it('masks progressively as it is typed', () =>
+    expect(maskAmountDecimal('24318882,6')).toBe('24 318 882,6'));
+  it('caps to two decimals', () => expect(maskAmountDecimal('1,239')).toBe('1,23'));
+});
 
 describe('contractTypePlural', () => {
   // The blanks write the first paragraph in the plural («…шартномаларига асосан умумий»)

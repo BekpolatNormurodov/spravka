@@ -65,3 +65,73 @@ export function formatSum(amount: string): string {
 export function contractTypePlural(contractType: string): string {
   return contractType.replace(/си$/, 'лари');
 }
+
+/* ── Latin script (the «Savdo-sanoat palatasiga ariza» is Latin, unlike the Cyrillic maʼlumotnoma) ── */
+
+/** Uzbek-Latin month names, nominative, as the ariza blank writes them ("iyul"). */
+export const UZ_MONTHS_LATIN = [
+  'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
+  'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr',
+] as const;
+
+/** Long date as the ariza writes it: "2026 yil 15 iyul". Latin sibling of {@link uzLongDate}. */
+export function uzLongDateLatin(date: Date): string {
+  return `${date.getUTCFullYear()} yil ${date.getUTCDate()} ${UZ_MONTHS_LATIN[date.getUTCMonth()]}`;
+}
+
+/**
+ * "2026 yil 15 iyul" -> "2026-07-15", and "" for anything that cannot be read as a whole date.
+ *
+ * The inverse of {@link uzLongDateLatin} — the ariza's «... holatiga koʻra» phrase is what prints and
+ * `asOfDate` follows it. Forgiving of spacing and case only; a phrase that does not name a real day
+ * comes back empty rather than guessed at, because the caller keeps the previous date when it does.
+ */
+export function uzLongDateLatinToIso(text: string): string {
+  const m = /^\s*(\d{4})\s*yil\s*(\d{1,2})\s*([a-zʻ']+)\s*$/i.exec(text.trim());
+  if (!m) return '';
+  const year = Number(m[1]);
+  const day = Number(m[2]);
+  const month = UZ_MONTHS_LATIN.findIndex((name) => name === m[3]!.toLowerCase());
+  if (month < 0 || day < 1 || year < 1900 || year > 2999) return '';
+  const d = new Date(Date.UTC(year, month, day));
+  // Date rolls 31 Feb into March; the ariza must not quietly name a different day.
+  if (d.getUTCDate() !== day || d.getUTCMonth() !== month) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+/** The ariza header date: «"15"  iyul 2026-yil» (two spaces, as the blank has it). */
+export function arizaHeaderDate(date: Date): string {
+  return `"${date.getUTCDate()}"  ${UZ_MONTHS_LATIN[date.getUTCMonth()]} ${date.getUTCFullYear()}-yil`;
+}
+
+/* ── Decimal money (the ariza carries tiyin: "24 318 882,63" — space thousands, comma decimal) ── */
+
+/** Group an integer string with spaces: "24318882" -> "24 318 882". */
+function groupThousands(intPart: string): string {
+  return (intPart.replace(/\D/g, '') || '0').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+/** "24318882.63" | "24318882,63" -> "24 318 882,63"; a whole amount has no comma. */
+export function formatSumDecimal(value: string): string {
+  const s = String(value).replace(/\s/g, '').replace(',', '.');
+  const [int = '0', frac] = s.split('.');
+  const grouped = groupThousands(int);
+  return frac && Number(frac) !== 0 ? `${grouped},${frac.replace(/\D/g, '').slice(0, 2)}` : grouped;
+}
+
+/** Editor input: keep digits + one comma, ≤2 decimals, space-group the integer part. */
+export function maskAmountDecimal(v: string): string {
+  const cleaned = v.replace(/[^\d,]/g, '');
+  const [int = '', ...rest] = cleaned.split(',');
+  const frac = rest.join('').slice(0, 2);
+  const grouped = groupThousands(int.replace(/^0+(?=\d)/, ''));
+  return cleaned.includes(',') ? `${grouped},${frac}` : grouped;
+}
+
+/** "24 318 882,63" -> "24318882.63" (dot decimal, for Prisma.Decimal / the API). */
+export function unmaskAmountDecimal(v: string): string {
+  const s = v.replace(/\s/g, '').replace(',', '.');
+  const [int = '0', frac] = s.split('.');
+  const cleanInt = int.replace(/\D/g, '') || '0';
+  return frac ? `${cleanInt}.${frac.replace(/\D/g, '').slice(0, 2)}` : cleanInt;
+}
