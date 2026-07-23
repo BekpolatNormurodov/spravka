@@ -45,7 +45,8 @@ const MAP: Record<string, WfAction> = {
  */
 function buildFirmSnapshot(f: CertificateWithFirm['firm']) {
   return {
-    name: f.name, letterheadName: f.letterheadName, shortName: f.shortName, stir: f.stir, oked: f.oked,
+    name: f.name, letterheadName: f.letterheadName, arizaName: f.arizaName, arizaAddress: f.arizaAddress,
+    shortName: f.shortName, stir: f.stir, oked: f.oked,
     directorName: f.directorName, directorFullName: f.directorFullName,
     directorPosition: f.directorPosition, accountantName: f.accountantName,
     executorName: f.executorName, executorPhone: f.executorPhone,

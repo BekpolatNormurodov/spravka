@@ -12,7 +12,7 @@ export default async function NewCourtArizaPage({ params }: { params: { firmId: 
   const firm = await prisma.firm.findFirst({
     where: { id: params.firmId, isActive: true },
     select: {
-      id: true, name: true, shortName: true, letterheadName: true,
+      id: true, name: true, shortName: true, letterheadName: true, arizaName: true, arizaAddress: true,
       stir: true, bankAccount: true, mfo: true, bankName: true, phone: true, address: true,
       directorName: true, directorPosition: true, executorName: true, executorPhone: true,
     },

@@ -26,6 +26,9 @@ export interface CertFirm {
    * end 'MCHJ' while the body says 'МЧЖ'), so it is stored, not derived. Falls back to `name`.
    */
   letterheadName?: string | null;
+  /** Latin name/address for the ariza; the maʼlumotnoma ignores them. Fall back to the Cyrillic forms. */
+  arizaName?: string | null;
+  arizaAddress?: string | null;
   shortName?: string | null;
   directorName: string;
   directorPosition: string;

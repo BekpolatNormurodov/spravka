@@ -87,7 +87,9 @@ export interface CourtArizaDocumentProps {
  */
 export function CourtArizaDocument(p: CourtArizaDocumentProps) {
   const { firm, edit } = p;
-  const firmName = firm.letterheadName || firm.name; // Latin letterhead form
+  // The ariza is Latin, so prefer the firm's Latin ariza name/address; fall back to the letterhead form.
+  const firmName = firm.arizaName || firm.letterheadName || firm.name;
+  const firmAddress = firm.arizaAddress || firm.address;
 
   /** A justified body paragraph, first-line indented as the blank has it. */
   const para: React.CSSProperties = {
@@ -98,7 +100,7 @@ export function CourtArizaDocument(p: CourtArizaDocumentProps) {
     (edit ? edit.value(field) : formatSumDecimal(raw));
 
   const collectorRekvizit = [
-    firm.address && `${firm.address}.`,
+    firmAddress && `${firmAddress}.`,
     firm.bankAccount && `X/R: ${firm.bankAccount},`,
     firm.mfo && `MFO: ${firm.mfo},`,
     firm.stir && `STIR: ${firm.stir}`,

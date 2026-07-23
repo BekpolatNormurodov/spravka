@@ -15,6 +15,8 @@ export function firmData(b: Record<string, unknown>) {
   return {
     name: str(b.name),
     letterheadName: orNull(b.letterheadName),
+    arizaName: orNull(b.arizaName),
+    arizaAddress: orNull(b.arizaAddress),
     shortName: orNull(b.shortName),
     stir: orNull(b.stir),
     directorName: str(b.directorName),

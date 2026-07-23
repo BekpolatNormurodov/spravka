@@ -91,6 +91,11 @@ model Firm {
   /// Letterhead + signature form. The firms' own blanks end it 'MCHJ' while the body says
   /// 'МЧЖ', and it is not consistent between firms, so it is stored rather than derived.
   letterheadName   String?
+  /// The firm's name and address in Latin, for the «Savdo-sanoat palatasiga ariza» (Latin
+  /// throughout). The maʼlumotnoma is Cyrillic and keeps using `name`/`letterheadName`/`address`;
+  /// the ariza prefers these and falls back to the letterhead form / `address` when they are empty.
+  arizaName        String?
+  arizaAddress     String?
   shortName        String?
   stir             String?
   oked             String?

@@ -6,7 +6,7 @@ import { maskStir, maskPhone, maskAccount, maskMfo } from '@spravka/shared/core'
 import { Modal, TextField, Ico, RowAction } from '@spravka/shared/ui';
 
 export type FirmRow = {
-  id: string; name: string; letterheadName: string | null; shortName: string | null; stir: string | null;
+  id: string; name: string; letterheadName: string | null; arizaName: string | null; arizaAddress: string | null; shortName: string | null; stir: string | null;
   directorName: string; directorFullName: string | null; directorPosition: string;
   accountantName: string | null; executorName: string | null;
   executorPhone: string | null; phone: string | null; bankName: string | null;
@@ -14,14 +14,15 @@ export type FirmRow = {
 };
 
 const EMPTY = {
-  name: '', letterheadName: '', shortName: '', stir: '',
+  name: '', letterheadName: '', arizaName: '', arizaAddress: '', shortName: '', stir: '',
   directorName: '', directorFullName: '', directorPosition: 'Ижрочи директори',
   accountantName: '', executorName: '', executorPhone: '', phone: '',
   bankName: '', bankAccount: '', mfo: '', region: '', address: '',
 };
 
 const fromRow = (r: FirmRow) => ({
-  name: r.name, letterheadName: r.letterheadName ?? '', shortName: r.shortName ?? '', stir: r.stir ?? '',
+  name: r.name, letterheadName: r.letterheadName ?? '', arizaName: r.arizaName ?? '', arizaAddress: r.arizaAddress ?? '',
+  shortName: r.shortName ?? '', stir: r.stir ?? '',
   directorName: r.directorName, directorFullName: r.directorFullName ?? '',
   directorPosition: r.directorPosition, accountantName: r.accountantName ?? '',
   executorName: r.executorName ?? '', executorPhone: r.executorPhone ?? '', phone: r.phone ?? '',
@@ -104,6 +105,23 @@ export function FirmForm({ firm }: { firm?: FirmRow }) {
             placeholder="«... MIKROMOLIYA TASHKILOTI» MCHJ"
             hint="Firmalar blankasida odatda «MCHJ», matnda esa «МЧЖ» yoziladi. Boʻsh boʻlsa — yuqoridagi nom ishlatiladi."
           />
+
+          <div className="rounded-xl border border-line p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">Savdo-sanoat palatasiga ariza uchun (lotin)</p>
+            <div className="space-y-4">
+              <TextField
+                label="Nomi (lotin)" value={f.arizaName} onChange={set('arizaName')}
+                placeholder="“... MIKROMOLIYA TASHKILOTI” MMT MCHJ"
+                hint="Ariza lotin yozuvida chiqadi. Boʻsh boʻlsa — «blankada» nomi ishlatiladi."
+              />
+              <TextField
+                label="Manzil (lotin)" value={f.arizaAddress} onChange={set('arizaAddress')}
+                placeholder="Toshkent shahar, Olmazor tumani, ..."
+                hint="Boʻsh boʻlsa — pastdagi «Yuridik manzil» ishlatiladi."
+              />
+            </div>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField label="Qisqa nomi" value={f.shortName} onChange={set('shortName')} placeholder="BRIGHT FUTURE FINANCING" />
             <TextField label="STIR" value={f.stir} onChange={set('stir')} mask={maskStir} inputMode="numeric" placeholder="311976765" hint="9 raqam" />
