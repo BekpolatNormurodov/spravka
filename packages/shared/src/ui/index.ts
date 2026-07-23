@@ -36,6 +36,7 @@ export { CourtArizaDocument } from './CourtArizaDocument';
 export type { CourtArizaDocumentProps, CourtArizaEdit } from './CourtArizaDocument';
 export { CertSheetEditor } from './CertSheetEditor';
 export type { SaveAction, ClientLookup } from './CertSheetEditor';
+export { ArizaSheetEditor } from './ArizaSheetEditor';
 export {
   useDraft, useCertDraft, EditableText, EditableValue, EditableContracts,
   draftProblems, draftContracts, previewContracts,
