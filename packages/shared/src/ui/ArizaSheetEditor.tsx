@@ -28,6 +28,7 @@ export function ArizaSheetEditor({
   lookup,
   title,
   subtitle,
+  backHref,
 }: {
   firm: CertFirm;
   /** '№…' as it will print, or the peeked one while the counter has not run yet. */
@@ -40,6 +41,8 @@ export function ArizaSheetEditor({
   lookup?: ClientLookup;
   title: string;
   subtitle?: string;
+  /** Where «Orqaga» returns to. The draft is kept in localStorage, so leaving loses nothing. */
+  backHref?: string;
 }) {
   const { draft, patch, undo, redo, canUndo, canRedo } = store;
   const [preview, setPreview] = useState(false);
@@ -105,6 +108,11 @@ export function ArizaSheetEditor({
 
       {/* ── Bar above the paper. Everything here is something that never prints. ── */}
       <div className="no-print mb-5 flex flex-wrap items-center gap-3">
+        {backHref && (
+          <a href={backHref} className="btn-ghost shrink-0 px-3 py-2 text-xs" title="Orqaga">
+            <Ico.chevronLeft size={16} /> Orqaga
+          </a>
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold">{title}</h1>
           {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
@@ -119,7 +127,7 @@ export function ArizaSheetEditor({
             }`}
           >
             <span className={`text-xs font-medium ${pinflBad ? 'text-rose-600 dark:text-rose-300' : 'text-muted'}`}>
-              JShShIR
+              PINFL
             </span>
             <input
               ref={pinflRef}

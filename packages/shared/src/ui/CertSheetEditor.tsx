@@ -45,12 +45,15 @@ export function CertSheetEditor({
   lookup,
   title,
   subtitle,
+  backHref,
 }: {
   firm: CertFirm;
   /** '№…' as it will print, or a placeholder while the counter has not run yet. */
   number: string;
   store: CertDraftStore;
   actions: SaveAction[];
+  /** Where «Orqaga» returns to. The draft is kept in localStorage, so leaving loses nothing. */
+  backHref?: string;
   /** Show the PINFL field. Absent for the admin, whose ariza already has a client. */
   pinfl?: boolean;
   /**
@@ -157,6 +160,11 @@ export function CertSheetEditor({
 
       {/* ── Bar above the paper. Everything here is something that never prints. ── */}
       <div className="no-print mb-5 flex flex-wrap items-center gap-3">
+        {backHref && (
+          <a href={backHref} className="btn-ghost shrink-0 px-3 py-2 text-xs" title="Orqaga">
+            <Ico.chevronLeft size={16} /> Orqaga
+          </a>
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold">{title}</h1>
           {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}

@@ -89,10 +89,11 @@ export function AppShell({
     else sections.push({ label, items: [item] });
   }
 
-  // A panel takes the sidebar over for as long as the route is inside it. Collapsing is disabled
-  // while it does: a rail of unlabelled firm names is unreadable, and there is no icon for a firm.
+  // A panel takes the sidebar over for as long as the route is inside it. Collapsing still works —
+  // it just falls back to the main-nav rail (readable icons) rather than a rail of identical firm
+  // icons. So the firm panel is shown only while the sidebar is expanded.
   const inPanel = !!panel && pathname.startsWith(panel.match);
-  const rail = collapsed && !inPanel;
+  const rail = collapsed;
 
   const renderItem = (item: NavItem) => {
     const active = isActive(item.href);
@@ -151,7 +152,7 @@ export function AppShell({
         </div>
 
         <nav className="flex-1 space-y-6 overflow-y-auto">
-          {inPanel && panel ? (
+          {inPanel && panel && !rail ? (
             <div className="animate-fade-in">
               <Link
                 href={panel.back.href}

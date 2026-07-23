@@ -108,6 +108,7 @@ export function NewCourtArizaSheet({
       requirePinfl
       onPinflChange={(v) => patch({ personPinfl: v })}
       lookup={lookup}
+      backHref={`/arizalar/yangi/${firm.id}`}
       title="Yangi ariza — Savdo-sanoat palatasiga"
       subtitle={firm.letterheadName || firm.name}
     />

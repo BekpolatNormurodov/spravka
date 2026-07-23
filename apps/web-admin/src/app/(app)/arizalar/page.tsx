@@ -70,8 +70,13 @@ export default async function Arizalar({ searchParams }: { searchParams: CertFil
                         <div className="truncate font-mono text-xs tabular-nums text-fg" title={c.number}>{c.number}</div>
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <div className="truncate font-medium" title={c.personFullName}>{c.personFullName}</div>
-                        <div className="truncate font-mono text-xs text-muted">{c.personPassport}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-medium" title={c.personFullName}>{c.personFullName}</span>
+                          {c.docType === 'ARIZA' && (
+                            <span className="shrink-0 rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">Ariza</span>
+                          )}
+                        </div>
+                        <div className="truncate font-mono text-xs text-muted">{c.docType === 'ARIZA' ? c.personPinfl : c.personPassport}</div>
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="truncate text-fg" title={c.firm.name}>{c.firm.shortName ?? c.firm.name}</div>

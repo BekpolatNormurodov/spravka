@@ -144,6 +144,7 @@ export function NewArizaSheet({
       requirePinfl
       onPinflChange={(v) => patch({ personPinfl: v })}
       lookup={lookup}
+      backHref={`/arizalar/yangi/${firm.id}`}
       title="Yangi maʼlumotnoma"
       subtitle={firm.letterheadName || firm.name}
     />
