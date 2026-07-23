@@ -267,9 +267,29 @@ export function CertificateDocument(p: CertificateDocumentProps) {
         қопланган ва ташкилот олдида қарздорлиги мавжуд эмаслигини маълум қиламиз.
       </p>
 
-      {/* ── Signature block ──────────────────────────────────────────── */}
+      {/*
+        ── Signature block ────────────────────────────────────────────
+        On a signed document the QR sits here — between the firm name and the director's signature,
+        where an official seal (М.П.) belongs — rather than alone at the foot of the page.
+      */}
       <div style={{ marginTop: '30pt' }}>
         <div style={{ fontSize: '14pt', fontWeight: 700, maxWidth: '58mm', lineHeight: 1.3 }}>{blankName}</div>
+
+        {p.qrDataUrl && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2.5mm', margin: '6pt 0' }}>
+            <div style={{ textAlign: 'right', fontSize: '8pt', lineHeight: 1.35, color: '#475569' }}>
+              <div style={{ fontWeight: 700 }}>Ҳужжат ҳақиқийлигини текширинг</div>
+              <div>QR кодни сканерланг</div>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={p.qrDataUrl}
+              alt={`${p.number}-сонли маълумотномани текшириш учун QR код`}
+              style={{ width: '22mm', height: '22mm', display: 'block' }}
+            />
+          </div>
+        )}
+
         <div
           style={{
             display: 'flex',
@@ -285,43 +305,11 @@ export function CertificateDocument(p: CertificateDocumentProps) {
         </div>
       </div>
 
-      {/*
-        ── Footer ────────────────────────────────────────────────────────
-        Ижрочи keeps its .docx position (bottom-left, 10pt). The QR is ours, not the blank's,
-        so it sits in the empty right corner behind a hairline that marks where the document
-        ends and verification begins — rather than floating under the page on its own.
-      */}
-      {(hasExecutor || p.qrDataUrl) && (
-        <div
-          style={{
-            marginTop: '26pt',
-            paddingTop: p.qrDataUrl ? '4mm' : 0,
-            borderTop: p.qrDataUrl ? '0.5pt solid #cbd5e1' : 'none',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            gap: '8mm',
-          }}
-        >
-          <div style={{ fontSize: '10pt', lineHeight: 1.35 }}>
-            {firm.executorName && <div>Ижрочи: {firm.executorName}</div>}
-            {executorPhone && <div>Тел: {executorPhone}</div>}
-          </div>
-
-          {p.qrDataUrl && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2.5mm', flexShrink: 0 }}>
-              <div style={{ textAlign: 'right', fontSize: '8pt', lineHeight: 1.35, color: '#475569' }}>
-                <div style={{ fontWeight: 700 }}>Ҳужжат ҳақиқийлигини текширинг</div>
-                <div>QR кодни сканерланг</div>
-              </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={p.qrDataUrl}
-                alt={`${p.number}-сонли маълумотномани текшириш учун QR код`}
-                style={{ width: '22mm', height: '22mm', display: 'block' }}
-              />
-            </div>
-          )}
+      {/* ── Footer: Ижрочи keeps its .docx position (bottom-left, 10pt). ── */}
+      {hasExecutor && (
+        <div style={{ marginTop: '26pt', fontSize: '10pt', lineHeight: 1.35 }}>
+          {firm.executorName && <div>Ижрочи: {firm.executorName}</div>}
+          {executorPhone && <div>Тел: {executorPhone}</div>}
         </div>
       )}
     </div>
