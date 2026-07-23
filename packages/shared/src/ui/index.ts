@@ -32,6 +32,8 @@ export { ThemeScript, StatusBadge, StatCard, PageHeader, EmptyState, Table, Retu
 export { CHAMBER_LOGO_DATA_URL } from './chamber-logo.data';
 export { CertificateDocument, firmForDocument } from './CertificateDocument';
 export type { CertificateDocumentProps, CertFirm, CertificateEdit } from './CertificateDocument';
+export { CourtArizaDocument } from './CourtArizaDocument';
+export type { CourtArizaDocumentProps, CourtArizaEdit } from './CourtArizaDocument';
 export { CertSheetEditor } from './CertSheetEditor';
 export type { SaveAction, ClientLookup } from './CertSheetEditor';
 export {
