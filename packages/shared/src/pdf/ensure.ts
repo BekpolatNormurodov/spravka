@@ -2,8 +2,9 @@ import type { CertContract, Certificate, Firm, Prisma } from '@prisma/client';
 import { prisma } from '../db/index';
 import { CertStatus } from '../core/enums';
 import { certQrDataUrl } from '../core/qr';
-import { firmForDocument } from '../ui/CertificateDocument';
-import { certificateHtml } from './html';
+import { firmForDocument, type CertFirm } from '../ui/CertificateDocument';
+import type { CourtArizaDocumentProps } from '../ui/CourtArizaDocument';
+import { certificateHtml, courtArizaHtml } from './html';
 import { renderPdf } from './render';
 import { readPdf, savePdf } from './storage';
 
@@ -19,9 +20,49 @@ export const CERT_PDF_INCLUDE = {
   contracts: { orderBy: { order: 'asc' } },
 } satisfies Prisma.CertificateInclude;
 
-/** Render the document exactly as it is issued, QR included. */
+/** The row's ariza fields as the document takes them — Decimals to strings, nulls to ''. */
+function arizaPropsFromRow(
+  cert: CertificateWithFirm,
+  firm: CertFirm,
+  qrDataUrl: string,
+): CourtArizaDocumentProps {
+  return {
+    number: cert.number,
+    issueDate: cert.issueDate,
+    courtName: cert.courtName ?? '',
+    personFullName: cert.personFullName,
+    personPinfl: cert.personPinfl ?? '',
+    personAddress: cert.personAddress ?? '',
+    personPhone: cert.personPhone ?? '',
+    contracts: cert.contracts,
+    contractType: cert.contractType,
+    interestRate: cert.interestRate ?? '',
+    loanAmount: cert.loanAmount.toString(),
+    asOfDate: cert.asOfDate,
+    asOfText: cert.asOfText,
+    debtPrincipal: cert.debtPrincipal?.toString() ?? '',
+    debtTermInterest: cert.debtTermInterest?.toString() ?? '',
+    debtOverduePrincipal: cert.debtOverduePrincipal?.toString() ?? '',
+    debtOverdueInterest: cert.debtOverdueInterest?.toString() ?? '',
+    debtTotal: cert.debtTotal?.toString() ?? '',
+    chamberSignerPosition: cert.chamberSignerPosition ?? '',
+    chamberSignerName: cert.chamberSignerName ?? '',
+    chamberExecutorName: cert.chamberExecutorName ?? '',
+    chamberExecutorPhone: cert.chamberExecutorPhone ?? '',
+    firm,
+    qrDataUrl,
+  };
+}
+
+/** Render the document exactly as it is issued, QR included — branched on its type. */
 export async function buildCertificatePdf(cert: CertificateWithFirm): Promise<Buffer> {
   const qrDataUrl = await certQrDataUrl(cert.id);
+  const firm = firmForDocument(cert.firm, cert.firmSnapshot);
+
+  if (cert.docType === 'ARIZA') {
+    return renderPdf(courtArizaHtml(arizaPropsFromRow(cert, firm, qrDataUrl)));
+  }
+
   return renderPdf(
     certificateHtml({
       number: cert.number,
@@ -41,7 +82,7 @@ export async function buildCertificatePdf(cert: CertificateWithFirm): Promise<Bu
       // of divergence this whole pipeline exists to prevent.
       asOfText: cert.asOfText,
       infoRecipient: cert.infoRecipient,
-      firm: firmForDocument(cert.firm, cert.firmSnapshot),
+      firm,
       qrDataUrl,
     }),
   );

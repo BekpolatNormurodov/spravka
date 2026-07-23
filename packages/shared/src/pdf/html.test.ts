@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { certificateHtml } from './html';
+import { certificateHtml, courtArizaHtml } from './html';
 import type { CertificateDocumentProps } from '../ui/CertificateDocument';
+import type { CourtArizaDocumentProps } from '../ui/CourtArizaDocument';
 
 const props: CertificateDocumentProps = {
   number: '26062026/01',
@@ -96,5 +97,61 @@ describe('certificateHtml', () => {
 
   it('embeds the QR that was passed in', () => {
     expect(html).toContain('data:image/png;base64,iVBORw0KGgo=');
+  });
+
+  it('carries no ariza sentence — the two documents do not bleed into each other', () => {
+    expect(html).not.toContain('S Oʻ R A Y M I Z');
+    expect(html).not.toContain('sudiga');
+    expect(html).not.toContain('Palata aʼzosi');
+  });
+});
+
+const arizaProps: CourtArizaDocumentProps = {
+  number: '0001/09-02',
+  issueDate: new Date('2026-07-15'),
+  courtName: 'Fuqarolik ishlari boʻyicha Uchtepa tumanlararo sudiga',
+  personFullName: 'Abdiyeva Muazzamxon Muxsin qizi',
+  personPinfl: '61011006920020',
+  personAddress: 'Fargʻona viloyati, Buvayda tumani',
+  personPhone: '998952962728',
+  contracts: [{ number: '22548', date: new Date('2026-04-14') }],
+  contractType: 'ONLAYN', interestRate: '54', loanAmount: '24900000',
+  asOfDate: new Date('2026-07-15'), asOfText: '2026 yil 15 iyul',
+  debtPrincipal: '24318882.63', debtTermInterest: '143914.49',
+  debtOverduePrincipal: '577575.43', debtOverdueInterest: '2224630.19', debtTotal: '27265002.74',
+  chamberSignerPosition: 'Boshqarma boshligʻi oʻrinbosari', chamberSignerName: 'B.Babamuradov',
+  chamberExecutorName: 'B.Fayziyev', chamberExecutorPhone: '+99895-144-24-00',
+  firm: {
+    name: '«BRIGHT FUTURE FINANCING MIKROMOLIYA TASHKILOTI» МЧЖ',
+    letterheadName: '“BRIGHT FUTURE FINANCING MIKROMOLIYA TASHKILOTI” MMT MCHJ',
+    directorName: 'A.A.', directorPosition: 'Direktor',
+    address: 'Toshkent shahar, Olmazor tumani', stir: '311 976 765',
+    bankAccount: '20216000207212842001', mfo: '01183',
+  },
+  qrDataUrl: 'data:image/png;base64,iVBORw0KGgo=',
+};
+
+describe('courtArizaHtml', () => {
+  const html = courtArizaHtml(arizaProps);
+
+  it('is a complete standalone document', () => {
+    expect(html.startsWith('<!doctype html>')).toBe(true);
+    expect(html).toContain('@font-face');
+    expect(html).toContain('.cert-sheet');
+    expect(html).toContain('@page{size:A4;margin:0}');
+  });
+
+  it('fetches nothing — the logo travels as a data URI', () => {
+    const rest = withoutDataUris(html);
+    expect(rest).not.toMatch(/https?:\/\//);
+    expect(rest).not.toContain('<link');
+    expect(rest).not.toContain('<script');
+  });
+
+  it('renders the ariza body', () => {
+    expect(html).toContain('Uchtepa tumanlararo sudiga');
+    expect(html).toContain('Abdiyeva Muazzamxon Muxsin qizi');
+    expect(html).toContain('27 265 002,74');
+    expect(html).toContain('S Oʻ R A Y M I Z');
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRequire } from 'node:module';
 import { CertificateDocument, type CertificateDocumentProps } from '../ui/CertificateDocument';
+import { CourtArizaDocument, type CourtArizaDocumentProps } from '../ui/CourtArizaDocument';
 import { fontFaceCss } from './fonts';
 
 /**
@@ -39,12 +40,20 @@ html,body{margin:0;padding:0;background:#fff}
  * anything it had to fetch — a font, a stylesheet — would make a signed document depend on the
  * network being up at that moment, and fail by silently looking wrong rather than by erroring.
  */
-export function certificateHtml(props: CertificateDocumentProps): string {
-  const body = renderToStaticMarkup(<CertificateDocument {...props} />);
+function standaloneHtml(title: string, body: string): string {
   return (
     `<!doctype html><html lang="uz"><head><meta charset="utf-8">` +
-    `<title>${props.number}</title>` +
+    `<title>${title}</title>` +
     `<style>${fontFaceCss()}${SHEET_CSS}</style>` +
     `</head><body>${body}</body></html>`
   );
+}
+
+export function certificateHtml(props: CertificateDocumentProps): string {
+  return standaloneHtml(props.number, renderToStaticMarkup(<CertificateDocument {...props} />));
+}
+
+/** The «Savdo-sanoat palatasiga ariza», same standalone contract as {@link certificateHtml}. */
+export function courtArizaHtml(props: CourtArizaDocumentProps): string {
+  return standaloneHtml(props.number, renderToStaticMarkup(<CourtArizaDocument {...props} />));
 }
