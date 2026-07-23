@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import {
   WfAction, findTransition, canEdit, isValidPinfl, parseContracts, missingFieldsError,
-  type CertField,
+  type CertField, ARIZA_EDIT_REQUIRED, arizaColumns, arizaClientFields,
 } from '@spravka/shared/core';
 import { readActionRequest, discard } from '@spravka/shared/attachments';
 
@@ -17,7 +17,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
-    select: { status: true, deletedAt: true, clientId: true },
+    select: { status: true, deletedAt: true, clientId: true, docType: true },
   });
   if (!cert || cert.deletedAt) return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
 
@@ -29,6 +29,40 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 
   const b = await req.json().catch(() => ({}));
+
+  // ── «Savdo-sanoat palatasiga ariza» edit ──
+  if (cert.docType === 'ARIZA') {
+    const missing = missingFieldsError(b, ARIZA_EDIT_REQUIRED);
+    if (missing) return NextResponse.json({ error: missing }, { status: 400 });
+    if (!isValidPinfl(b.personPinfl)) {
+      return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
+    }
+    const parsedA = parseContracts(b.contracts);
+    if ('error' in parsedA) return NextResponse.json({ error: parsedA.error }, { status: 400 });
+
+    const cols = arizaColumns(b);
+    const cf = arizaClientFields(b);
+    await prisma.$transaction(async (tx) => {
+      let clientId = cert.clientId;
+      if (b.personPinfl) {
+        const client = await tx.client.upsert({
+          where: { pinfl: b.personPinfl },
+          create: { pinfl: b.personPinfl, ...cf, createdById: session.sub },
+          update: cf,
+          select: { id: true },
+        });
+        clientId = client.id;
+      } else if (clientId) {
+        await tx.client.update({ where: { id: clientId }, data: cf });
+      }
+      await tx.certificate.update({
+        where: { id: params.id },
+        data: { clientId, ...cols, contracts: { deleteMany: {}, create: parsedA.contracts } },
+      });
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   const REQUIRED = [
     'personFullName', 'personPassport', 'loanAmount', 'asOfDate', 'issueDate',
   ] as const satisfies readonly CertField[];

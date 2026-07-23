@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { nextCertNumber } from '@spravka/shared/db';
+import { nextCertNumber, nextArizaNumber } from '@spravka/shared/db';
 import {
   CertStatus, WfAction, isValidPinfl, parseContracts, missingFieldsError, type CertField,
+  ARIZA_REQUIRED, arizaColumns, arizaClientFields,
 } from '@spravka/shared/core';
 
 const REQUIRED = [
@@ -18,6 +19,58 @@ export async function POST(req: Request) {
 
   const b = await req.json().catch(() => ({}));
   const submit = b.action === 'submit';
+
+  // ── «Savdo-sanoat palatasiga ariza» — its own required set, number and client shape ──
+  if (b.docType === 'ARIZA') {
+    const missing = missingFieldsError(b, ARIZA_REQUIRED);
+    if (missing) return NextResponse.json({ error: missing }, { status: 400 });
+    if (!isValidPinfl(b.personPinfl)) {
+      return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
+    }
+    const parsedA = parseContracts(b.contracts);
+    if ('error' in parsedA) return NextResponse.json({ error: parsedA.error }, { status: 400 });
+    const firmA = await prisma.firm.findUnique({ where: { id: b.firmId }, select: { id: true } });
+    if (!firmA) return NextResponse.json({ error: 'Firma topilmadi' }, { status: 400 });
+
+    const cols = arizaColumns(b);
+    // The debtor's reusable Client record — future arizas look this up by PINFL. No passport.
+    const clientA = await prisma.client.upsert({
+      where: { pinfl: b.personPinfl },
+      create: { pinfl: b.personPinfl, ...arizaClientFields(b), createdById: session.sub },
+      update: arizaClientFields(b),
+      select: { id: true },
+    });
+    const { seq: seqA, number: numberA } = await nextArizaNumber(cols.issueDate);
+
+    const ariza = await prisma.certificate.create({
+      data: {
+        id: nanoid(12),
+        number: numberA,
+        seq: seqA,
+        firmId: firmA.id,
+        status: submit ? CertStatus.ADMIN_REVIEW : CertStatus.DRAFT,
+        docType: 'ARIZA',
+        clientId: clientA.id,
+        ...cols,
+        contracts: { create: parsedA.contracts },
+        createdById: session.sub,
+        ...(submit
+          ? {
+              events: {
+                create: {
+                  actorId: session.sub,
+                  action: WfAction.SUBMIT,
+                  fromStatus: CertStatus.DRAFT,
+                  toStatus: CertStatus.ADMIN_REVIEW,
+                },
+              },
+            }
+          : {}),
+      },
+      select: { id: true, number: true },
+    });
+    return NextResponse.json({ ok: true, id: ariza.id, number: ariza.number });
+  }
 
   /*
     A draft is held to the same standard as a submission. Saving one allocates a maʼlumotnoma
