@@ -48,6 +48,12 @@ enum CertStatus {
   SIGNED
 }
 
+/// Which document a Certificate row is. Everything issued before this field existed is a maʼlumotnoma.
+enum DocType {
+  MALUMOTNOMA
+  ARIZA
+}
+
 enum WfAction {
   SUBMIT
   APPROVE
@@ -126,7 +132,9 @@ model Certificate {
   status           CertStatus @default(DRAFT)
 
   personFullName   String
-  personPassport   String
+  /// Nullable because an ariza debtor is identified by PINFL, not a passport. Validation requires it
+  /// only for a MALUMOTNOMA. Every existing row already has a value.
+  personPassport   String?
   passportIssuedBy String?
   passportIssuedAt DateTime?
 
@@ -156,6 +164,30 @@ model Certificate {
   /// «…МЧЖга», «…банкига») rather than having one appended: the suffix depends on the word it
   /// attaches to, and guessing it wrong prints a grammatical error on a legal document.
   infoRecipient    String?
+
+  /// Which document this row is. Defaulted so every pre-existing row is a maʼlumotnoma.
+  docType          DocType    @default(MALUMOTNOMA)
+
+  // ── «Savdo-sanoat palatasiga ariza» fields — null on a maʼlumotnoma ─────────────────────────
+  /// Full court addressee, e.g. «Fuqarolik ishlari boʻyicha Uchtepa tumanlararo sudiga».
+  courtName        String?
+  /// Yearly rate as typed ('54'); printed with a '%'.
+  interestRate     String?
+  /// Debtor address and phone, snapshotted like the other person* fields.
+  personAddress    String?
+  personPhone      String?
+  /// Qarzdorlik taqsimoti — stored with tiyin. `debtTotal` is auto-summed in the editor but stored
+  /// (a red field on the blank) and overridable.
+  debtPrincipal        Decimal? @db.Decimal(18, 2)
+  debtTermInterest     Decimal? @db.Decimal(18, 2)
+  debtOverduePrincipal Decimal? @db.Decimal(18, 2)
+  debtOverdueInterest  Decimal? @db.Decimal(18, 2)
+  debtTotal            Decimal? @db.Decimal(18, 2)
+  /// The palata's signer and executor for this ariza. Defaults live in the UI, not here.
+  chamberSignerPosition String?
+  chamberSignerName     String?
+  chamberExecutorName   String?
+  chamberExecutorPhone  String?
 
   bodyText         String?    @db.Text
   /// Path (relative to CERT_STORAGE_DIR) of the document frozen at SIGN time. This file is the
@@ -274,7 +306,9 @@ model Client {
   id               String        @id @default(cuid())
   pinfl            String        @unique @db.VarChar(14)
   fullName         String
-  passport         String
+  /// Nullable: a client first seen through an ariza has no passport yet — it is filled the day they
+  /// get a maʼlumotnoma. Every existing client already has one.
+  passport         String?
   passportIssuedBy String?
   passportIssuedAt DateTime?
   birthDate        DateTime?

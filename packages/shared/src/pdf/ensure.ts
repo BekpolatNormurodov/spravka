@@ -27,7 +27,9 @@ export async function buildCertificatePdf(cert: CertificateWithFirm): Promise<Bu
       number: cert.number,
       issueDate: cert.issueDate,
       personFullName: cert.personFullName,
-      personPassport: cert.personPassport,
+      // The column is nullable now (an ariza debtor has no passport), but a maʼlumotnoma always
+      // carries one — validation requires it. '' is a defensive floor, never reached in practice.
+      personPassport: cert.personPassport ?? '',
       passportIssuedBy: cert.passportIssuedBy,
       passportIssuedAt: cert.passportIssuedAt,
       contracts: cert.contracts,
