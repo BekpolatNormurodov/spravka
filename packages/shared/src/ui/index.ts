@@ -41,3 +41,8 @@ export {
   draftProblems, draftContracts, previewContracts,
 } from './DocumentEdit';
 export type { CertDraft, CertDraftStore, DraftStore, DraftProblem } from './DocumentEdit';
+export {
+  arizaEditSlots, arizaDraftProblems, arizaWithComputedTotal, defaultArizaDraft,
+  arizaDraftContracts, arizaPreviewContracts,
+} from './ArizaEdit';
+export type { ArizaDraft } from './ArizaEdit';

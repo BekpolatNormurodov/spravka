@@ -19,7 +19,8 @@
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
   dmy, dmyToIso, formatSum, isValidDay, isoToDmy, maskAmount, maskDmy, maskPassport,
-  unmaskAmount, uzLongDateToIso, type DocContract,
+  unmaskAmount, uzLongDateToIso, maskAmountDecimal, unmaskAmountDecimal, formatSumDecimal,
+  type DocContract,
 } from '../core';
 import { CERT_FIELD_LABELS } from '../core/labels';
 import type { CertificateEdit } from './CertificateDocument';
@@ -378,7 +379,7 @@ export function EditableText({
   );
 }
 
-type ValueKind = 'passport' | 'amount' | 'date' | 'text';
+type ValueKind = 'passport' | 'amount' | 'decimal' | 'date' | 'text';
 
 /**
  * A short value: printed text until clicked, then a plain masked input sized to its own content,
@@ -445,6 +446,8 @@ export function EditableValue({
 function toText(kind: ValueKind, value: string): string {
   if (kind === 'date') return isoToDmy(value);
   if (kind === 'amount') return maskAmount(value);
+  // Money with tiyin — the stored value is dot-decimal ('24318882.63'); show it comma-grouped.
+  if (kind === 'decimal') return value ? formatSumDecimal(value) : '';
   return value;
 }
 
@@ -475,6 +478,12 @@ function ValueInput({
       const masked = maskAmount(raw);
       setText(masked);
       onChange(unmaskAmount(masked));
+      return;
+    }
+    if (kind === 'decimal') {
+      const masked = maskAmountDecimal(raw);
+      setText(masked);
+      onChange(unmaskAmountDecimal(masked));
       return;
     }
     const masked = kind === 'passport' ? maskPassport(raw) : raw;
@@ -512,7 +521,7 @@ function ValueInput({
         placeholder={placeholder}
         className="cert-slot-editing"
         value={text}
-        inputMode={kind === 'amount' || kind === 'date' ? 'numeric' : undefined}
+        inputMode={kind === 'amount' || kind === 'decimal' || kind === 'date' ? 'numeric' : undefined}
         onChange={(e) => handle(e.target.value)}
         onBlur={onDone}
         onKeyDown={(e) => {
@@ -537,10 +546,19 @@ export function EditableContracts({
   rows,
   onChange,
   invalidAt,
+  connector = ' йилдаги ',
+  suffix = '-сонли',
+  boldNumber = true,
 }: {
   rows: { number: string; date: string }[];
   onChange: (rows: { number: string; date: string }[], immediate?: boolean) => void;
   invalidAt: (i: number) => { number?: boolean; date?: boolean };
+  /** Between the date and the number. Cyrillic « йилдаги » for the maʼlumotnoma, «-yildagi » for the ariza. */
+  connector?: string;
+  /** After the number. «-сонли» / «-sonli». */
+  suffix?: string;
+  /** The maʼlumotnoma bolds the number; the ariza does not. */
+  boldNumber?: boolean;
 }) {
   const patch = (i: number, key: 'number' | 'date', v: string) =>
     onChange(rows.map((r, j) => (j === i ? { ...r, [key]: v } : r)));
@@ -561,19 +579,21 @@ export function EditableContracts({
               invalid={bad.date}
               onChange={(v) => patch(i, 'date', v)}
             />
-            {' йилдаги '}
-            <b>
-              <EditableValue
-                kind="text"
-                label={`${i + 1}-shartnoma raqami`}
-                value={row.number}
-                display={row.number}
-                placeholder="8130"
-                invalid={bad.number}
-                onChange={(v) => patch(i, 'number', v.replace(/\D/g, ''))}
-              />
-              -сонли
-            </b>
+            {connector}
+            {((numberNode) => (boldNumber ? <b>{numberNode}</b> : numberNode))(
+              <>
+                <EditableValue
+                  kind="text"
+                  label={`${i + 1}-shartnoma raqami`}
+                  value={row.number}
+                  display={row.number}
+                  placeholder="8130"
+                  invalid={bad.number}
+                  onChange={(v) => patch(i, 'number', v.replace(/\D/g, ''))}
+                />
+                {suffix}
+              </>,
+            )}
             {rows.length > 1 && (
               <button
                 type="button"
@@ -808,7 +828,7 @@ export function draftContracts(d: CertDraft): { number: string; date: string }[]
   return d.contracts.filter((r) => r.number.trim() && r.date.trim());
 }
 
-/** The same rows as the document prints them, for the live preview. */
-export function previewContracts(d: CertDraft): DocContract[] {
+/** The same rows as the document prints them, for the live preview. Both drafts share the shape. */
+export function previewContracts(d: { contracts: { number: string; date: string }[] }): DocContract[] {
   return d.contracts.map((r) => ({ number: r.number, date: r.date ? new Date(r.date) : new Date(0) }));
 }
