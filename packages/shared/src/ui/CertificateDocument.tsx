@@ -269,26 +269,26 @@ export function CertificateDocument(p: CertificateDocumentProps) {
 
       {/*
         ── Signature block ────────────────────────────────────────────
-        On a signed document the QR sits here — between the firm name and the director's signature,
-        where an official seal (М.П.) belongs — rather than alone at the foot of the page.
+        The QR is the verification «seal» — it sits in the open space right beside the firm name,
+        where a round stamp (М.П.) would be pressed, with the director's signature on the line below.
       */}
       <div style={{ marginTop: '30pt' }}>
-        <div style={{ fontSize: '14pt', fontWeight: 700, maxWidth: '58mm', lineHeight: 1.3 }}>{blankName}</div>
-
-        {p.qrDataUrl && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2.5mm', margin: '6pt 0' }}>
-            <div style={{ textAlign: 'right', fontSize: '8pt', lineHeight: 1.35, color: '#475569' }}>
-              <div style={{ fontWeight: 700 }}>Ҳужжат ҳақиқийлигини текширинг</div>
-              <div>QR кодни сканерланг</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12mm' }}>
+          <div style={{ fontSize: '14pt', fontWeight: 700, maxWidth: '62mm', lineHeight: 1.3 }}>{blankName}</div>
+          {p.qrDataUrl && (
+            <div style={{ flexShrink: 0, textAlign: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.qrDataUrl}
+                alt={`${p.number}-сонли маълумотномани текшириш учун QR код`}
+                style={{ width: '24mm', height: '24mm', display: 'block', margin: '0 auto' }}
+              />
+              <div style={{ fontSize: '7pt', color: '#475569', lineHeight: 1.25, marginTop: '1mm' }}>
+                Ҳақиқийлигини текширинг
+              </div>
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={p.qrDataUrl}
-              alt={`${p.number}-сонли маълумотномани текшириш учун QR код`}
-              style={{ width: '22mm', height: '22mm', display: 'block' }}
-            />
-          </div>
-        )}
+          )}
+        </div>
 
         <div
           style={{
