@@ -221,19 +221,19 @@ export function CertificateDocument(p: CertificateDocumentProps) {
           {/*
             A second addressee, in the same two columns so it lines up with the first.
 
-            Both cells sit on the bottom of the row, which is what puts «Маълумот учун:» beside the
-            *last* line of the organisation rather than its first — the blank has it that way, and
-            with a two-line name the difference is obvious. The label is 12pt regular: it is a note
-            about who else is receiving this, not part of the address.
+            Both cells sit on the top of the row, so «Маълумот учун:» stands beside the *first* line of
+            the organisation («KAPITAL SUGʻURTA»), not its last — the label reads as the opening of the
+            block rather than trailing under it. The label is 12pt regular: a note about who else is
+            receiving this, not part of the address.
           */}
           {withInfoFor && (
             <tr>
               {/* 18pt is one blank 14pt line at this line-height — the gap the blank leaves between
                   the two addressees, rather than an arbitrary margin that happens to look close. */}
-              <td style={{ verticalAlign: 'bottom', padding: '18pt 4mm 0 0', border: 0, textAlign: 'right' }}>
+              <td style={{ verticalAlign: 'top', padding: '18pt 4mm 0 0', border: 0, textAlign: 'right' }}>
                 <div style={{ fontSize: '12pt', lineHeight: 1.3 }}>Маълумот учун:</div>
               </td>
-              <td style={{ verticalAlign: 'bottom', padding: '18pt 0 0', border: 0 }}>
+              <td style={{ verticalAlign: 'top', padding: '18pt 0 0', border: 0 }}>
                 <div style={{ fontSize: '14pt', fontWeight: 700, lineHeight: 1.3 }}>
                   {edit ? edit.text('infoRecipient') : p.infoRecipient}
                 </div>
