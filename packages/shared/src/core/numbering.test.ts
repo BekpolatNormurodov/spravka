@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { formatCertNumber, counterId, certDay } from './numbering';
+import { formatCertNumber, counterId, certDay, formatArizaNumber, arizaCounterId } from './numbering';
 import { dmy } from './document';
+
+describe('ariza register numbering', () => {
+  it('pads to 4 digits with the department code', () =>
+    expect(formatArizaNumber(1)).toBe('0001/09-02'));
+  it('keeps sequences wider than 4 digits', () =>
+    expect(formatArizaNumber(1234)).toBe('1234/09-02'));
+  it('keys the counter per year', () => expect(arizaCounterId(2026)).toBe('ariza:2026'));
+});
 
 // Dates arrive as UTC midnight — `new Date('2026-06-26')`, which is what the API stores when the
 // yurist picks a day. Constructing them with `new Date(2026, 5, 26)` here would be local midnight,

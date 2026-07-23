@@ -1,5 +1,7 @@
 import { prisma } from './index';
-import { certDay, counterId, formatCertNumber } from '../core/numbering';
+import {
+  certDay, counterId, formatCertNumber, arizaCounterId, formatArizaNumber,
+} from '../core/numbering';
 
 /**
  * Allocate the next certificate number for a firm on a given day: «DDMMYYYY/NN», NN restarting at
@@ -80,4 +82,29 @@ async function highestIssuedOn(firmId: string, issueDate: Date): Promise<number>
     if (Number.isInteger(nn) && nn > highest) highest = nn;
   }
   return highest;
+}
+
+/**
+ * Allocate the next «Savdo-sanoat palatasiga ariza» register number for the issue year: «NNNN/09-02».
+ *
+ * A single per-year counter, atomically incremented — the same never-reused guarantee as
+ * {@link nextCertNumber}: an ariza row is written only when someone asks it to, so an abandoned one
+ * leaves a gap rather than a reused number.
+ */
+export async function nextArizaNumber(issueDate: Date): Promise<{ seq: number; number: string }> {
+  const counter = await prisma.counter.upsert({
+    where: { id: arizaCounterId(issueDate.getUTCFullYear()) },
+    create: { id: arizaCounterId(issueDate.getUTCFullYear()), value: 1 },
+    update: { value: { increment: 1 } },
+  });
+  return { seq: counter.value, number: formatArizaNumber(counter.value) };
+}
+
+/** What the next ariza number would be, without taking it — for a sheet that has not been saved. */
+export async function peekArizaNumber(issueDate: Date): Promise<string> {
+  const counter = await prisma.counter.findUnique({
+    where: { id: arizaCounterId(issueDate.getUTCFullYear()) },
+    select: { value: true },
+  });
+  return formatArizaNumber((counter?.value ?? 0) + 1);
 }

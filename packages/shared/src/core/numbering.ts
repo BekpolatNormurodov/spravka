@@ -28,3 +28,18 @@ export function certDay(date: Date): string {
 export function counterId(firmId: string, day: string): string {
   return `${firmId}:${day}`;
 }
+
+/* ── «Savdo-sanoat palatasiga ariza» register ──────────────────────────────────────────────────
+   The ariza carries its own number, «NNNN/09-02» — a running register with the fixed department
+   code «09-02». Unlike the maʼlumotnoma there is no firm or date in it, so the sequence is a single
+   per-year counter rather than per-firm-per-day. */
+
+/** Ariza register number: «NNNN/09-02» (4-digit minimum pad; «09-02» is the department code). */
+export function formatArizaNumber(seq: number): string {
+  return `${String(seq).padStart(4, '0')}/09-02`;
+}
+
+/** Counter row id for the ariza register — a per-year running sequence. */
+export function arizaCounterId(year: number): string {
+  return `ariza:${year}`;
+}
