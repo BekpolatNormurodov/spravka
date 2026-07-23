@@ -108,20 +108,20 @@ export function CourtArizaDocument(p: CourtArizaDocumentProps) {
 
   return (
     <div className="cert-sheet" style={{ fontFamily: '"Times New Roman", Times, serif', color: '#000' }}>
-      {/* ── Letterhead: logo left, chamber branch block right ── */}
-      <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8mm' }}>
+      {/*
+        ── Letterhead ──
+        image1.png IS the whole masthead — the emblem and «Oʻzbekiston Savdo-sanoat palatasi» on the
+        left, the branch name, address, contacts and the chamber's own QR on the right, and the
+        bilingual strip beneath. So it is printed full width and nothing is re-typed beside it; the
+        branch text in CHAMBER is the source of truth for the *body* blocks, not the masthead.
+      */}
+      <header>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={CHAMBER_LOGO_DATA_URL}
-          alt="Oʻzbekiston Savdo-sanoat palatasi"
-          style={{ width: '70.9mm', height: 'auto', flexShrink: 0 }}
+          alt="Oʻzbekiston Savdo-sanoat palatasi — Toshkent shahar boshqarmasi"
+          style={{ width: '100%', height: 'auto', display: 'block' }}
         />
-        <div style={{ textAlign: 'right', lineHeight: 1.3 }}>
-          <div style={{ fontSize: '14pt', fontWeight: 700 }}>{CHAMBER.branchName}</div>
-          {CHAMBER.contact.map((line, i) => (
-            <div key={i} style={{ fontSize: i === CHAMBER.contact.length - 1 ? '14pt' : '13pt' }}>{line}</div>
-          ))}
-        </div>
       </header>
 
       {/* ── Date / number (left) ── */}
