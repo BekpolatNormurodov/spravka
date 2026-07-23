@@ -1,7 +1,7 @@
 import { prisma } from '@spravka/shared/db';
 import { CertStatus } from '@spravka/shared/core';
 import { certQrDataUrl } from '@spravka/shared/qr';
-import { CertificateDocument, firmForDocument } from '@spravka/shared/ui';
+import { DocumentView } from '@spravka/shared/ui';
 import { PrintButton } from '@/components/PrintButton';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,7 @@ export default async function PublicCert({ params }: { params: { id: string } })
           <div className="inline-block -rotate-6 border-4 border-red-600 text-red-600 font-extrabold tracking-widest px-4 py-1.5 rounded mb-5">
             ТАСДИҚЛАНМАГАН
           </div>
-          <h1 className="text-lg font-bold">Maʼlumotnoma tasdiqlanmagan</h1>
+          <h1 className="text-lg font-bold">Hujjat tasdiqlanmagan</h1>
           <p className="text-sm text-slate-500 mt-2">
             Ushbu havola boʻyicha rasmiy imzolangan hujjat topilmadi yoki u bekor qilingan.
           </p>
@@ -53,22 +53,7 @@ export default async function PublicCert({ params }: { params: { id: string } })
         </div>
 
         <div className="cert-frame rounded-2xl shadow-xl">
-          <CertificateDocument
-            number={cert.number}
-            issueDate={cert.issueDate}
-            personFullName={cert.personFullName}
-            personPassport={cert.personPassport}
-            passportIssuedBy={cert.passportIssuedBy}
-            passportIssuedAt={cert.passportIssuedAt}
-            contracts={cert.contracts}
-            contractType={cert.contractType}
-            loanAmount={cert.loanAmount.toString()}
-            asOfDate={cert.asOfDate}
-            asOfText={cert.asOfText}
-            infoRecipient={cert.infoRecipient}
-            firm={firmForDocument(cert.firm, cert.firmSnapshot)}
-            qrDataUrl={qr}
-          />
+          <DocumentView cert={cert} qrDataUrl={qr} />
         </div>
 
         <p className="no-print text-center text-xs text-slate-400 mt-4">

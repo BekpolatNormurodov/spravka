@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { CertStatus, dmy, formatSum, ACTION_LABELS, canEdit, Role } from '@spravka/shared/core';
+import { CertStatus, dmy, formatSum, formatSumDecimal, DOC_TYPE_LABELS, canEdit, Role } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
-import { StatusBadge, CertificateDocument, QrCard, firmForDocument, ReturnNotice, ContractCell, EventTimeline } from '@spravka/shared/ui';
+import { StatusBadge, DocumentView, QrCard, ReturnNotice, ContractCell, EventTimeline } from '@spravka/shared/ui';
 import { Actions } from './Actions';
 import { getSession } from '@/lib/session';
 
@@ -38,6 +38,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
         <Link href="/arizalar" className="text-muted hover:text-fg">← Orqaga</Link>
         <span className="font-mono text-sm text-muted">{c.number}</span>
         <StatusBadge status={c.status} />
+        <span className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">{DOC_TYPE_LABELS[c.docType]}</span>
       </div>
 
       {returned?.note && (
@@ -48,22 +49,7 @@ export default async function CertDetail({ params }: { params: { id: string } })
 
       <div className="grid gap-6 xl:grid-cols-[auto_320px]">
         <div className="cert-frame rounded-2xl shadow-xl">
-          <CertificateDocument
-            number={c.number}
-            issueDate={c.issueDate}
-            personFullName={c.personFullName}
-            personPassport={c.personPassport}
-            passportIssuedBy={c.passportIssuedBy}
-            passportIssuedAt={c.passportIssuedAt}
-            contracts={c.contracts}
-            contractType={c.contractType}
-            loanAmount={c.loanAmount.toString()}
-            asOfDate={c.asOfDate}
-            asOfText={c.asOfText}
-            infoRecipient={c.infoRecipient}
-            firm={firmForDocument(c.firm, c.firmSnapshot)}
-            qrDataUrl={qr}
-          />
+          <DocumentView cert={c} qrDataUrl={qr} />
         </div>
 
         <div className="space-y-4">
@@ -87,9 +73,20 @@ export default async function CertDetail({ params }: { params: { id: string } })
             <h3 className="mb-3 font-semibold">Maʼlumot</h3>
             <dl className="space-y-2 text-fg">
               <div className="flex justify-between gap-3"><dt className="text-muted">Firma</dt><dd className="text-right">{c.firm.shortName ?? c.firm.name}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-muted">{c.contracts.length > 1 ? `Shartnomalar (${c.contracts.length})` : 'Shartnoma'}</dt><dd className="text-right"><ContractCell contracts={c.contracts} /></dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-muted">Summa</dt><dd>{formatSum(c.loanAmount.toString())} soʻm</dd></div>
+              {c.docType === 'ARIZA' ? (
+                <>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">JShShIR</dt><dd className="font-mono">{c.personPinfl}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Sud</dt><dd className="text-right">{c.courtName}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">{c.contracts.length > 1 ? `Shartnomalar (${c.contracts.length})` : 'Shartnoma'}</dt><dd className="text-right"><ContractCell contracts={c.contracts} /></dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Jami qarz</dt><dd>{formatSumDecimal(c.debtTotal?.toString() ?? '0')} soʻm</dd></div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">{c.contracts.length > 1 ? `Shartnomalar (${c.contracts.length})` : 'Shartnoma'}</dt><dd className="text-right"><ContractCell contracts={c.contracts} /></dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Summa</dt><dd>{formatSum(c.loanAmount.toString())} soʻm</dd></div>
+                </>
+              )}
               <div className="flex justify-between gap-3"><dt className="text-muted">Yurist</dt><dd>{c.createdBy.fullName}</dd></div>
             </dl>
           </div>

@@ -34,6 +34,8 @@ export { CertificateDocument, firmForDocument } from './CertificateDocument';
 export type { CertificateDocumentProps, CertFirm, CertificateEdit } from './CertificateDocument';
 export { CourtArizaDocument } from './CourtArizaDocument';
 export type { CourtArizaDocumentProps, CourtArizaEdit } from './CourtArizaDocument';
+export { DocumentView } from './DocumentView';
+export type { DocumentRow } from './DocumentView';
 export { CertSheetEditor } from './CertSheetEditor';
 export type { SaveAction, ClientLookup } from './CertSheetEditor';
 export { ArizaSheetEditor } from './ArizaSheetEditor';

@@ -1,9 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { canEdit, Role, uzLongDate } from '@spravka/shared/core';
+import { canEdit, Role, uzLongDate, uzLongDateLatin } from '@spravka/shared/core';
 import { firmForDocument } from '@spravka/shared/ui';
 import { getSession } from '@/lib/session';
 import { EditArizaSheet } from './EditArizaSheet';
+import { EditCourtArizaSheet } from './EditCourtArizaSheet';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,15 +27,51 @@ export default async function EditArizaPage({ params }: { params: { id: string }
 
   if (!canEdit(session!.role as Role, c.status)) redirect(`/arizalar/${c.id}`);
 
+  const firm = firmForDocument(c.firm, c.firmSnapshot);
+
+  if (c.docType === 'ARIZA') {
+    return (
+      <EditCourtArizaSheet
+        id={c.id}
+        number={c.number}
+        firm={firm}
+        initial={{
+          courtName: c.courtName ?? '',
+          personFullName: c.personFullName,
+          personPinfl: c.personPinfl ?? '',
+          personAddress: c.personAddress ?? '',
+          personPhone: c.personPhone ?? '',
+          contracts: c.contracts.map((k) => ({ number: k.number, date: iso(k.date) })),
+          contractType: c.contractType,
+          interestRate: c.interestRate ?? '',
+          loanAmount: c.loanAmount.toString(),
+          asOfDate: iso(c.asOfDate),
+          asOfText: c.asOfText ?? uzLongDateLatin(c.asOfDate),
+          debtPrincipal: c.debtPrincipal?.toString() ?? '',
+          debtTermInterest: c.debtTermInterest?.toString() ?? '',
+          debtOverduePrincipal: c.debtOverduePrincipal?.toString() ?? '',
+          debtOverdueInterest: c.debtOverdueInterest?.toString() ?? '',
+          debtTotal: c.debtTotal?.toString() ?? '',
+          chamberSignerPosition: c.chamberSignerPosition ?? '',
+          chamberSignerName: c.chamberSignerName ?? '',
+          chamberExecutorName: c.chamberExecutorName ?? '',
+          chamberExecutorPhone: c.chamberExecutorPhone ?? '',
+          issueDate: iso(c.issueDate),
+        }}
+      />
+    );
+  }
+
   return (
     <EditArizaSheet
       id={c.id}
       number={c.number}
-      firm={firmForDocument(c.firm, c.firmSnapshot)}
+      firm={firm}
       initial={{
         personPinfl: c.personPinfl ?? '',
         personFullName: c.personFullName,
-        personPassport: c.personPassport,
+        // Always set for a maʼlumotnoma; the column is nullable only for arizas.
+        personPassport: c.personPassport ?? '',
         passportIssuedBy: c.passportIssuedBy ?? '',
         passportIssuedAt: iso(c.passportIssuedAt),
         contracts: c.contracts.map((k) => ({ number: k.number, date: iso(k.date) })),
