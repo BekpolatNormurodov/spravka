@@ -17,7 +17,12 @@ export const ROLE_LABELS: Record<Role, string> = {
 export type CertField =
   | 'firmId' | 'personPinfl' | 'personFullName' | 'personPassport'
   | 'passportIssuedBy' | 'passportIssuedAt' | 'contracts' | 'contractType'
-  | 'loanAmount' | 'asOfDate' | 'asOfText' | 'issueDate' | 'infoRecipient';
+  | 'loanAmount' | 'asOfDate' | 'asOfText' | 'issueDate' | 'infoRecipient'
+  // «Savdo-sanoat palatasiga ariza» fields
+  | 'courtName' | 'personAddress' | 'personPhone' | 'interestRate'
+  | 'debtPrincipal' | 'debtTermInterest' | 'debtOverduePrincipal' | 'debtOverdueInterest'
+  | 'debtTotal' | 'chamberSignerPosition' | 'chamberSignerName'
+  | 'chamberExecutorName' | 'chamberExecutorPhone';
 
 /**
  * What each value is called when someone is told about it — on the document as a slot's name, and
@@ -41,7 +46,26 @@ export const CERT_FIELD_LABELS: Record<CertField, string> = {
   asOfText: 'Holat sanasi',
   issueDate: 'Maʼlumotnoma sanasi',
   infoRecipient: 'Maʼlumot uchun (tashkilot)',
+  courtName: 'Sud nomi',
+  personAddress: 'Qarzdor manzili',
+  personPhone: 'Qarzdor telefoni',
+  interestRate: 'Yillik foiz',
+  debtPrincipal: 'Asosiy qarz qoldigʻi',
+  debtTermInterest: 'Muddatli foizlar qarzdorligi',
+  debtOverduePrincipal: 'Muddati oʻtgan qarz qarzdorligi',
+  debtOverdueInterest: 'Muddati oʻtgan foizlar qarzdorligi',
+  debtTotal: 'Jami qarzdorligi',
+  chamberSignerPosition: 'Imzolovchi lavozimi',
+  chamberSignerName: 'Imzolovchi',
+  chamberExecutorName: 'Ijrochi',
+  chamberExecutorPhone: 'Ijrochi telefoni',
 };
+
+/** Document-type labels for the list badge/filter. */
+export const DOC_TYPE_LABELS = {
+  MALUMOTNOMA: 'Maʼlumotnoma',
+  ARIZA: 'Savdo-sanoat palatasiga ariza',
+} as const;
 
 /**
  * Which of `fields` the body left empty, named in Uzbek — or null when none are.

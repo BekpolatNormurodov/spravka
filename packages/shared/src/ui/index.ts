@@ -29,6 +29,7 @@ export { EventTimeline } from './EventTimeline';
 export type { TimelineEvent, TimelineAttachment } from './EventTimeline';
 export type { DayData } from './Calendar';
 export { ThemeScript, StatusBadge, StatCard, PageHeader, EmptyState, Table, ReturnNotice, ContractCell } from './components';
+export { CHAMBER_LOGO_DATA_URL } from './chamber-logo.data';
 export { CertificateDocument, firmForDocument } from './CertificateDocument';
 export type { CertificateDocumentProps, CertFirm, CertificateEdit } from './CertificateDocument';
 export { CertSheetEditor } from './CertSheetEditor';

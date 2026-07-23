@@ -1,4 +1,5 @@
 export * from './enums';
+export * from './chamber';
 export * from './workflow';
 export * from './numbering';
 export * from './session';
