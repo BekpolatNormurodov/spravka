@@ -89,13 +89,20 @@ export default async function Dashboard({ searchParams }: { searchParams: CertFi
                         <td className="px-4 py-3 align-top">
                           <div className="flex items-center gap-2">
                             <span className="truncate font-medium" title={c.personFullName}>{c.personFullName}</span>
+                            {c.docType === 'ARIZA' && (
+                              <span className="shrink-0 rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
+                                Ariza
+                              </span>
+                            )}
                             {back && (
                               <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300">
                                 qaytarilgan
                               </span>
                             )}
                           </div>
-                          <div className="truncate font-mono text-xs text-muted">{c.personPassport}</div>
+                          <div className="truncate font-mono text-xs text-muted">
+                            {c.docType === 'ARIZA' ? c.personPinfl : c.personPassport}
+                          </div>
                         </td>
                         <td className="px-3 py-3 align-top">
                           <div className="truncate text-fg" title={c.firm.name}>{c.firm.shortName ?? c.firm.name}</div>
