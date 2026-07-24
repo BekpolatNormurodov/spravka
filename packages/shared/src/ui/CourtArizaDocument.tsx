@@ -136,34 +136,31 @@ export function CourtArizaDocument(p: CourtArizaDocumentProps) {
         {edit ? edit.text('courtName') : p.courtName}
       </div>
 
-      {/* ── Arizachi: the chamber itself ── */}
-      <div style={{ marginTop: '12pt' }}>
-        <div style={{ textAlign: 'right', fontSize: '14pt' }}>Arizachi:</div>
-        <div style={{ fontSize: '14pt', fontWeight: 700, lineHeight: 1.3 }}>{CHAMBER.applicantName}</div>
-        {CHAMBER.applicantAddress.map((line, i) => (
-          <div key={i} style={{ fontSize: '14pt', lineHeight: 1.3 }}>{line}</div>
-        ))}
-        <div style={{ fontSize: '14pt', lineHeight: 1.3 }}>STIR {CHAMBER.applicantStir}.</div>
+      {/*
+        ── Arizachi / undiruvchi / qarzdor ──
+        Each is a label on its own line with the block directly under it, all left-aligned. The blank
+        floats the labels to the right, which reads as three captions adrift from their text; a clean
+        left column is the same information without the gap.
+      */}
+      <div style={{ marginTop: '14pt', fontSize: '14pt', lineHeight: 1.35 }}>
+        <div>Arizachi:</div>
+        <div style={{ fontWeight: 700 }}>{CHAMBER.applicantName}</div>
+        {CHAMBER.applicantAddress.map((line, i) => <div key={i}>{line}</div>)}
+        <div>STIR {CHAMBER.applicantStir}.</div>
       </div>
 
-      {/* ── Collector: the member firm (rekvizitlar from the firm row) ── */}
-      <div style={{ marginTop: '10pt' }}>
-        <div style={{ textAlign: 'right', fontSize: '14pt', lineHeight: 1.3 }}>
-          {CHAMBER.collectorLabel.map((l, i) => <div key={i}>{l}</div>)}
-        </div>
-        <div style={{ fontSize: '12pt', fontWeight: 700, lineHeight: 1.35 }}>{firmName}</div>
-        {collectorRekvizit && <div style={{ fontSize: '12pt', lineHeight: 1.35 }}>{collectorRekvizit}</div>}
+      <div style={{ marginTop: '12pt', lineHeight: 1.35 }}>
+        <div style={{ fontSize: '14pt' }}>{CHAMBER.collectorLabel.join(' ')}</div>
+        <div style={{ fontSize: '12pt', fontWeight: 700 }}>{firmName}</div>
+        {collectorRekvizit && <div style={{ fontSize: '12pt' }}>{collectorRekvizit}</div>}
       </div>
 
-      {/* ── Qarzdor: the debtor (editable) ── */}
-      <div style={{ marginTop: '10pt' }}>
-        <div style={{ textAlign: 'right', fontSize: '14pt' }}>Qarzdor:</div>
-        <div style={{ fontSize: '14pt', fontWeight: 700, lineHeight: 1.3 }}>
-          {edit ? edit.text('personFullName') : p.personFullName}
-        </div>
-        <div style={{ fontSize: '14pt', lineHeight: 1.3 }}>{edit ? edit.text('personAddress') : p.personAddress}</div>
-        <div style={{ fontSize: '14pt', lineHeight: 1.3 }}>JShShIR: {p.personPinfl}</div>
-        <div style={{ fontSize: '10pt', lineHeight: 1.3 }}>Tel:&nbsp; {edit ? edit.text('personPhone') : p.personPhone}</div>
+      <div style={{ marginTop: '12pt', fontSize: '14pt', lineHeight: 1.35 }}>
+        <div>Qarzdor:</div>
+        <div style={{ fontWeight: 700 }}>{edit ? edit.text('personFullName') : p.personFullName}</div>
+        <div>{edit ? edit.text('personAddress') : p.personAddress}</div>
+        <div>JShShIR: {p.personPinfl}</div>
+        <div style={{ fontSize: '10pt' }}>Tel:&nbsp; {edit ? edit.text('personPhone') : p.personPhone}</div>
       </div>
 
       {/* ── Title ── */}
