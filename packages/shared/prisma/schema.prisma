@@ -52,6 +52,7 @@ enum CertStatus {
 enum DocType {
   MALUMOTNOMA
   ARIZA
+  ISHONCHNOMA
 }
 
 enum WfAction {
@@ -146,7 +147,8 @@ model Certificate {
   /// A maʼlumotnoma covers one or more contracts — the real blanks routinely list two.
   contracts        CertContract[]
   contractType     String     @default("«Микроқарз» универсал шартномаси")
-  /// Total across every contract listed above — the «умумий ... сўм» figure.
+  /// Total across every contract listed above — the «умумий ... сўм» figure. The ishonchnoma has no
+  /// amount, so it stores 0 here (never printed on that document) rather than widening the column.
   loanAmount       Decimal    @db.Decimal(18, 2)
   asOfDate         DateTime
   /// The «... ҳолатида» phrase exactly as the yurist wrote it, e.g. '2026 йил 19 июль'.
@@ -193,6 +195,17 @@ model Certificate {
   chamberSignerName     String?
   chamberExecutorName   String?
   chamberExecutorPhone  String?
+
+  // ── «Ишончнома» (power of attorney) fields — null on the other document types ──────────────
+  /// The bank whose debts the authorised person will collect, e.g. «ANORBANK». Defaults from the
+  /// firm's bank in the UI; stored per document because a firm may collect for more than one.
+  poaBankName          String?
+  /// The service contract between the firm and the bank the authority rests on — «17.06.2026 йилда
+  /// тузилган 1-сонли шартномасига асосан».
+  poaContractDate      DateTime?
+  poaContractNumber    String?
+  /// «Ишончнома 31.08.2026 йилга қадар амал қилади» — the day the power of attorney expires.
+  poaValidUntil        DateTime?
 
   bodyText         String?    @db.Text
   /// Path (relative to CERT_STORAGE_DIR) of the document frozen at SIGN time. This file is the
