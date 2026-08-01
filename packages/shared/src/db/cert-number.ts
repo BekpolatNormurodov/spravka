@@ -1,6 +1,7 @@
 import { prisma } from './index';
 import {
   certDay, counterId, formatCertNumber, arizaCounterId, formatArizaNumber,
+  ishonchnomaCounterId, formatIshonchnomaNumber,
 } from '../core/numbering';
 
 /**
@@ -107,4 +108,25 @@ export async function peekArizaNumber(issueDate: Date): Promise<string> {
     select: { value: true },
   });
   return formatArizaNumber((counter?.value ?? 0) + 1);
+}
+
+/** Allocate the next «Ишончнома» register number for the issue year: «NN/YYYY». Never reused. */
+export async function nextIshonchnomaNumber(issueDate: Date): Promise<{ seq: number; number: string }> {
+  const year = issueDate.getUTCFullYear();
+  const counter = await prisma.counter.upsert({
+    where: { id: ishonchnomaCounterId(year) },
+    create: { id: ishonchnomaCounterId(year), value: 1 },
+    update: { value: { increment: 1 } },
+  });
+  return { seq: counter.value, number: formatIshonchnomaNumber(counter.value, year) };
+}
+
+/** What the next ishonchnoma number would be, without taking it. */
+export async function peekIshonchnomaNumber(issueDate: Date): Promise<string> {
+  const year = issueDate.getUTCFullYear();
+  const counter = await prisma.counter.findUnique({
+    where: { id: ishonchnomaCounterId(year) },
+    select: { value: true },
+  });
+  return formatIshonchnomaNumber((counter?.value ?? 0) + 1, year);
 }

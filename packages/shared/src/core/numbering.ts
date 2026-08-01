@@ -43,3 +43,17 @@ export function formatArizaNumber(seq: number): string {
 export function arizaCounterId(year: number): string {
   return `ariza:${year}`;
 }
+
+/* ── «Ишончнома» (power of attorney) register ──────────────────────────────────────────────────
+   A single per-year running number «NN/YYYY» across all firms — an ишончнома «№___» is a registry
+   number, and the year keeps it unique when the sequence restarts each January. */
+
+/** Power-of-attorney number: «NN/YYYY». */
+export function formatIshonchnomaNumber(seq: number, year: number): string {
+  return `${seq}/${year}`;
+}
+
+/** Counter row id for the ishonchnoma register — per-year. */
+export function ishonchnomaCounterId(year: number): string {
+  return `ishonchnoma:${year}`;
+}

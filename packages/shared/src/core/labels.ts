@@ -22,7 +22,9 @@ export type CertField =
   | 'courtName' | 'personAddress' | 'personPhone' | 'interestRate'
   | 'debtPrincipal' | 'debtTermInterest' | 'debtOverduePrincipal' | 'debtOverdueInterest'
   | 'debtTotal' | 'chamberSignerPosition' | 'chamberSignerName'
-  | 'chamberExecutorName' | 'chamberExecutorPhone';
+  | 'chamberExecutorName' | 'chamberExecutorPhone'
+  // «Ишончнома» (power of attorney) fields
+  | 'poaBankName' | 'poaContractDate' | 'poaContractNumber' | 'poaValidUntil';
 
 /**
  * What each value is called when someone is told about it — on the document as a slot's name, and
@@ -59,12 +61,17 @@ export const CERT_FIELD_LABELS: Record<CertField, string> = {
   chamberSignerName: 'Imzolovchi',
   chamberExecutorName: 'Ijrochi',
   chamberExecutorPhone: 'Ijrochi telefoni',
+  poaBankName: 'Bank (kim uchun undiradi)',
+  poaContractDate: 'Xizmat shartnomasi sanasi',
+  poaContractNumber: 'Shartnoma raqami',
+  poaValidUntil: 'Amal muddati',
 };
 
 /** Document-type labels for the list badge/filter. */
 export const DOC_TYPE_LABELS = {
   MALUMOTNOMA: 'Maʼlumotnoma',
   ARIZA: 'Savdo-sanoat palatasiga ariza',
+  ISHONCHNOMA: 'Ishonchnoma',
 } as const;
 
 /**
