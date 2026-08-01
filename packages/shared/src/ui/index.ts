@@ -51,3 +51,6 @@ export {
   arizaDraftContracts, arizaPreviewContracts,
 } from './ArizaEdit';
 export type { ArizaDraft } from './ArizaEdit';
+export { IshonchnomaSheetEditor } from './IshonchnomaSheetEditor';
+export { poaEditSlots, poaDraftProblems, defaultPoaDraft } from './IshonchnomaEdit';
+export type { PoaDraft } from './IshonchnomaEdit';
