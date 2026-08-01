@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { STATUS_LABELS, type CertStatus } from '../core';
+import { STATUS_LABELS, DOC_TYPE_SHORT, type CertStatus } from '../core';
 import { Ico } from './icons';
 import { Select, type Option } from './Select';
 import { DatePicker } from './DatePicker';
@@ -17,10 +17,13 @@ export type FirmOpt = { id: string; name: string; shortName: string | null };
 export function Filters({
   firms,
   statuses,
-  searchPlaceholder = '№, F.I.SH., passport, shartnoma…',
+  docTypes,
+  searchPlaceholder = '№, F.I.SH., PINFL, passport, shartnoma…',
 }: {
   firms?: FirmOpt[];
   statuses?: readonly CertStatus[];
+  /** Pass the doc types a list holds to show a type dropdown; omit on single-type lists. */
+  docTypes?: readonly (keyof typeof DOC_TYPE_SHORT)[];
   searchPlaceholder?: string;
 }) {
   const router = useRouter();
@@ -55,14 +58,18 @@ export function Filters({
 
   const status = sp.get('status') ?? '';
   const firm = sp.get('firm') ?? '';
+  const docType = sp.get('docType') ?? '';
   const from = sp.get('from') ?? '';
   const to = sp.get('to') ?? '';
-  const active = !!(sp.get('q') || status || firm || from || to);
+  const active = !!(sp.get('q') || status || firm || docType || from || to);
 
   // Static classes only — Tailwind's JIT cannot see interpolated class names.
-  const count = 3 + (statuses ? 1 : 0) + (firms ? 1 : 0); // search + 2 dates + optionals
+  const count = 3 + (statuses ? 1 : 0) + (firms ? 1 : 0) + (docTypes ? 1 : 0); // search + 2 dates + optionals
   const gridCls =
-    count === 5 ? 'xl:grid-cols-5' : count === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3';
+    count >= 6 ? 'xl:grid-cols-6'
+    : count === 5 ? 'xl:grid-cols-5'
+    : count === 4 ? 'xl:grid-cols-4'
+    : 'xl:grid-cols-3';
 
   return (
     <div className="card mb-4 p-4">
@@ -102,6 +109,19 @@ export function Filters({
             options={[
               { value: '', label: 'Barcha firmalar' },
               ...firms.map<Option>((f) => ({ value: f.id, label: f.shortName ?? f.name })),
+            ]}
+          />
+        )}
+
+        {docTypes && (
+          <Select
+            label="Hujjat turi"
+            placeholder="Barcha turlar"
+            value={docType}
+            onChange={(v) => apply({ docType: v })}
+            options={[
+              { value: '', label: 'Barcha turlar' },
+              ...docTypes.map<Option>((d) => ({ value: d, label: DOC_TYPE_SHORT[d] })),
             ]}
           />
         )}

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import {
   CertStatus, dmy, formatSum, parseCertFilters, buildCertWhere, pageSlice, pageHref, PER_PAGE,
-  DOC_TYPE_SHORT, type CertFilterParams,
+  DOC_TYPE_SHORT, DOC_TYPES, type CertFilterParams,
 } from '@spravka/shared/core';
 import { PageHeader, EmptyState, ClickableRow, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
 import { RowActions } from '@/components/RowActions';
@@ -36,7 +36,7 @@ export default async function Imzolash({ searchParams }: { searchParams: CertFil
     <div>
       <PageHeader title="Imzolash navbati" subtitle={`Imzo kutmoqda: ${total} ta`} />
       {/* No firm filter: a rahbar has exactly one, so the control could only ever be a no-op. */}
-      <Filters />
+      <Filters docTypes={DOC_TYPES} />
 
       {certs.length === 0 ? (
         <EmptyState title="Imzolash uchun ariza yoʻq" hint="Admin tasdiqlagach shu yerda paydo boʻladi." />

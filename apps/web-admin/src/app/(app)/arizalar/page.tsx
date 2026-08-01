@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import {
   CertStatus, dmy, formatSum, parseCertFilters, buildCertWhere, pageSlice, pageHref, PER_PAGE,
-  DOC_TYPE_SHORT, type CertFilterParams,
+  DOC_TYPE_SHORT, DOC_TYPES, type CertFilterParams,
 } from '@spravka/shared/core';
 import {
   StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
@@ -30,7 +30,7 @@ export default async function Arizalar({ searchParams }: { searchParams: CertFil
   return (
     <div>
       <PageHeader title="Arizalar" subtitle={`Topildi: ${total} ta`} />
-      <Filters firms={firms} statuses={STATUSES} />
+      <Filters firms={firms} statuses={STATUSES} docTypes={DOC_TYPES} />
 
       {certs.length === 0 ? (
         <EmptyState title="Ariza topilmadi" hint="Filtrlarni oʻzgartirib koʻring." />

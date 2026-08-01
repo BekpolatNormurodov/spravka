@@ -81,6 +81,9 @@ export const DOC_TYPE_SHORT = {
   ISHONCHNOMA: 'Ishonchnoma',
 } as const;
 
+/** Every document type, in the order the picker and the list filter present them. */
+export const DOC_TYPES = ['MALUMOTNOMA', 'ARIZA', 'ISHONCHNOMA'] as const;
+
 /**
  * Which of `fields` the body left empty, named in Uzbek — or null when none are.
  *

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import {
   CertStatus, dmy, formatSum, parseCertFilters, buildCertWhere, pageSlice, pageHref, PER_PAGE,
-  DOC_TYPE_SHORT, type CertFilterParams,
+  DOC_TYPE_SHORT, DOC_TYPES, type CertFilterParams,
 } from '@spravka/shared/core';
 import {
   StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
@@ -42,7 +42,7 @@ export default async function Dashboard({ searchParams }: { searchParams: CertFi
         action={<Link href="/arizalar/yangi" className="btn-primary">+ Yangi ariza</Link>}
       />
 
-      <Filters firms={firms} statuses={STATUSES} />
+      <Filters firms={firms} statuses={STATUSES} docTypes={DOC_TYPES} />
 
       {certs.length === 0 ? (
         <EmptyState
