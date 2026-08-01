@@ -74,6 +74,13 @@ export const DOC_TYPE_LABELS = {
   ISHONCHNOMA: 'Ishonchnoma',
 } as const;
 
+/** Short labels for the list chip, where the full ariza name is too long. */
+export const DOC_TYPE_SHORT = {
+  MALUMOTNOMA: 'Maʼlumotnoma',
+  ARIZA: 'Ariza',
+  ISHONCHNOMA: 'Ishonchnoma',
+} as const;
+
 /**
  * Which of `fields` the body left empty, named in Uzbek — or null when none are.
  *

@@ -28,6 +28,17 @@ const CARDS = [
     hover: 'hover:border-brand-500/50',
     keywords: 'ariza sud buyruq palata savdo sanoat qarz undirish',
   },
+  {
+    key: 'ishonchnoma',
+    slug: 'ishonchnoma',
+    title: 'Ishonchnoma',
+    hint: 'Undiruvchini vakil qilib tayinlash — firmaning oʻz blankasida.',
+    tag: 'Firma blankasi',
+    Icon: Ico.user,
+    badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    hover: 'hover:border-emerald-500/50',
+    keywords: 'ishonchnoma vakil doverennost undiruvchi vakolat power attorney',
+  },
 ] as const;
 
 const norm = (s: string) => s.toLowerCase().replace(/[ʻ']/g, '');

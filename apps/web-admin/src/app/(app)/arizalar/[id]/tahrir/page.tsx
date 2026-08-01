@@ -5,6 +5,7 @@ import { firmForDocument } from '@spravka/shared/ui';
 import { getSession } from '@/lib/session';
 import { EditArizaSheet } from './EditArizaSheet';
 import { EditCourtArizaSheet } from './EditCourtArizaSheet';
+import { EditIshonchnomaSheet } from './EditIshonchnomaSheet';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,26 @@ export default async function EditArizaPage({ params }: { params: { id: string }
           chamberSignerName: c.chamberSignerName ?? '',
           chamberExecutorName: c.chamberExecutorName ?? '',
           chamberExecutorPhone: c.chamberExecutorPhone ?? '',
+          issueDate: iso(c.issueDate),
+        }}
+      />
+    );
+  }
+
+  if (c.docType === 'ISHONCHNOMA') {
+    return (
+      <EditIshonchnomaSheet
+        id={c.id}
+        number={c.number}
+        firm={firm}
+        initial={{
+          personFullName: c.personFullName,
+          personPinfl: c.personPinfl ?? '',
+          personPassport: c.personPassport ?? '',
+          poaBankName: c.poaBankName ?? '',
+          poaContractDate: iso(c.poaContractDate),
+          poaContractNumber: c.poaContractNumber ?? '',
+          poaValidUntil: iso(c.poaValidUntil),
           issueDate: iso(c.issueDate),
         }}
       />

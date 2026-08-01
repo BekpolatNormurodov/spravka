@@ -1,6 +1,7 @@
 import React from 'react';
 import { CertificateDocument, firmForDocument, type CertFirm } from './CertificateDocument';
 import { CourtArizaDocument } from './CourtArizaDocument';
+import { PowerOfAttorneyDocument } from './PowerOfAttorneyDocument';
 
 /** Money as Prisma hands it (a Decimal) or already a string. */
 type Money = { toString(): string } | string | null;
@@ -42,6 +43,11 @@ export interface DocumentRow {
   chamberSignerName?: string | null;
   chamberExecutorName?: string | null;
   chamberExecutorPhone?: string | null;
+  // ishonchnoma
+  poaBankName?: string | null;
+  poaContractDate?: Date | null;
+  poaContractNumber?: string | null;
+  poaValidUntil?: Date | null;
 }
 
 /**
@@ -76,6 +82,24 @@ export function DocumentView({ cert, qrDataUrl }: { cert: DocumentRow; qrDataUrl
         chamberSignerName={cert.chamberSignerName ?? ''}
         chamberExecutorName={cert.chamberExecutorName ?? ''}
         chamberExecutorPhone={cert.chamberExecutorPhone ?? ''}
+        firm={firm}
+        qrDataUrl={qrDataUrl}
+      />
+    );
+  }
+
+  if (cert.docType === 'ISHONCHNOMA') {
+    return (
+      <PowerOfAttorneyDocument
+        number={cert.number}
+        issueDate={cert.issueDate}
+        personFullName={cert.personFullName}
+        personPinfl={cert.personPinfl ?? ''}
+        personPassport={cert.personPassport ?? ''}
+        poaBankName={cert.poaBankName ?? ''}
+        poaContractDate={cert.poaContractDate ?? null}
+        poaContractNumber={cert.poaContractNumber ?? ''}
+        poaValidUntil={cert.poaValidUntil ?? null}
         firm={firm}
         qrDataUrl={qrDataUrl}
       />

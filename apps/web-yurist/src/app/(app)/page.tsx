@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import {
   CertStatus, dmy, formatSum, parseCertFilters, buildCertWhere, pageSlice, pageHref, PER_PAGE,
-  type CertFilterParams,
+  DOC_TYPE_SHORT, type CertFilterParams,
 } from '@spravka/shared/core';
 import {
   StatusBadge, PageHeader, EmptyState, ClickableRow, ViewAction, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
@@ -89,9 +89,9 @@ export default async function Dashboard({ searchParams }: { searchParams: CertFi
                         <td className="px-4 py-3 align-top">
                           <div className="flex items-center gap-2">
                             <span className="truncate font-medium" title={c.personFullName}>{c.personFullName}</span>
-                            {c.docType === 'ARIZA' && (
+                            {c.docType !== 'MALUMOTNOMA' && (
                               <span className="shrink-0 rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
-                                Ariza
+                                {DOC_TYPE_SHORT[c.docType as keyof typeof DOC_TYPE_SHORT]}
                               </span>
                             )}
                             {back && (
@@ -101,7 +101,7 @@ export default async function Dashboard({ searchParams }: { searchParams: CertFi
                             )}
                           </div>
                           <div className="truncate font-mono text-xs text-muted">
-                            {c.docType === 'ARIZA' ? c.personPinfl : c.personPassport}
+                            {c.docType === 'MALUMOTNOMA' ? c.personPassport : c.personPinfl}
                           </div>
                         </td>
                         <td className="px-3 py-3 align-top">
