@@ -2,6 +2,7 @@ import React from 'react';
 import { createRequire } from 'node:module';
 import { CertificateDocument, type CertificateDocumentProps } from '../ui/CertificateDocument';
 import { CourtArizaDocument, type CourtArizaDocumentProps } from '../ui/CourtArizaDocument';
+import { PowerOfAttorneyDocument, type PowerOfAttorneyDocumentProps } from '../ui/PowerOfAttorneyDocument';
 import { fontFaceCss } from './fonts';
 
 /**
@@ -56,4 +57,9 @@ export function certificateHtml(props: CertificateDocumentProps): string {
 /** The «Savdo-sanoat palatasiga ariza», same standalone contract as {@link certificateHtml}. */
 export function courtArizaHtml(props: CourtArizaDocumentProps): string {
   return standaloneHtml(props.number, renderToStaticMarkup(<CourtArizaDocument {...props} />));
+}
+
+/** The «Ишончнома» (power of attorney), same standalone contract as {@link certificateHtml}. */
+export function powerOfAttorneyHtml(props: PowerOfAttorneyDocumentProps): string {
+  return standaloneHtml(props.number, renderToStaticMarkup(<PowerOfAttorneyDocument {...props} />));
 }

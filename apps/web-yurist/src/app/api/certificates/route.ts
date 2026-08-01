@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { nextCertNumber, nextArizaNumber } from '@spravka/shared/db';
+import { nextCertNumber, nextArizaNumber, nextIshonchnomaNumber } from '@spravka/shared/db';
 import {
   CertStatus, WfAction, isValidPinfl, parseContracts, missingFieldsError, type CertField,
   ARIZA_REQUIRED, arizaColumns, arizaClientFields,
+  ISHONCHNOMA_REQUIRED, ishonchnomaColumns, ishonchnomaClientFields,
 } from '@spravka/shared/core';
 
 const REQUIRED = [
@@ -70,6 +71,54 @@ export async function POST(req: Request) {
       select: { id: true, number: true },
     });
     return NextResponse.json({ ok: true, id: ariza.id, number: ariza.number });
+  }
+
+  // ── «Ишончнома» (power of attorney) — firm masthead, no contracts, its own register ──
+  if (b.docType === 'ISHONCHNOMA') {
+    const missing = missingFieldsError(b, ISHONCHNOMA_REQUIRED);
+    if (missing) return NextResponse.json({ error: missing }, { status: 400 });
+    if (!isValidPinfl(b.personPinfl)) {
+      return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
+    }
+    const firmP = await prisma.firm.findUnique({ where: { id: b.firmId }, select: { id: true } });
+    if (!firmP) return NextResponse.json({ error: 'Firma topilmadi' }, { status: 400 });
+
+    const colsP = ishonchnomaColumns(b);
+    const clientP = await prisma.client.upsert({
+      where: { pinfl: b.personPinfl },
+      create: { pinfl: b.personPinfl, ...ishonchnomaClientFields(b), createdById: session.sub },
+      update: ishonchnomaClientFields(b),
+      select: { id: true },
+    });
+    const { seq: seqP, number: numberP } = await nextIshonchnomaNumber(colsP.issueDate);
+
+    const ish = await prisma.certificate.create({
+      data: {
+        id: nanoid(12),
+        number: numberP,
+        seq: seqP,
+        firmId: firmP.id,
+        status: submit ? CertStatus.ADMIN_REVIEW : CertStatus.DRAFT,
+        docType: 'ISHONCHNOMA',
+        clientId: clientP.id,
+        ...colsP,
+        createdById: session.sub,
+        ...(submit
+          ? {
+              events: {
+                create: {
+                  actorId: session.sub,
+                  action: WfAction.SUBMIT,
+                  fromStatus: CertStatus.DRAFT,
+                  toStatus: CertStatus.ADMIN_REVIEW,
+                },
+              },
+            }
+          : {}),
+      },
+      select: { id: true, number: true },
+    });
+    return NextResponse.json({ ok: true, id: ish.id, number: ish.number });
   }
 
   /*

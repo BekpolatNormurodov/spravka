@@ -4,6 +4,7 @@ import { getSession } from '@/lib/session';
 import {
   WfAction, findTransition, canEdit, isValidPinfl, parseContracts, missingFieldsError,
   type CertField, ARIZA_EDIT_REQUIRED, arizaColumns, arizaClientFields,
+  ISHONCHNOMA_EDIT_REQUIRED, ishonchnomaColumns, ishonchnomaClientFields,
 } from '@spravka/shared/core';
 import { readActionRequest, discard } from '@spravka/shared/attachments';
 
@@ -59,6 +60,33 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         where: { id: params.id },
         data: { clientId, ...cols, contracts: { deleteMany: {}, create: parsedA.contracts } },
       });
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── «Ишончнома» edit (no contracts) ──
+  if (cert.docType === 'ISHONCHNOMA') {
+    const missing = missingFieldsError(b, ISHONCHNOMA_EDIT_REQUIRED);
+    if (missing) return NextResponse.json({ error: missing }, { status: 400 });
+    if (!isValidPinfl(b.personPinfl)) {
+      return NextResponse.json({ error: 'PINFL 14 ta raqamdan iborat boʻlishi kerak' }, { status: 400 });
+    }
+    const colsP = ishonchnomaColumns(b);
+    const cfP = ishonchnomaClientFields(b);
+    await prisma.$transaction(async (tx) => {
+      let clientId = cert.clientId;
+      if (b.personPinfl) {
+        const client = await tx.client.upsert({
+          where: { pinfl: b.personPinfl },
+          create: { pinfl: b.personPinfl, ...cfP, createdById: session.sub },
+          update: cfP,
+          select: { id: true },
+        });
+        clientId = client.id;
+      } else if (clientId) {
+        await tx.client.update({ where: { id: clientId }, data: cfP });
+      }
+      await tx.certificate.update({ where: { id: params.id }, data: { clientId, ...colsP } });
     });
     return NextResponse.json({ ok: true });
   }

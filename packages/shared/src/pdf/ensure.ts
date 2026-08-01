@@ -4,7 +4,8 @@ import { CertStatus } from '../core/enums';
 import { certQrDataUrl } from '../core/qr';
 import { firmForDocument, type CertFirm } from '../ui/CertificateDocument';
 import type { CourtArizaDocumentProps } from '../ui/CourtArizaDocument';
-import { certificateHtml, courtArizaHtml } from './html';
+import type { PowerOfAttorneyDocumentProps } from '../ui/PowerOfAttorneyDocument';
+import { certificateHtml, courtArizaHtml, powerOfAttorneyHtml } from './html';
 import { renderPdf } from './render';
 import { readPdf, savePdf } from './storage';
 
@@ -54,6 +55,27 @@ function arizaPropsFromRow(
   };
 }
 
+/** The row's ishonchnoma fields as the document takes them. */
+function poaPropsFromRow(
+  cert: CertificateWithFirm,
+  firm: CertFirm,
+  qrDataUrl: string,
+): PowerOfAttorneyDocumentProps {
+  return {
+    number: cert.number,
+    issueDate: cert.issueDate,
+    personFullName: cert.personFullName,
+    personPinfl: cert.personPinfl ?? '',
+    personPassport: cert.personPassport ?? '',
+    poaBankName: cert.poaBankName ?? '',
+    poaContractDate: cert.poaContractDate,
+    poaContractNumber: cert.poaContractNumber ?? '',
+    poaValidUntil: cert.poaValidUntil,
+    firm,
+    qrDataUrl,
+  };
+}
+
 /** Render the document exactly as it is issued, QR included — branched on its type. */
 export async function buildCertificatePdf(cert: CertificateWithFirm): Promise<Buffer> {
   const qrDataUrl = await certQrDataUrl(cert.id);
@@ -61,6 +83,9 @@ export async function buildCertificatePdf(cert: CertificateWithFirm): Promise<Bu
 
   if (cert.docType === 'ARIZA') {
     return renderPdf(courtArizaHtml(arizaPropsFromRow(cert, firm, qrDataUrl)));
+  }
+  if (cert.docType === 'ISHONCHNOMA') {
+    return renderPdf(powerOfAttorneyHtml(poaPropsFromRow(cert, firm, qrDataUrl)));
   }
 
   return renderPdf(

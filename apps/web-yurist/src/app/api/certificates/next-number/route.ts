@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
-import { peekCertNumber, peekArizaNumber } from '@spravka/shared/db';
+import { peekCertNumber, peekArizaNumber, peekIshonchnomaNumber } from '@spravka/shared/db';
 import { isValidDay } from '@spravka/shared/core';
 
 /**
@@ -22,6 +22,12 @@ export async function GET(req: Request) {
   if (url.searchParams.get('type') === 'ariza') {
     if (!isValidDay(day)) return NextResponse.json({ error: 'date kerak' }, { status: 400 });
     return NextResponse.json({ number: await peekArizaNumber(new Date(`${day}T00:00:00.000Z`)) });
+  }
+
+  // The ishonchnoma register is likewise per-year and firm-independent.
+  if (url.searchParams.get('type') === 'ishonchnoma') {
+    if (!isValidDay(day)) return NextResponse.json({ error: 'date kerak' }, { status: 400 });
+    return NextResponse.json({ number: await peekIshonchnomaNumber(new Date(`${day}T00:00:00.000Z`)) });
   }
 
   if (!firmId || !isValidDay(day)) {
