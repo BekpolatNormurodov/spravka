@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { CertStatus, formatSum, formatSumDecimal, DOC_TYPE_LABELS } from '@spravka/shared/core';
+import { CertStatus, dmy, formatSum, formatSumDecimal, DOC_TYPE_LABELS } from '@spravka/shared/core';
 import { certQrDataUrl, certPublicUrl } from '@spravka/shared/qr';
 import { StatusBadge, DocumentView, QrCard, EventTimeline } from '@spravka/shared/ui';
 import { Actions } from './Actions';
@@ -75,6 +75,13 @@ export default async function CertDetail({ params }: { params: { id: string } })
                   <div className="flex justify-between gap-3"><dt className="text-muted">JShShIR</dt><dd className="font-mono">{c.personPinfl}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-muted">Sud</dt><dd className="text-right">{c.courtName}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-muted">Jami qarz</dt><dd>{formatSumDecimal(c.debtTotal?.toString() ?? '0')} soʻm</dd></div>
+                </>
+              ) : c.docType === 'ISHONCHNOMA' ? (
+                <>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Vakil PINFL</dt><dd className="font-mono">{c.personPinfl}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Bank</dt><dd className="text-right">{c.poaBankName}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Amal muddati</dt><dd>{c.poaValidUntil ? dmy(c.poaValidUntil) : '—'}</dd></div>
                 </>
               ) : (
                 <>

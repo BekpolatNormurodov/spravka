@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import {
   CertStatus, dmy, formatSum, parseCertFilters, buildCertWhere, pageSlice, pageHref, PER_PAGE,
-  type CertFilterParams,
+  DOC_TYPE_SHORT, type CertFilterParams,
 } from '@spravka/shared/core';
 import { PageHeader, EmptyState, ClickableRow, Filters, Pagination, ContractCell } from '@spravka/shared/ui';
 import { RowActions } from '@/components/RowActions';
@@ -76,11 +76,11 @@ export default async function Imzolash({ searchParams }: { searchParams: CertFil
                       <td className="px-4 py-3 align-top">
                         <div className="flex items-center gap-2">
                           <span className="truncate font-medium" title={c.personFullName}>{c.personFullName}</span>
-                          {c.docType === 'ARIZA' && (
-                            <span className="shrink-0 rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">Ariza</span>
+                          {c.docType !== 'MALUMOTNOMA' && (
+                            <span className="shrink-0 rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">{DOC_TYPE_SHORT[c.docType as keyof typeof DOC_TYPE_SHORT]}</span>
                           )}
                         </div>
-                        <div className="truncate font-mono text-xs text-muted">{c.docType === 'ARIZA' ? c.personPinfl : c.personPassport}</div>
+                        <div className="truncate font-mono text-xs text-muted">{c.docType === 'MALUMOTNOMA' ? c.personPassport : c.personPinfl}</div>
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="truncate text-fg" title={c.firm.name}>{c.firm.shortName ?? c.firm.name}</div>

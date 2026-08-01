@@ -80,6 +80,13 @@ export default async function CertDetail({ params }: { params: { id: string } })
                   <div className="flex justify-between gap-3"><dt className="text-muted">{c.contracts.length > 1 ? `Shartnomalar (${c.contracts.length})` : 'Shartnoma'}</dt><dd className="text-right"><ContractCell contracts={c.contracts} /></dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-muted">Jami qarz</dt><dd>{formatSumDecimal(c.debtTotal?.toString() ?? '0')} soʻm</dd></div>
                 </>
+              ) : c.docType === 'ISHONCHNOMA' ? (
+                <>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Vakil PINFL</dt><dd className="font-mono">{c.personPinfl}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Bank</dt><dd className="text-right">{c.poaBankName}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-muted">Amal muddati</dt><dd>{c.poaValidUntil ? dmy(c.poaValidUntil) : '—'}</dd></div>
+                </>
               ) : (
                 <>
                   <div className="flex justify-between gap-3"><dt className="text-muted">Passport</dt><dd>{c.personPassport}</dd></div>
