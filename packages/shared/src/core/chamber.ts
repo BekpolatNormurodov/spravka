@@ -7,12 +7,12 @@
  * Kept verbatim from the source blank, including its spelling («xududiy»).
  */
 export const CHAMBER = {
-  /** Letterhead line 1 (bold). */
+  /** Letterhead line 1 (bold). The blank prints «...boshqarmasi»; «hududiy» is the correct form. */
   branchName: 'Toshkent shahar hududiy boshqarmasi',
-  /** Letterhead contact lines, right-aligned under the branch name. */
+  /** Letterhead contact lines, right-aligned under the branch name — verbatim from the blank's masthead. */
   contact: [
-    'Toshkent sh., A.Temur shox koʻchasi, 4-uy',
-    'tel. +99895 144 24 00, +99895 144 27 00',
+    'Toshkent sh., Bobur koʻchasi 30-uy',
+    'tel.: (+998) 95-144-24-00, (+998) 95-144-27-00, 1094',
     'e-mail: th@chamber.uz, www.chamber.uz',
   ],
   /** «Arizachi:» block — the applicant is the chamber itself. */

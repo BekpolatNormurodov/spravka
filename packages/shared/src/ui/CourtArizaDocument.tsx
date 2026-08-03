@@ -1,7 +1,7 @@
 import React from 'react';
 import { dmy, formatSumDecimal, uzLongDateLatin, arizaHeaderDate, type DocContract } from '../core/document';
 import { CHAMBER } from '../core/chamber';
-import { CHAMBER_LOGO_DATA_URL } from './chamber-logo.data';
+import { CHAMBER_EMBLEM_DATA_URL } from './chamber-emblem.data';
 import type { CertFirm } from './CertificateDocument';
 
 /**
@@ -110,18 +110,23 @@ export function CourtArizaDocument(p: CourtArizaDocumentProps) {
     <div className="cert-sheet" style={{ fontFamily: '"Times New Roman", Times, serif', color: '#000' }}>
       {/*
         ── Letterhead ──
-        image1.png IS the whole masthead — the emblem and «Oʻzbekiston Savdo-sanoat palatasi» on the
-        left, the branch name, address, contacts and the chamber's own QR on the right, and the
-        bilingual strip beneath. So it is printed full width and nothing is re-typed beside it; the
-        branch text in CHAMBER is the source of truth for the *body* blocks, not the masthead.
+        The emblem and «Oʻzbekiston Savdo-sanoat palatasi» wordmark are the one part that must stay an
+        image (CHAMBER_EMBLEM_DATA_URL, cropped from the blank). The branch name and contacts are HTML
+        text from CHAMBER, so «hududiy» is spelled correctly and the blank's English/Russian strip and
+        the chamber's own QR — neither wanted here — are simply not drawn. The old approach printed the
+        whole letterhead as one flat image, which baked «boshqarmasi» (no «hududiy») into pixels.
       */}
-      <header>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10mm' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={CHAMBER_LOGO_DATA_URL}
-          alt="Oʻzbekiston Savdo-sanoat palatasi — Toshkent shahar boshqarmasi"
-          style={{ width: '100%', height: 'auto', display: 'block' }}
+          src={CHAMBER_EMBLEM_DATA_URL}
+          alt="Oʻzbekiston Savdo-sanoat palatasi"
+          style={{ height: '20mm', width: 'auto', display: 'block', flexShrink: 0 }}
         />
+        <div style={{ textAlign: 'right', fontSize: '10pt', lineHeight: 1.35 }}>
+          <div style={{ fontSize: '13pt', fontWeight: 700, marginBottom: '2pt' }}>{CHAMBER.branchName}</div>
+          {CHAMBER.contact.map((line, i) => <div key={i}>{line}</div>)}
+        </div>
       </header>
 
       {/* ── Date / number (left) ── */}
